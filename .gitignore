@@ -1,0 +1,21 @@
+# Rust
+src-tauri/target/
+src-tauri/gen/
+
+# Database
+omnilingo.db
+omnilingo.db-wal
+omnilingo.db-shm
+
+# Whisper models (large files)
+models/
+
+# Downloaded dictionaries
+downloads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (shouldn't be needed but just in case)
+node_modules/

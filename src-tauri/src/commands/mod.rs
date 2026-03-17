@@ -1,0 +1,10 @@
+pub mod settings;
+pub mod memory;
+pub mod ai;
+pub mod import;
+pub mod dictionary;
+pub mod srs;
+pub mod grammar;
+pub mod conjugation;
+pub mod speech;
+pub mod download;

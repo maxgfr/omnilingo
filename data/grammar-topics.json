@@ -1,0 +1,2702 @@
+[
+  {
+    "id": "a1-01-pronomen",
+    "level": "A1",
+    "order": 1,
+    "title": "Les pronoms personnels",
+    "titleDe": "Personalpronomen",
+    "explanation": "En allemand, les pronoms personnels sont essentiels car le verbe se conjugue selon le pronom sujet. Voici le tableau complet :\n\n| Allemand | Francais |\n|----------|----------|\n| ich | je |\n| du | tu |\n| er | il |\n| sie | elle |\n| es | il/elle (neutre) |\n| wir | nous |\n| ihr | vous (pluriel informel) |\n| sie | ils/elles |\n| Sie | vous (forme de politesse) |\n\nAttention : \"sie\" (minuscule) signifie \"elle\" ou \"ils/elles\" selon le contexte. \"Sie\" (majuscule) est la forme de politesse, equivalent du \"vous\" francais au singulier et au pluriel.",
+    "keyPoints": [
+      "\"es\" est le pronom neutre, utilise pour les noms neutres (das Kind -> es)",
+      "\"ihr\" est le pluriel informel de \"du\" (quand on tutoie plusieurs personnes)",
+      "\"Sie\" (majuscule) est la forme de politesse, toujours conjugue comme la 3e personne du pluriel",
+      "\"sie\" (minuscule) peut signifier \"elle\" ou \"ils/elles\" selon le contexte et la conjugaison du verbe"
+    ],
+    "examples": [
+      {
+        "de": "Ich bin Student.",
+        "fr": "Je suis etudiant.",
+        "highlight": "Ich"
+      },
+      {
+        "de": "Du bist nett.",
+        "fr": "Tu es gentil(le).",
+        "highlight": "Du"
+      },
+      {
+        "de": "Sie sind Herr Muller?",
+        "fr": "Vous etes Monsieur Muller ?",
+        "highlight": "Sie"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel pronom personnel correspond a \"nous\" en allemand ?",
+        "options": [
+          "ihr",
+          "sie",
+          "wir",
+          "Sie"
+        ],
+        "correct": 2,
+        "explanation": "\"wir\" signifie \"nous\" en allemand. \"ihr\" = vous (informel pluriel), \"sie\" = elle/ils/elles, \"Sie\" = vous (politesse)."
+      },
+      {
+        "type": "fill",
+        "sentence": "___ heisse Anna.",
+        "answer": "Ich",
+        "hint": "pronom pour 'je'"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "\"Sie\" avec une majuscule est la forme de politesse en allemand.",
+        "correct": true,
+        "explanation": "Oui, \"Sie\" (majuscule) est toujours la forme de politesse, equivalent au vouvoiement francais."
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle est la difference entre \"sie\" (minuscule) et \"Sie\" (majuscule) ?",
+        "options": [
+          "Il n'y a aucune difference",
+          "\"sie\" = elle/ils/elles, \"Sie\" = vous (politesse)",
+          "\"sie\" = vous (politesse), \"Sie\" = elle",
+          "\"sie\" = il, \"Sie\" = nous"
+        ],
+        "correct": 1,
+        "explanation": "\"sie\" (minuscule) signifie \"elle\" ou \"ils/elles\". \"Sie\" (majuscule) est la forme de politesse (\"vous\")."
+      },
+      {
+        "type": "fill",
+        "sentence": "___ kommt aus Deutschland.",
+        "answer": "Er",
+        "hint": "pronom pour 'il'"
+      }
+    ]
+  },
+  {
+    "id": "a1-02-praesens",
+    "level": "A1",
+    "order": 2,
+    "title": "Present des verbes reguliers",
+    "titleDe": "Prasens der regelmassigen Verben",
+    "explanation": "En allemand, les verbes reguliers au present suivent un schema de conjugaison base sur le radical du verbe. On retire la terminaison \"-en\" de l'infinitif pour obtenir le radical, puis on ajoute les terminaisons :\n\n| Pronom | Terminaison | Exemple (machen) |\n|--------|------------|-------------------|\n| ich | -e | mache |\n| du | -st | machst |\n| er/sie/es | -t | macht |\n| wir | -en | machen |\n| ihr | -t | macht |\n| sie/Sie | -en | machen |\n\nExemples de verbes reguliers : spielen (jouer), lernen (apprendre), wohnen (habiter), kommen (venir), trinken (boire).",
+    "keyPoints": [
+      "Le radical s'obtient en retirant \"-en\" de l'infinitif : machen -> mach-",
+      "Les terminaisons sont : -e, -st, -t, -en, -t, -en",
+      "Si le radical se termine par -t ou -d (arbeiten, finden), on ajoute un \"e\" avant -st et -t : du arbeitest, er arbeitet",
+      "La forme \"wir\" et \"sie/Sie\" est toujours identique a l'infinitif"
+    ],
+    "examples": [
+      {
+        "de": "Ich spiele Fussball.",
+        "fr": "Je joue au football.",
+        "highlight": "spiele"
+      },
+      {
+        "de": "Du lernst Deutsch.",
+        "fr": "Tu apprends l'allemand.",
+        "highlight": "lernst"
+      },
+      {
+        "de": "Wir wohnen in Paris.",
+        "fr": "Nous habitons a Paris.",
+        "highlight": "wohnen"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "fill",
+        "sentence": "Er ___ Gitarre. (spielen)",
+        "answer": "spielt",
+        "hint": "terminaison pour er/sie/es"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle est la conjugaison correcte de \"lernen\" avec \"du\" ?",
+        "options": [
+          "du lerne",
+          "du lernst",
+          "du lernt",
+          "du lernen"
+        ],
+        "correct": 1,
+        "explanation": "Avec \"du\", on ajoute la terminaison \"-st\" au radical : lern + st = lernst."
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le verbe \"arbeiten\" se conjugue \"du arbeitst\" au present.",
+        "correct": false,
+        "explanation": "Faux ! Quand le radical se termine par -t, on ajoute un \"e\" euphonique : \"du arbeitest\" (et non \"arbeitst\")."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ihr ___ sehr gut Deutsch. (sprechen)",
+        "answer": "sprecht",
+        "hint": "terminaison pour ihr"
+      },
+      {
+        "type": "qcm",
+        "question": "Comment conjugue-t-on \"wohnen\" a la 1re personne du pluriel ?",
+        "options": [
+          "wir wohnt",
+          "wir wohne",
+          "wir wohnen",
+          "wir wohnst"
+        ],
+        "correct": 2,
+        "explanation": "A la 1re personne du pluriel (wir), la terminaison est \"-en\", identique a l'infinitif : wir wohnen."
+      }
+    ]
+  },
+  {
+    "id": "a1-03-sein-haben",
+    "level": "A1",
+    "order": 3,
+    "title": "sein et haben",
+    "titleDe": "sein und haben",
+    "explanation": "\"sein\" (etre) et \"haben\" (avoir) sont les deux verbes les plus importants en allemand. Ils sont irreguliers et doivent etre appris par coeur.\n\nConjugaison de \"sein\" (etre) :\n| Pronom | sein |\n|--------|------|\n| ich | bin |\n| du | bist |\n| er/sie/es | ist |\n| wir | sind |\n| ihr | seid |\n| sie/Sie | sind |\n\nConjugaison de \"haben\" (avoir) :\n| Pronom | haben |\n|--------|-------|\n| ich | habe |\n| du | hast |\n| er/sie/es | hat |\n| wir | haben |\n| ihr | habt |\n| sie/Sie | haben |\n\nComme en francais, ces verbes servent aussi d'auxiliaires pour former les temps composes.",
+    "keyPoints": [
+      "\"sein\" est completement irregulier (comme \"etre\" en francais)",
+      "\"haben\" perd son \"b\" a la 2e et 3e personne du singulier (du hast, er hat)",
+      "\"sein\" s'utilise avec les adjectifs attributs : Ich bin mude (Je suis fatigue)",
+      "\"haben\" exprime la possession : Ich habe ein Auto (J'ai une voiture)"
+    ],
+    "examples": [
+      {
+        "de": "Ich bin mude.",
+        "fr": "Je suis fatigue(e).",
+        "highlight": "bin"
+      },
+      {
+        "de": "Er hat zwei Kinder.",
+        "fr": "Il a deux enfants.",
+        "highlight": "hat"
+      },
+      {
+        "de": "Wir sind aus Frankreich.",
+        "fr": "Nous sommes de France.",
+        "highlight": "sind"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "fill",
+        "sentence": "Du ___ sehr nett. (sein)",
+        "answer": "bist",
+        "hint": "conjugaison de sein avec du"
+      },
+      {
+        "type": "qcm",
+        "question": "Comment dit-on \"elle a un chat\" en allemand ?",
+        "options": [
+          "Sie hat eine Katze.",
+          "Sie haben eine Katze.",
+          "Sie ist eine Katze.",
+          "Sie hast eine Katze."
+        ],
+        "correct": 0,
+        "explanation": "\"sie\" (elle) + \"hat\" (a) : Sie hat eine Katze. \"haben\" serait pour sie/Sie (ils/vous) et \"hast\" pour \"du\"."
+      },
+      {
+        "type": "trueFalse",
+        "statement": "La forme de \"sein\" pour \"wir\" et \"sie (pluriel)\" est identique : \"sind\".",
+        "correct": true,
+        "explanation": "Oui, on dit \"wir sind\" et \"sie sind\". La forme est la meme pour la 1re et la 3e personne du pluriel."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ihr ___ Hunger. (haben)",
+        "answer": "habt",
+        "hint": "conjugaison de haben avec ihr"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle phrase est correcte ?",
+        "options": [
+          "Ich habe krank.",
+          "Ich bin krank.",
+          "Ich habe krank sein.",
+          "Ich bist krank."
+        ],
+        "correct": 1,
+        "explanation": "En allemand, on utilise \"sein\" (et non \"haben\") avec les adjectifs : Ich bin krank = Je suis malade."
+      }
+    ]
+  },
+  {
+    "id": "a1-04-artikel",
+    "level": "A1",
+    "order": 4,
+    "title": "Articles definis et indefinis",
+    "titleDe": "Bestimmte und unbestimmte Artikel",
+    "explanation": "En allemand, il existe trois genres : masculin, feminin et neutre. Chaque genre a son propre article.\n\nArticles definis (le/la/les) :\n| Genre | Article |\n|-------|--------|\n| Masculin | der |\n| Feminin | die |\n| Neutre | das |\n| Pluriel | die |\n\nArticles indefinis (un/une) :\n| Genre | Article |\n|-------|--------|\n| Masculin | ein |\n| Feminin | eine |\n| Neutre | ein |\n| Pluriel | (pas d'article) |\n\nAttention : le genre des noms en allemand ne correspond pas toujours au genre en francais ! Par exemple, \"le soleil\" est feminin en allemand (die Sonne) et \"la lune\" est masculin (der Mond).",
+    "keyPoints": [
+      "L'allemand a trois genres : masculin (der), feminin (die), neutre (das)",
+      "Le pluriel utilise toujours \"die\", quel que soit le genre du singulier",
+      "\"ein\" et \"ein\" sont identiques pour le masculin et le neutre",
+      "Il faut apprendre chaque nom avec son article car le genre est souvent imprevisible"
+    ],
+    "examples": [
+      {
+        "de": "Der Mann trinkt Kaffee.",
+        "fr": "L'homme boit du cafe.",
+        "highlight": "Der"
+      },
+      {
+        "de": "Ich habe eine Katze.",
+        "fr": "J'ai un chat.",
+        "highlight": "eine"
+      },
+      {
+        "de": "Das Kind spielt.",
+        "fr": "L'enfant joue.",
+        "highlight": "Das"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel est l'article defini correct pour \"Frau\" (femme) ?",
+        "options": [
+          "der",
+          "die",
+          "das",
+          "ein"
+        ],
+        "correct": 1,
+        "explanation": "\"Frau\" est feminin, donc l'article defini est \"die\". die Frau = la femme."
+      },
+      {
+        "type": "fill",
+        "sentence": "___ Buch ist interessant. (article defini neutre)",
+        "answer": "Das",
+        "hint": "article defini pour le neutre"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "L'article indefini au pluriel en allemand est \"eine\".",
+        "correct": false,
+        "explanation": "Faux ! Il n'existe pas d'article indefini au pluriel en allemand. On dit simplement : Ich habe Bucher (J'ai des livres)."
+      },
+      {
+        "type": "qcm",
+        "question": "Completez : Ich sehe ___ Hund. (article indefini masculin nominatif)",
+        "options": [
+          "ein",
+          "eine",
+          "der",
+          "einen"
+        ],
+        "correct": 0,
+        "explanation": "L'article indefini masculin au nominatif est \"ein\". Ein Hund = un chien. (Attention : a l'accusatif, ce serait \"einen\", mais ici c'est le nominatif.)"
+      },
+      {
+        "type": "fill",
+        "sentence": "___ Kinder spielen im Garten. (article defini pluriel)",
+        "answer": "Die",
+        "hint": "article defini au pluriel"
+      }
+    ]
+  },
+  {
+    "id": "a1-05-genus-plural",
+    "level": "A1",
+    "order": 5,
+    "title": "Genre et pluriel des noms",
+    "titleDe": "Genus und Plural der Nomen",
+    "explanation": "En allemand, il n'y a pas de regle absolue pour le genre des noms, mais il existe des tendances utiles.\n\nTendances pour le genre :\n- Masculin (der) : noms en -er, -ling, -ismus, jours/mois/saisons (der Montag, der Januar, der Sommer)\n- Feminin (die) : noms en -ung, -heit, -keit, -tion, -ie, -schaft, -tat (die Zeitung, die Freiheit)\n- Neutre (das) : noms en -chen, -lein, -ment, -um, -nis (das Madchen, das Dokument)\n\nFormation du pluriel - il existe plusieurs modeles :\n| Type | Singulier | Pluriel |\n|------|----------|--------|\n| -e | der Tisch | die Tische |\n| -er | das Kind | die Kinder |\n| -n/-en | die Lampe | die Lampen |\n| -s | das Auto | die Autos |\n| Umlaut + -e | der Baum | die Baume |\n| pas de changement | der Lehrer | die Lehrer |",
+    "keyPoints": [
+      "Les noms en -chen et -lein sont toujours neutres (das Madchen = la fille, malgre le sens feminin !)",
+      "Les noms en -ung, -heit, -keit sont toujours feminins",
+      "Le pluriel se forme de differentes facons : il faut l'apprendre avec chaque nom",
+      "Astuce : apprenez toujours un nom avec son article ET son pluriel (der Tisch, -e)"
+    ],
+    "examples": [
+      {
+        "de": "Die Zeitung ist interessant.",
+        "fr": "Le journal est interessant.",
+        "highlight": "Die Zeitung"
+      },
+      {
+        "de": "Das Madchen heisst Anna.",
+        "fr": "La fille s'appelle Anna.",
+        "highlight": "Das Madchen"
+      },
+      {
+        "de": "Die Kinder spielen.",
+        "fr": "Les enfants jouent.",
+        "highlight": "Die Kinder"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel est le genre de \"Freiheit\" (liberte) ?",
+        "options": [
+          "Masculin (der)",
+          "Feminin (die)",
+          "Neutre (das)",
+          "On ne peut pas savoir"
+        ],
+        "correct": 1,
+        "explanation": "Les noms en \"-heit\" sont toujours feminins : die Freiheit."
+      },
+      {
+        "type": "trueFalse",
+        "statement": "\"das Madchen\" (la fille) est neutre en allemand.",
+        "correct": true,
+        "explanation": "Oui ! Le suffixe \"-chen\" rend le nom toujours neutre, meme si le mot designe une personne de sexe feminin."
+      },
+      {
+        "type": "fill",
+        "sentence": "Der Tisch -> Die ___ (pluriel)",
+        "answer": "Tische",
+        "hint": "ajoutez -e au singulier"
+      },
+      {
+        "type": "qcm",
+        "question": "Quel est le pluriel de \"das Kind\" ?",
+        "options": [
+          "die Kinds",
+          "die Kinde",
+          "die Kinder",
+          "die Kindern"
+        ],
+        "correct": 2,
+        "explanation": "Le pluriel de \"Kind\" est \"Kinder\" (modele en -er). die Kinder = les enfants."
+      },
+      {
+        "type": "fill",
+        "sentence": "___ Zeitung liegt auf dem Tisch. (article defini)",
+        "answer": "Die",
+        "hint": "les noms en -ung sont feminins"
+      }
+    ]
+  },
+  {
+    "id": "a1-06-verneinung",
+    "level": "A1",
+    "order": 6,
+    "title": "La negation",
+    "titleDe": "Die Verneinung",
+    "explanation": "En allemand, il existe deux facons principales de nier :\n\n1. \"nicht\" (ne... pas) : pour nier un verbe, un adjectif ou un adverbe.\n   - Ich komme nicht. (Je ne viens pas.)\n   - Das ist nicht gut. (Ce n'est pas bien.)\n\n2. \"kein/keine\" (pas de, aucun) : pour nier un nom precede d'un article indefini (ein/eine) ou sans article.\n   - Ich habe einen Hund. -> Ich habe keinen Hund. (Je n'ai pas de chien.)\n   - Ich trinke Milch. -> Ich trinke keine Milch. (Je ne bois pas de lait.)\n\nRegle simple : si le nom est precede de \"ein/eine\" ou s'il n'a pas d'article, utilisez \"kein\". Sinon, utilisez \"nicht\".\n\n\"kein\" se decline comme \"ein\" :\n| Genre | Nominatif | Accusatif |\n|-------|-----------|-----------|\n| Masculin | kein | keinen |\n| Feminin | keine | keine |\n| Neutre | kein | kein |\n| Pluriel | keine | keine |",
+    "keyPoints": [
+      "\"nicht\" nie le verbe, l'adjectif ou l'adverbe (equivalent de \"ne... pas\")",
+      "\"kein\" remplace l'article indefini \"ein\" dans une phrase negative (equivalent de \"pas de / aucun\")",
+      "\"kein\" se decline selon le genre et le cas, comme \"ein\"",
+      "\"nicht\" se place generalement en fin de phrase ou avant l'element nie"
+    ],
+    "examples": [
+      {
+        "de": "Ich spreche nicht Englisch.",
+        "fr": "Je ne parle pas anglais.",
+        "highlight": "nicht"
+      },
+      {
+        "de": "Er hat kein Auto.",
+        "fr": "Il n'a pas de voiture.",
+        "highlight": "kein"
+      },
+      {
+        "de": "Das ist keine gute Idee.",
+        "fr": "Ce n'est pas une bonne idee.",
+        "highlight": "keine"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment dit-on \"Je n'ai pas d'enfants\" ?",
+        "options": [
+          "Ich habe nicht Kinder.",
+          "Ich habe keine Kinder.",
+          "Ich habe kein Kinder.",
+          "Ich nicht habe Kinder."
+        ],
+        "correct": 1,
+        "explanation": "On utilise \"keine\" (pluriel de \"kein\") devant le nom \"Kinder\" : Ich habe keine Kinder."
+      },
+      {
+        "type": "fill",
+        "sentence": "Das Wetter ist ___ schon. (negation)",
+        "answer": "nicht",
+        "hint": "on nie l'adjectif, donc on utilise..."
+      },
+      {
+        "type": "trueFalse",
+        "statement": "On utilise \"kein\" pour nier un verbe en allemand.",
+        "correct": false,
+        "explanation": "Faux ! Pour nier un verbe, on utilise \"nicht\". \"kein\" sert a nier un nom (il remplace l'article indefini)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Sie hat ___ Bruder. (pas de frere)",
+        "answer": "keinen",
+        "hint": "kein a l'accusatif masculin"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle phrase est correcte pour dire \"Je ne comprends pas\" ?",
+        "options": [
+          "Ich verstehe kein.",
+          "Ich kein verstehe.",
+          "Ich verstehe nicht.",
+          "Ich nicht verstehe."
+        ],
+        "correct": 2,
+        "explanation": "On nie le verbe avec \"nicht\", place en fin de phrase : Ich verstehe nicht."
+      }
+    ]
+  },
+  {
+    "id": "a1-07-akkusativ",
+    "level": "A1",
+    "order": 7,
+    "title": "L'accusatif",
+    "titleDe": "Der Akkusativ",
+    "explanation": "L'accusatif est le cas du complement d'objet direct (COD) en allemand. Seul l'article masculin change entre le nominatif et l'accusatif.\n\nArticles definis :\n| Genre | Nominatif | Accusatif |\n|-------|-----------|-----------|\n| Masculin | der | den |\n| Feminin | die | die |\n| Neutre | das | das |\n| Pluriel | die | die |\n\nArticles indefinis :\n| Genre | Nominatif | Accusatif |\n|-------|-----------|-----------|\n| Masculin | ein | einen |\n| Feminin | eine | eine |\n| Neutre | ein | ein |\n\nSeul le masculin change ! C'est la bonne nouvelle. Pour identifier l'accusatif, posez la question \"wen?\" (qui ?) ou \"was?\" (quoi ?).\n\nExemple : Ich sehe den Mann. (Je vois l'homme.) -> Wen sehe ich? -> den Mann (accusatif).",
+    "keyPoints": [
+      "Seul l'article masculin change a l'accusatif : der -> den, ein -> einen",
+      "Le feminin, le neutre et le pluriel restent identiques au nominatif",
+      "L'accusatif repond aux questions \"wen?\" (qui ?) et \"was?\" (quoi ?)",
+      "Certains verbes exigent toujours l'accusatif : haben, sehen, brauchen, kaufen, essen, trinken"
+    ],
+    "examples": [
+      {
+        "de": "Ich sehe den Hund.",
+        "fr": "Je vois le chien.",
+        "highlight": "den"
+      },
+      {
+        "de": "Sie kauft einen Rock.",
+        "fr": "Elle achete une jupe.",
+        "highlight": "einen"
+      },
+      {
+        "de": "Wir brauchen das Buch.",
+        "fr": "Nous avons besoin du livre.",
+        "highlight": "das"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "fill",
+        "sentence": "Ich kaufe ___ Kuchen. (article defini masculin accusatif)",
+        "answer": "den",
+        "hint": "masculin a l'accusatif : der devient..."
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle phrase est correcte ?",
+        "options": [
+          "Er trinkt der Kaffee.",
+          "Er trinkt den Kaffee.",
+          "Er trinkt dem Kaffee.",
+          "Er trinkt des Kaffee."
+        ],
+        "correct": 1,
+        "explanation": "\"Kaffee\" est masculin et COD de \"trinken\", donc accusatif : der -> den. Er trinkt den Kaffee."
+      },
+      {
+        "type": "trueFalse",
+        "statement": "A l'accusatif, l'article feminin \"die\" change en \"der\".",
+        "correct": false,
+        "explanation": "Faux ! Le feminin ne change pas a l'accusatif. \"die\" reste \"die\" : Ich sehe die Frau."
+      },
+      {
+        "type": "fill",
+        "sentence": "Hast du ___ Bruder? (article indefini masculin accusatif)",
+        "answer": "einen",
+        "hint": "ein au masculin accusatif devient..."
+      },
+      {
+        "type": "qcm",
+        "question": "Dans la phrase \"Das Kind isst einen Apfel\", pourquoi utilise-t-on \"einen\" ?",
+        "options": [
+          "Parce que \"Apfel\" est feminin",
+          "Parce que \"Apfel\" est au nominatif",
+          "Parce que \"Apfel\" est masculin et COD (accusatif)",
+          "Parce que \"Apfel\" est neutre"
+        ],
+        "correct": 2,
+        "explanation": "\"Apfel\" est masculin (der Apfel) et il est le complement d'objet direct de \"essen\" (manger), donc il est a l'accusatif : ein -> einen."
+      }
+    ]
+  },
+  {
+    "id": "a1-08-fragesaetze",
+    "level": "A1",
+    "order": 8,
+    "title": "Les questions",
+    "titleDe": "Fragesatze",
+    "explanation": "En allemand, il existe deux types de questions :\n\n1. Les questions fermees (Ja/Nein-Fragen) : le verbe est en premiere position.\n   - Sprichst du Deutsch? (Parles-tu allemand ?)\n   - Ist er Student? (Est-il etudiant ?)\n\n2. Les questions ouvertes (W-Fragen) : elles commencent par un mot interrogatif en W-, suivi du verbe.\n   - Wie heisst du? (Comment t'appelles-tu ?)\n   - Wo wohnst du? (Ou habites-tu ?)\n\nLes mots interrogatifs courants :\n| Allemand | Francais |\n|----------|----------|\n| wer | qui |\n| was | quoi/que |\n| wo | ou |\n| woher | d'ou |\n| wohin | vers ou |\n| wann | quand |\n| wie | comment |\n| warum | pourquoi |\n| wie viel(e) | combien |",
+    "keyPoints": [
+      "Questions Ja/Nein : le verbe conjugue est en position 1 (inversion sujet-verbe)",
+      "Questions en W- : le mot interrogatif est en position 1, le verbe en position 2",
+      "\"wo\" = ou (lieu fixe), \"wohin\" = vers ou (direction), \"woher\" = d'ou (provenance)",
+      "\"wie\" peut se combiner : wie alt (quel age), wie viel (combien), wie lange (combien de temps)"
+    ],
+    "examples": [
+      {
+        "de": "Wo wohnst du?",
+        "fr": "Ou habites-tu ?",
+        "highlight": "Wo"
+      },
+      {
+        "de": "Sprichst du Deutsch?",
+        "fr": "Parles-tu allemand ?",
+        "highlight": "Sprichst"
+      },
+      {
+        "de": "Warum lernst du Deutsch?",
+        "fr": "Pourquoi apprends-tu l'allemand ?",
+        "highlight": "Warum"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment demander \"D'ou viens-tu ?\" en allemand ?",
+        "options": [
+          "Wo kommst du?",
+          "Wohin kommst du?",
+          "Woher kommst du?",
+          "Wer kommst du?"
+        ],
+        "correct": 2,
+        "explanation": "\"Woher\" signifie \"d'ou\" (provenance). Woher kommst du? = D'ou viens-tu ?"
+      },
+      {
+        "type": "fill",
+        "sentence": "___ heissen Sie? (comment)",
+        "answer": "Wie",
+        "hint": "mot interrogatif pour 'comment'"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Dans une question Ja/Nein, le verbe est en deuxieme position.",
+        "correct": false,
+        "explanation": "Faux ! Dans une question Ja/Nein (question fermee), le verbe est en premiere position : Kommst du? Bist du mude?"
+      },
+      {
+        "type": "fill",
+        "sentence": "___ ist das? - Das ist Maria. (qui)",
+        "answer": "Wer",
+        "hint": "mot interrogatif pour 'qui'"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle question est grammaticalement correcte ?",
+        "options": [
+          "Du wohnst wo?",
+          "Wo du wohnst?",
+          "Wo wohnst du?",
+          "Wohnst wo du?"
+        ],
+        "correct": 2,
+        "explanation": "Dans une W-Frage, l'ordre est : mot en W- + verbe + sujet. Wo wohnst du?"
+      }
+    ]
+  },
+  {
+    "id": "a1-09-wortstellung",
+    "level": "A1",
+    "order": 9,
+    "title": "L'ordre des mots",
+    "titleDe": "Die Wortstellung",
+    "explanation": "L'allemand suit une regle fondamentale : le verbe conjugue est TOUJOURS en deuxieme position dans une phrase declarative. C'est la regle V2 (Verb-Zweit).\n\nOrdre standard : Sujet + Verbe + Complements\n- Ich lerne Deutsch. (J'apprends l'allemand.)\n\nInversion : si un complement est en premiere position, le sujet passe apres le verbe (mais le verbe reste en position 2).\n- Heute lerne ich Deutsch. (Aujourd'hui, j'apprends l'allemand.)\n- In Berlin wohne ich. (A Berlin, j'habite.)\n\nOrdre temporel : Temps - Maniere - Lieu (TeKaMoLo)\n- Ich fahre morgen mit dem Zug nach Berlin.\n  (Je vais demain en train a Berlin.)\n\nDans les questions Ja/Nein, le verbe est en position 1.\nDans les subordonnees (niveau A2+), le verbe va a la fin.",
+    "keyPoints": [
+      "Regle V2 : le verbe conjugue est TOUJOURS en 2e position dans une phrase declarative",
+      "Si un complement precede le sujet, le sujet et le verbe s'inversent (le verbe reste en position 2)",
+      "Ordre des complements : Temps - Cause - Maniere - Lieu (TeKaMoLo)",
+      "Cette inversion n'existe pas en francais, c'est une specificite importante de l'allemand"
+    ],
+    "examples": [
+      {
+        "de": "Heute gehe ich ins Kino.",
+        "fr": "Aujourd'hui, je vais au cinema.",
+        "highlight": "gehe"
+      },
+      {
+        "de": "Morgen kommt er nach Paris.",
+        "fr": "Demain, il vient a Paris.",
+        "highlight": "kommt"
+      },
+      {
+        "de": "Am Montag habe ich frei.",
+        "fr": "Lundi, j'ai conge.",
+        "highlight": "habe"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quelle phrase respecte la regle V2 ?",
+        "options": [
+          "Morgen ich gehe ins Kino.",
+          "Morgen gehe ich ins Kino.",
+          "Ich morgen gehe ins Kino.",
+          "Gehe ich morgen ins Kino."
+        ],
+        "correct": 1,
+        "explanation": "Quand un complement (\"morgen\") est en position 1, le verbe reste en position 2 et le sujet passe en position 3 : Morgen gehe ich ins Kino."
+      },
+      {
+        "type": "trueFalse",
+        "statement": "En allemand, le verbe conjugue peut etre en 3e position dans une phrase declarative.",
+        "correct": false,
+        "explanation": "Faux ! Le verbe conjugue est TOUJOURS en 2e position dans une phrase declarative (regle V2). C'est une regle fondamentale de la grammaire allemande."
+      },
+      {
+        "type": "fill",
+        "sentence": "In Deutschland ___ man viel Bier. (trinken)",
+        "answer": "trinkt",
+        "hint": "le verbe doit etre en position 2, conjugue avec 'man'"
+      },
+      {
+        "type": "qcm",
+        "question": "Remettez dans l'ordre : am Samstag / Tennis / ich / spiele",
+        "options": [
+          "Am Samstag ich spiele Tennis.",
+          "Ich spiele am Samstag Tennis.",
+          "Spiele ich am Samstag Tennis.",
+          "Tennis spiele am Samstag ich."
+        ],
+        "correct": 1,
+        "explanation": "L'ordre standard est : Sujet (Ich) + Verbe (spiele) + Temps (am Samstag) + COD (Tennis). On pourrait aussi dire : Am Samstag spiele ich Tennis."
+      },
+      {
+        "type": "fill",
+        "sentence": "Am Abend ___ wir ins Restaurant. (gehen)",
+        "answer": "gehen",
+        "hint": "verbe en position 2, conjugue avec wir"
+      }
+    ]
+  },
+  {
+    "id": "a1-10-zahlen",
+    "level": "A1",
+    "order": 10,
+    "title": "Les nombres",
+    "titleDe": "Die Zahlen",
+    "explanation": "Les nombres de 1 a 20 en allemand :\n1 = eins, 2 = zwei, 3 = drei, 4 = vier, 5 = funf, 6 = sechs, 7 = sieben, 8 = acht, 9 = neun, 10 = zehn, 11 = elf, 12 = zwolf, 13 = dreizehn, 14 = vierzehn, 15 = funfzehn, 16 = sechzehn, 17 = siebzehn, 18 = achtzehn, 19 = neunzehn, 20 = zwanzig.\n\nDe 21 a 99 : l'unite se dit AVANT la dizaine, reliees par \"und\" :\n- 21 = einundzwanzig (un-et-vingt)\n- 34 = vierunddreissig (quatre-et-trente)\n- 57 = siebenundfunfzig (sept-et-cinquante)\n\nLes dizaines : 30 = dreissig, 40 = vierzig, 50 = funfzig, 60 = sechzig, 70 = siebzig, 80 = achtzig, 90 = neunzig, 100 = (ein)hundert.\n\nLes nombres ordinaux (premier, deuxieme...) :\n- De 1 a 19 : nombre + \"-te\" (avec quelques irreguliers : erste, dritte, siebte, achte)\n- A partir de 20 : nombre + \"-ste\" (zwanzigste, einundzwanzigste...)",
+    "keyPoints": [
+      "De 21 a 99, l'unite se dit AVANT la dizaine : 25 = funfundzwanzig (cinq-et-vingt)",
+      "Attention aux formes irregulieres : sechzehn (pas \"sechszehn\"), siebzehn (pas \"siebenzehn\")",
+      "Les ordinaux de 1 a 19 prennent \"-te\" (sauf erste, dritte, siebte, achte)",
+      "Les ordinaux a partir de 20 prennent \"-ste\" : zwanzigste, dreissigste"
+    ],
+    "examples": [
+      {
+        "de": "Ich bin funfundzwanzig Jahre alt.",
+        "fr": "J'ai vingt-cinq ans.",
+        "highlight": "funfundzwanzig"
+      },
+      {
+        "de": "Es kostet dreiundsechzig Euro.",
+        "fr": "Ca coute soixante-trois euros.",
+        "highlight": "dreiundsechzig"
+      },
+      {
+        "de": "Heute ist der erste Mai.",
+        "fr": "Aujourd'hui, c'est le premier mai.",
+        "highlight": "erste"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment dit-on 47 en allemand ?",
+        "options": [
+          "vierundsiebzig",
+          "siebenundvierzig",
+          "viersiebenzig",
+          "siebenunddreissig"
+        ],
+        "correct": 1,
+        "explanation": "47 = sieben (7) + und + vierzig (40) = siebenundvierzig. L'unite se dit avant la dizaine !"
+      },
+      {
+        "type": "fill",
+        "sentence": "Meine Telefonnummer ist: drei, ___, sieben, acht. (5)",
+        "answer": "funf",
+        "hint": "le nombre 5 en allemand"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "En allemand, 23 se dit \"dreiundzwanzig\" (trois-et-vingt).",
+        "correct": true,
+        "explanation": "Oui ! En allemand, l'unite precede la dizaine : 23 = drei + und + zwanzig = dreiundzwanzig."
+      },
+      {
+        "type": "qcm",
+        "question": "Quel est le nombre ordinal correct pour \"le troisieme\" ?",
+        "options": [
+          "der dreite",
+          "der dritte",
+          "der dreiste",
+          "der dreitste"
+        ],
+        "correct": 1,
+        "explanation": "\"Troisieme\" est irregulier en allemand : der dritte (et non \"dreite\"). C'est l'une des exceptions a retenir."
+      },
+      {
+        "type": "fill",
+        "sentence": "Hundert minus dreissig ist ___. (70)",
+        "answer": "siebzig",
+        "hint": "100 - 30 = ?"
+      }
+    ]
+  },
+  {
+    "id": "a1-11-lokale-praepositionen",
+    "level": "A1",
+    "order": 11,
+    "title": "Prepositions de lieu",
+    "titleDe": "Lokale Prapositionen",
+    "explanation": "Les prepositions de lieu sont essentielles pour indiquer ou l'on se trouve ou ou l'on va.\n\nPrepositions avec le datif (lieu fixe / ou ?) :\n- in : dans (Ich bin in der Schule. - Je suis a l'ecole.)\n- an : a/pres de (Er steht an der Tur. - Il est debout pres de la porte.)\n- auf : sur (Das Buch liegt auf dem Tisch. - Le livre est sur la table.)\n- bei : chez (Ich bin bei meinem Freund. - Je suis chez mon ami.)\n\nPrepositions avec l'accusatif (direction / ou va-t-on ?) :\n- nach : vers/a (pour pays et villes sans article) (Ich fahre nach Berlin.)\n- zu : vers/chez (Ich gehe zum Arzt. - Je vais chez le medecin.)\n- in : dans (avec direction) (Ich gehe in die Schule.)\n\nPrepositions de provenance :\n- aus : de (provenance d'un lieu ferme/pays) (Ich komme aus Frankreich.)\n- von : de (provenance d'une personne/lieu) (Ich komme von der Arbeit.)\n\nAttention : certaines prepositions (in, an, auf) peuvent prendre le datif OU l'accusatif selon qu'on exprime un lieu fixe ou une direction (Wechselprapositionen).",
+    "keyPoints": [
+      "\"nach\" s'utilise pour les pays sans article et les villes : nach Deutschland, nach Paris",
+      "\"zu\" s'utilise pour les personnes et les lieux specifiques : zum Arzt, zur Schule",
+      "\"aus\" indique la provenance d'un lieu ferme ou d'un pays : aus Frankreich, aus dem Haus",
+      "\"in\", \"an\", \"auf\" changent de cas selon le contexte : datif (lieu) ou accusatif (direction)"
+    ],
+    "examples": [
+      {
+        "de": "Ich komme aus Frankreich.",
+        "fr": "Je viens de France.",
+        "highlight": "aus"
+      },
+      {
+        "de": "Er geht zum Supermarkt.",
+        "fr": "Il va au supermarche.",
+        "highlight": "zum"
+      },
+      {
+        "de": "Das Buch liegt auf dem Tisch.",
+        "fr": "Le livre est sur la table.",
+        "highlight": "auf dem"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Completez : Ich fahre ___ Berlin.",
+        "options": [
+          "zu",
+          "nach",
+          "in",
+          "bei"
+        ],
+        "correct": 1,
+        "explanation": "Pour les villes (sans article), on utilise \"nach\" : Ich fahre nach Berlin."
+      },
+      {
+        "type": "fill",
+        "sentence": "Sie kommt ___ Deutschland. (provenance)",
+        "answer": "aus",
+        "hint": "preposition de provenance pour un pays"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "On dit \"Ich gehe nach Arzt\" pour dire \"Je vais chez le medecin\".",
+        "correct": false,
+        "explanation": "Faux ! Pour les personnes et les lieux specifiques, on utilise \"zu\" : Ich gehe zum Arzt (zu + dem = zum)."
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle preposition utilise-t-on pour dire \"Je suis chez mon ami\" ?",
+        "options": [
+          "zu",
+          "nach",
+          "in",
+          "bei"
+        ],
+        "correct": 3,
+        "explanation": "\"bei\" signifie \"chez\" quand on est deja sur place : Ich bin bei meinem Freund. (\"zu\" serait pour y aller.)"
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich gehe ___ Schule. (a l'ecole - direction)",
+        "answer": "zur",
+        "hint": "zu + der (feminin datif) = ..."
+      }
+    ]
+  },
+  {
+    "id": "a1-12-possessivpronomen",
+    "level": "A1",
+    "order": 12,
+    "title": "Les possessifs",
+    "titleDe": "Possessivpronomen",
+    "explanation": "Les adjectifs possessifs en allemand varient selon le possesseur et se declinent selon le genre et le cas du nom qu'ils accompagnent.\n\nLes possessifs par personne :\n| Pronom | Possessif | Francais |\n|--------|-----------|----------|\n| ich | mein | mon/ma/mes |\n| du | dein | ton/ta/tes |\n| er | sein | son/sa/ses (a lui) |\n| sie | ihr | son/sa/ses (a elle) |\n| es | sein | son/sa/ses (neutre) |\n| wir | unser | notre/nos |\n| ihr | euer | votre/vos (informel) |\n| sie | ihr | leur/leurs |\n| Sie | Ihr | votre/vos (politesse) |\n\nLes possessifs se declinent comme \"ein\" :\n| Cas | Masculin | Feminin | Neutre | Pluriel |\n|-----|----------|---------|--------|--------|\n| Nominatif | mein | meine | mein | meine |\n| Accusatif | meinen | meine | mein | meine |\n\nAttention : la difference entre \"sein\" (a lui/neutre) et \"ihr\" (a elle) est source de confusion pour les francophones, car en francais \"son/sa\" ne distingue pas le genre du possesseur.",
+    "keyPoints": [
+      "Le possessif s'accorde avec le genre du nom possede, pas du possesseur : sein Buch (son livre, a lui), ihre Tasche (son sac, a elle)",
+      "\"sein\" = possesseur masculin ou neutre, \"ihr\" = possesseur feminin",
+      "Les possessifs se declinent comme \"ein/eine\" selon le cas et le genre",
+      "Attention a \"euer\" : il perd souvent le \"e\" interne : eure (et non \"euere\")"
+    ],
+    "examples": [
+      {
+        "de": "Mein Name ist Thomas.",
+        "fr": "Mon nom est Thomas.",
+        "highlight": "Mein"
+      },
+      {
+        "de": "Wo ist deine Tasche?",
+        "fr": "Ou est ton sac ?",
+        "highlight": "deine"
+      },
+      {
+        "de": "Unsere Kinder spielen im Garten.",
+        "fr": "Nos enfants jouent dans le jardin.",
+        "highlight": "Unsere"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "fill",
+        "sentence": "___ Mutter kommt aus Deutschland. (ma)",
+        "answer": "Meine",
+        "hint": "possessif 1re personne, feminin nominatif"
+      },
+      {
+        "type": "qcm",
+        "question": "Comment dit-on \"son chien\" quand le possesseur est une femme (sie) ?",
+        "options": [
+          "sein Hund",
+          "ihr Hund",
+          "ihre Hund",
+          "seiner Hund"
+        ],
+        "correct": 1,
+        "explanation": "Le possesseur est feminin (sie), donc on utilise \"ihr\". \"Hund\" est masculin nominatif, donc pas de terminaison : ihr Hund."
+      },
+      {
+        "type": "trueFalse",
+        "statement": "\"sein\" et \"ihr\" dependent du genre du possesseur, pas du nom possede.",
+        "correct": true,
+        "explanation": "Oui ! Le choix entre \"sein\" et \"ihr\" depend du possesseur : sein (possesseur masculin/neutre), ihr (possesseur feminin). Mais la terminaison depend du nom possede."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich suche ___ Schlussel. (mes, pluriel accusatif)",
+        "answer": "meine",
+        "hint": "possessif 1re personne, pluriel accusatif"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle est la forme correcte pour \"votre\" (politesse) devant un nom feminin ?",
+        "options": [
+          "Euer",
+          "Ihre",
+          "Sein",
+          "Unser"
+        ],
+        "correct": 1,
+        "explanation": "La forme de politesse est \"Ihr\" (majuscule). Devant un nom feminin (nominatif/accusatif), on ajoute \"-e\" : Ihre. Beispiel: Ihre Adresse (votre adresse)."
+      }
+    ]
+  },
+  {
+    "id": "a2-01-perfekt-haben",
+    "level": "A2",
+    "order": 1,
+    "title": "Le Perfekt avec haben",
+    "titleDe": "Perfekt mit haben",
+    "explanation": "Le Perfekt est le temps du passé le plus utilisé en allemand oral. Il se forme avec l'auxiliaire haben conjugué au présent + le participe passé (Partizip II) placé à la fin de la phrase.\n\nFormation du Partizip II :\n- Verbes réguliers : ge- + radical + -t (machen → gemacht, kaufen → gekauft)\n- Verbes irréguliers : ge- + radical modifié + -en (schreiben → geschrieben, lesen → gelesen)\n- Verbes en -ieren : pas de ge- (studieren → studiert, telefonieren → telefoniert)\n- Verbes à préfixe inséparable (be-, ver-, er-, ent-, emp-, zer-) : pas de ge- (besuchen → besucht, verstehen → verstanden)\n- Verbes à préfixe séparable : ge- s'insère entre le préfixe et le radical (aufmachen → aufgemacht, einkaufen → eingekauft)\n\nLa majorité des verbes forment le Perfekt avec haben. On utilise haben avec les verbes transitifs (qui ont un complément d'objet direct) et la plupart des verbes intransitifs.",
+    "keyPoints": [
+      "Le Perfekt se construit avec haben (conjugué) + Partizip II (à la fin de la phrase)",
+      "Les verbes réguliers forment le Partizip II avec ge- + radical + -t",
+      "Les verbes irréguliers changent souvent de voyelle et prennent la terminaison -en",
+      "Les verbes en -ieren et à préfixe inséparable ne prennent pas ge-"
+    ],
+    "examples": [
+      {
+        "de": "Ich habe ein Buch gelesen.",
+        "fr": "J'ai lu un livre.",
+        "highlight": "habe ... gelesen"
+      },
+      {
+        "de": "Wir haben gestern Pizza gemacht.",
+        "fr": "Nous avons fait une pizza hier.",
+        "highlight": "haben ... gemacht"
+      },
+      {
+        "de": "Er hat seine Freundin besucht.",
+        "fr": "Il a rendu visite à sa copine.",
+        "highlight": "hat ... besucht"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment dit-on « J'ai acheté un livre » en allemand ?",
+        "options": [
+          "Ich bin ein Buch gekauft.",
+          "Ich habe ein Buch gekauft.",
+          "Ich habe ein Buch kauft.",
+          "Ich habe ein Buch gekaufen."
+        ],
+        "correct": 1,
+        "explanation": "Le verbe kaufen est régulier et forme son Partizip II avec ge- + kauf + -t = gekauft. On utilise haben comme auxiliaire car kaufen est transitif."
+      },
+      {
+        "type": "fill",
+        "sentence": "Sie ___ den ganzen Tag gearbeitet.",
+        "answer": "hat",
+        "hint": "auxiliaire haben conjugué à la 3e personne du singulier"
+      },
+      {
+        "type": "fill",
+        "sentence": "Wir haben einen Film ___.",
+        "answer": "gesehen",
+        "hint": "Partizip II de sehen (verbe irrégulier)"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le verbe « telefonieren » forme son Partizip II avec ge- : getelefoniert.",
+        "correct": false,
+        "explanation": "Les verbes en -ieren ne prennent pas le préfixe ge-. On dit : telefoniert (et non getelefoniert)."
+      },
+      {
+        "type": "qcm",
+        "question": "Quel est le Partizip II du verbe « verstehen » ?",
+        "options": [
+          "geverstanden",
+          "verstanden",
+          "gevertehen",
+          "versteht"
+        ],
+        "correct": 1,
+        "explanation": "Le verbe verstehen a un préfixe inséparable (ver-), donc il ne prend pas ge-. Le Partizip II est verstanden."
+      }
+    ]
+  },
+  {
+    "id": "a2-02-perfekt-sein",
+    "level": "A2",
+    "order": 2,
+    "title": "Le Perfekt avec sein",
+    "titleDe": "Perfekt mit sein",
+    "explanation": "Certains verbes forment le Perfekt avec l'auxiliaire sein au lieu de haben. Il s'agit principalement de deux catégories de verbes :\n\n1. Les verbes de mouvement (déplacement d'un point A à un point B) : gehen (aller), fahren (aller en véhicule), fliegen (voler), kommen (venir), laufen (courir), reisen (voyager), schwimmen (nager)...\n\n2. Les verbes de changement d'état : aufwachen (se réveiller), einschlafen (s'endormir), sterben (mourir), werden (devenir), wachsen (grandir)...\n\n3. Quelques verbes particuliers à retenir : sein (être → ist gewesen), bleiben (rester → ist geblieben), passieren (se passer → ist passiert).\n\nAttention : contrairement au français, le choix de l'auxiliaire ne dépend pas du caractère réfléchi du verbe, mais bien du sens (mouvement ou changement d'état).",
+    "keyPoints": [
+      "Les verbes de mouvement (d'un lieu à un autre) utilisent sein : gehen, fahren, fliegen, kommen...",
+      "Les verbes de changement d'état utilisent sein : werden, sterben, aufwachen, einschlafen...",
+      "Les verbes sein, bleiben et passieren utilisent aussi sein",
+      "Tous les autres verbes (transitifs, la plupart des intransitifs) utilisent haben"
+    ],
+    "examples": [
+      {
+        "de": "Ich bin nach Berlin gefahren.",
+        "fr": "Je suis allé(e) à Berlin (en véhicule).",
+        "highlight": "bin ... gefahren"
+      },
+      {
+        "de": "Sie ist gestern spät eingeschlafen.",
+        "fr": "Elle s'est endormie tard hier.",
+        "highlight": "ist ... eingeschlafen"
+      },
+      {
+        "de": "Wir sind zu Hause geblieben.",
+        "fr": "Nous sommes resté(e)s à la maison.",
+        "highlight": "sind ... geblieben"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel auxiliaire utilise-t-on pour le verbe « fliegen » (voler) au Perfekt ?",
+        "options": [
+          "haben",
+          "sein",
+          "werden",
+          "les deux sont possibles"
+        ],
+        "correct": 1,
+        "explanation": "Fliegen est un verbe de mouvement (déplacement d'un lieu à un autre), il utilise donc sein : Ich bin nach Paris geflogen."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er ___ gestern nach Hamburg gefahren.",
+        "answer": "ist",
+        "hint": "auxiliaire pour un verbe de mouvement"
+      },
+      {
+        "type": "fill",
+        "sentence": "Die Kinder ___ schnell gewachsen.",
+        "answer": "sind",
+        "hint": "auxiliaire pour un verbe de changement d'état, 3e personne du pluriel"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le verbe « bleiben » (rester) forme son Perfekt avec haben.",
+        "correct": false,
+        "explanation": "Bleiben fait partie des exceptions : bien qu'il n'exprime ni mouvement ni changement d'état, il utilise sein. On dit : Ich bin geblieben."
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle phrase est correcte ?",
+        "options": [
+          "Ich habe nach Paris geflogen.",
+          "Ich bin nach Paris geflogen.",
+          "Ich habe nach Paris gefliegt.",
+          "Ich bin nach Paris gefliegt."
+        ],
+        "correct": 1,
+        "explanation": "Fliegen utilise sein (verbe de mouvement) et son Partizip II est geflogen (verbe irrégulier)."
+      }
+    ]
+  },
+  {
+    "id": "a2-03-dativ",
+    "level": "A2",
+    "order": 3,
+    "title": "Le datif",
+    "titleDe": "Der Dativ",
+    "explanation": "Le datif est le troisième cas en allemand. Il correspond souvent au complément d'objet indirect en français (à qui ? pour qui ?). Le datif est utilisé :\n\n1. Avec certains verbes qui exigent le datif : helfen (aider), danken (remercier), gefallen (plaire), gehören (appartenir à), gratulieren (féliciter), antworten (répondre)...\n\n2. Comme complément d'objet indirect (la personne à qui on donne, dit, montre quelque chose) : Ich gebe dem Mann das Buch.\n\n3. Après certaines prépositions (mit, nach, bei, seit, von, zu, aus, gegenüber).\n\nLes articles changent au datif :\n- Masculin : der → dem, ein → einem\n- Féminin : die → der, eine → einer\n- Neutre : das → dem, ein → einem\n- Pluriel : die → den (+n au nom si possible), keine → keinen\n\nAstuce pour les francophones : le datif correspond souvent à « à + quelqu'un » en français.",
+    "keyPoints": [
+      "Articles définis au datif : dem (masc./neutre), der (fém.), den (pluriel +n)",
+      "Articles indéfinis au datif : einem (masc./neutre), einer (fém.)",
+      "Certains verbes exigent le datif : helfen, danken, gefallen, gehören, antworten",
+      "Au pluriel datif, on ajoute -n au nom s'il ne se termine pas déjà par -n ou -s"
+    ],
+    "examples": [
+      {
+        "de": "Ich helfe dem Kind.",
+        "fr": "J'aide l'enfant.",
+        "highlight": "dem Kind"
+      },
+      {
+        "de": "Er gibt der Frau eine Blume.",
+        "fr": "Il donne une fleur à la femme.",
+        "highlight": "der Frau"
+      },
+      {
+        "de": "Das Buch gehört einem Freund.",
+        "fr": "Le livre appartient à un ami.",
+        "highlight": "einem Freund"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Complétez : Ich helfe ___ Mutter.",
+        "options": [
+          "die",
+          "der",
+          "dem",
+          "den"
+        ],
+        "correct": 1,
+        "explanation": "Mutter est féminin. Au datif, l'article défini féminin die devient der. De plus, helfen est un verbe qui exige le datif."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er antwortet ___ Lehrer.",
+        "answer": "dem",
+        "hint": "article défini masculin au datif"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le verbe « helfen » (aider) se construit avec l'accusatif en allemand.",
+        "correct": false,
+        "explanation": "Contrairement au français où « aider » est suivi d'un COD, en allemand helfen exige le datif : Ich helfe dir (et non *dich)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich gebe ___ Kindern Schokolade.",
+        "answer": "den",
+        "hint": "article défini pluriel au datif"
+      },
+      {
+        "type": "qcm",
+        "question": "Quel article complète la phrase : « Das Auto gehört ___ Frau » ?",
+        "options": [
+          "eine",
+          "einer",
+          "einem",
+          "einen"
+        ],
+        "correct": 1,
+        "explanation": "Frau est féminin. Gehören exige le datif. L'article indéfini féminin au datif est einer."
+      }
+    ]
+  },
+  {
+    "id": "a2-04-wechselpraepositionen",
+    "level": "A2",
+    "order": 4,
+    "title": "Prépositions mixtes (Wechselpräpositionen)",
+    "titleDe": "Wechselpräpositionen",
+    "explanation": "Les Wechselpräpositionen sont neuf prépositions qui peuvent être suivies de l'accusatif OU du datif selon le contexte. Ces neuf prépositions sont : in (dans), an (à/contre), auf (sur), über (au-dessus de), unter (sous), vor (devant), hinter (derrière), neben (à côté de), zwischen (entre).\n\nLa règle fondamentale :\n- ACCUSATIF = mouvement vers un lieu (Wohin? — Où va-t-on ?) → changement de position\n- DATIF = position statique dans un lieu (Wo? — Où est-on ?) → pas de changement\n\nAstuce mnémotechnique : si on peut poser la question « Wohin? » (vers où ?), c'est l'accusatif. Si on peut poser la question « Wo? » (où ?), c'est le datif.\n\nExemples de contraste :\n- Ich stelle das Buch auf den Tisch. (Je pose le livre SUR la table → mouvement → accusatif)\n- Das Buch steht auf dem Tisch. (Le livre est SUR la table → position → datif)\n\nContractions courantes : in + dem = im, in + das = ins, an + dem = am, an + das = ans.",
+    "keyPoints": [
+      "9 prépositions mixtes : in, an, auf, über, unter, vor, hinter, neben, zwischen",
+      "Accusatif pour le mouvement (Wohin?) / Datif pour la position (Wo?)",
+      "Contractions courantes : im (in+dem), ins (in+das), am (an+dem), ans (an+das)",
+      "Paires de verbes utiles : stellen/stehen, legen/liegen, setzen/sitzen, hängen/hängen"
+    ],
+    "examples": [
+      {
+        "de": "Ich gehe in die Schule.",
+        "fr": "Je vais à l'école. (mouvement → accusatif)",
+        "highlight": "in die Schule"
+      },
+      {
+        "de": "Ich bin in der Schule.",
+        "fr": "Je suis à l'école. (position → datif)",
+        "highlight": "in der Schule"
+      },
+      {
+        "de": "Er hängt das Bild an die Wand.",
+        "fr": "Il accroche le tableau au mur. (mouvement → accusatif)",
+        "highlight": "an die Wand"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Complétez : Die Katze springt auf ___ Tisch. (Le chat saute sur la table.)",
+        "options": [
+          "dem",
+          "den",
+          "der",
+          "das"
+        ],
+        "correct": 1,
+        "explanation": "Le chat effectue un mouvement (il saute sur la table → Wohin?). On utilise donc l'accusatif. Tisch est masculin : den Tisch."
+      },
+      {
+        "type": "fill",
+        "sentence": "Das Buch liegt auf ___ Tisch.",
+        "answer": "dem",
+        "hint": "position statique, Tisch est masculin"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "La phrase « Ich gehe in dem Park » est correcte pour dire « Je vais dans le parc ».",
+        "correct": false,
+        "explanation": "Quand on exprime un mouvement (aller dans le parc → Wohin?), on utilise l'accusatif : Ich gehe in den Park. « In dem Park » (datif) s'utiliserait pour dire « Je suis dans le parc » (position)."
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle phrase exprime une position statique ?",
+        "options": [
+          "Er stellt die Vase auf den Tisch.",
+          "Die Vase steht auf dem Tisch.",
+          "Sie legt das Buch in die Tasche.",
+          "Ich hänge das Bild an die Wand."
+        ],
+        "correct": 1,
+        "explanation": "« Die Vase steht auf dem Tisch » (La vase est sur la table) exprime une position avec le datif (dem Tisch). Les autres phrases expriment un mouvement avec l'accusatif."
+      },
+      {
+        "type": "fill",
+        "sentence": "Wir gehen ___ Kino.",
+        "answer": "ins",
+        "hint": "contraction de in + das (mouvement)"
+      }
+    ]
+  },
+  {
+    "id": "a2-05-modalverben",
+    "level": "A2",
+    "order": 5,
+    "title": "Les verbes modaux",
+    "titleDe": "Modalverben",
+    "explanation": "Les verbes modaux (Modalverben) sont six verbes très importants en allemand qui expriment la capacité, l'obligation, la permission, la volonté, etc. Ils sont toujours accompagnés d'un infinitif placé à la fin de la phrase.\n\nLes six verbes modaux :\n- können (pouvoir — capacité) : Ich kann schwimmen.\n- müssen (devoir — obligation) : Ich muss arbeiten.\n- dürfen (avoir le droit de — permission) : Darf ich rauchen?\n- sollen (devoir — conseil/ordre d'un tiers) : Du sollst mehr schlafen.\n- wollen (vouloir — volonté ferme) : Ich will nach Hause gehen.\n- mögen (aimer bien) / möchten (souhaiter — forme polie) : Ich möchte einen Kaffee.\n\nConjugaison particulière : les verbes modaux changent de voyelle au singulier (sauf sollen) et n'ont pas de terminaison à la 1re et 3e personne du singulier (ich kann, er kann).\n\nStructure de la phrase : Sujet + verbe modal conjugué + ... + infinitif\nExemple : Ich muss heute Abend arbeiten. (Je dois travailler ce soir.)\n\nDifférence müssen/sollen : müssen exprime une nécessité objective, sollen transmet un ordre ou conseil venant de quelqu'un d'autre.",
+    "keyPoints": [
+      "6 verbes modaux : können, müssen, dürfen, sollen, wollen, mögen/möchten",
+      "Structure : sujet + modal conjugué + complément + infinitif à la fin",
+      "Au singulier, les modaux changent de voyelle (sauf sollen) et n'ont pas de -e/-t aux 1re/3e personnes",
+      "Différence clé : müssen = obligation objective, sollen = ordre/conseil d'autrui"
+    ],
+    "examples": [
+      {
+        "de": "Ich kann gut Deutsch sprechen.",
+        "fr": "Je sais bien parler allemand.",
+        "highlight": "kann ... sprechen"
+      },
+      {
+        "de": "Du musst deine Hausaufgaben machen.",
+        "fr": "Tu dois faire tes devoirs.",
+        "highlight": "musst ... machen"
+      },
+      {
+        "de": "Darf ich hier sitzen?",
+        "fr": "Ai-je le droit de m'asseoir ici ?",
+        "highlight": "Darf ... sitzen"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel verbe modal exprime la permission ?",
+        "options": [
+          "können",
+          "müssen",
+          "dürfen",
+          "sollen"
+        ],
+        "correct": 2,
+        "explanation": "Dürfen exprime la permission ou le droit de faire quelque chose. Können exprime la capacité, müssen l'obligation et sollen un conseil/ordre d'un tiers."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich ___ morgen früh aufstehen. (obligation)",
+        "answer": "muss",
+        "hint": "verbe modal de l'obligation, 1re personne du singulier"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Dans la phrase « Er will nach Hause gehen », l'infinitif « gehen » se place juste après le verbe modal.",
+        "correct": false,
+        "explanation": "L'infinitif se place toujours à la fin de la phrase. La structure correcte est : Er will nach Hause gehen. (« nach Hause » se place entre le modal et l'infinitif.)"
+      },
+      {
+        "type": "fill",
+        "sentence": "___ ich bitte ein Glas Wasser haben?",
+        "answer": "Darf",
+        "hint": "verbe modal pour demander la permission poliment"
+      },
+      {
+        "type": "qcm",
+        "question": "Comment dit-on « Je voudrais un café » en allemand ?",
+        "options": [
+          "Ich will einen Kaffee.",
+          "Ich möchte einen Kaffee.",
+          "Ich muss einen Kaffee.",
+          "Ich soll einen Kaffee."
+        ],
+        "correct": 1,
+        "explanation": "Pour exprimer un souhait poli, on utilise möchten (conditionnel de mögen). Wollen exprime une volonté plus directe et serait moins poli dans ce contexte."
+      }
+    ]
+  },
+  {
+    "id": "a2-06-reflexive-verben",
+    "level": "A2",
+    "order": 6,
+    "title": "Les verbes réfléchis",
+    "titleDe": "Reflexive Verben",
+    "explanation": "Les verbes réfléchis (reflexive Verben) sont accompagnés d'un pronom réfléchi (sich). Comme en français, le sujet et l'objet de l'action sont la même personne.\n\nLes pronoms réfléchis à l'accusatif :\n- ich → mich\n- du → dich\n- er/sie/es → sich\n- wir → uns\n- ihr → euch\n- sie/Sie → sich\n\nLes pronoms réfléchis au datif (quand il y a aussi un COD) :\n- ich → mir\n- du → dir\n- er/sie/es → sich\n- wir → uns\n- ihr → euch\n- sie/Sie → sich\n\nQuand utiliser l'accusatif ou le datif ?\n- Accusatif : le pronom réfléchi est le seul complément → Ich wasche mich. (Je me lave.)\n- Datif : il y a aussi un COD → Ich wasche mir die Hände. (Je me lave les mains.)\n\nVerbes réfléchis courants : sich waschen (se laver), sich anziehen (s'habiller), sich freuen (se réjouir), sich setzen (s'asseoir), sich fühlen (se sentir), sich erinnern (se souvenir), sich interessieren (s'intéresser).",
+    "keyPoints": [
+      "Le pronom réfléchi se place juste après le verbe conjugué : Ich wasche mich",
+      "Accusatif si le pronom est le seul complément, datif s'il y a aussi un COD",
+      "Les pronoms sont identiques à l'accusatif et au datif pour wir, ihr, sie/Sie (uns, euch, sich)",
+      "Beaucoup de verbes réfléchis en français le sont aussi en allemand, mais pas tous"
+    ],
+    "examples": [
+      {
+        "de": "Ich freue mich auf die Ferien.",
+        "fr": "Je me réjouis des vacances.",
+        "highlight": "freue mich"
+      },
+      {
+        "de": "Er wäscht sich die Hände.",
+        "fr": "Il se lave les mains.",
+        "highlight": "wäscht sich"
+      },
+      {
+        "de": "Setzt euch bitte!",
+        "fr": "Asseyez-vous, s'il vous plaît !",
+        "highlight": "Setzt euch"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel pronom réfléchi complète la phrase : « Du interessierst ___ für Musik. » ?",
+        "options": [
+          "mich",
+          "dich",
+          "sich",
+          "euch"
+        ],
+        "correct": 1,
+        "explanation": "Pour le sujet du (tu), le pronom réfléchi à l'accusatif est dich."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich wasche ___ die Hände.",
+        "answer": "mir",
+        "hint": "pronom réfléchi au datif (1re personne), car « die Hände » est COD"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Dans la phrase « Ich wasche mir die Hände », le pronom réfléchi est à l'accusatif.",
+        "correct": false,
+        "explanation": "Quand il y a un autre complément d'objet direct (die Hände), le pronom réfléchi passe au datif. On dit « mir » (datif) et non « mich » (accusatif)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er fühlt ___ heute nicht gut.",
+        "answer": "sich",
+        "hint": "pronom réfléchi à la 3e personne du singulier"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle phrase est correcte ?",
+        "options": [
+          "Ich mich freue auf die Party.",
+          "Ich freue mich auf die Party.",
+          "Ich freue auf mich die Party.",
+          "Mich ich freue auf die Party."
+        ],
+        "correct": 1,
+        "explanation": "Le pronom réfléchi se place juste après le verbe conjugué : Ich freue mich auf die Party."
+      }
+    ]
+  },
+  {
+    "id": "a2-07-komparativ-superlativ",
+    "level": "A2",
+    "order": 7,
+    "title": "Comparatif et superlatif",
+    "titleDe": "Komparativ und Superlativ",
+    "explanation": "En allemand, le comparatif et le superlatif se forment principalement avec des suffixes, comme en anglais.\n\nLe comparatif :\n- On ajoute -er à l'adjectif : schnell → schneller (plus rapide)\n- Les adjectifs courts d'une syllabe prennent souvent un Umlaut : alt → älter, groß → größer, jung → jünger\n- On utilise « als » pour la comparaison (équivalent de « que ») : Er ist größer als ich.\n- Pour l'égalité : so + adjectif + wie : Er ist so groß wie ich. (Il est aussi grand que moi.)\n\nLe superlatif :\n- Attribut (après le verbe) : am + adjectif + -sten : Er ist am schnellsten. (Il est le plus rapide.)\n- Épithète (devant le nom) : article + adjectif + -ste + déclinaison : der schnellste Mann\n- Umlaut pour les mêmes adjectifs qu'au comparatif : alt → am ältesten\n\nFormes irrégulières importantes :\n- gut → besser → am besten (bon → meilleur → le meilleur)\n- gern → lieber → am liebsten (volontiers → de préférence → le plus volontiers)\n- viel → mehr → am meisten (beaucoup → plus → le plus)\n- hoch → höher → am höchsten (haut → plus haut → le plus haut)",
+    "keyPoints": [
+      "Comparatif : adjectif + -er + als (schneller als = plus rapide que)",
+      "Superlatif attribut : am + adjectif + -sten (am schnellsten = le plus rapide)",
+      "Beaucoup d'adjectifs courts prennent un Umlaut (a→ä, o→ö, u→ü) : alt → älter → am ältesten",
+      "Formes irrégulières essentielles : gut/besser/am besten, viel/mehr/am meisten, gern/lieber/am liebsten"
+    ],
+    "examples": [
+      {
+        "de": "Berlin ist größer als München.",
+        "fr": "Berlin est plus grand que Munich.",
+        "highlight": "größer als"
+      },
+      {
+        "de": "Der Mount Everest ist am höchsten.",
+        "fr": "Le Mont Everest est le plus haut.",
+        "highlight": "am höchsten"
+      },
+      {
+        "de": "Ich trinke lieber Tee als Kaffee.",
+        "fr": "Je préfère boire du thé plutôt que du café.",
+        "highlight": "lieber ... als"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel est le comparatif de « gut » ?",
+        "options": [
+          "guter",
+          "güter",
+          "besser",
+          "am besten"
+        ],
+        "correct": 2,
+        "explanation": "Gut est irrégulier : gut → besser → am besten. On ne dit pas *guter."
+      },
+      {
+        "type": "fill",
+        "sentence": "Mein Bruder ist ___ als ich.",
+        "answer": "älter",
+        "hint": "comparatif de alt (vieux), avec Umlaut"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Pour dire « plus grand que », on utilise « größer wie » en allemand.",
+        "correct": false,
+        "explanation": "Pour le comparatif, on utilise « als » et non « wie ». On dit : größer als. « Wie » s'utilise pour l'égalité : so groß wie."
+      },
+      {
+        "type": "fill",
+        "sentence": "Dieses Restaurant ist ___ ___.",
+        "answer": "am besten",
+        "hint": "superlatif de gut (deux mots)"
+      },
+      {
+        "type": "qcm",
+        "question": "Comment dit-on « Il est aussi grand que moi » ?",
+        "options": [
+          "Er ist größer als ich.",
+          "Er ist so groß wie ich.",
+          "Er ist so größer wie ich.",
+          "Er ist groß als ich."
+        ],
+        "correct": 1,
+        "explanation": "Pour exprimer l'égalité, on utilise la structure so + adjectif (forme de base) + wie : so groß wie."
+      }
+    ]
+  },
+  {
+    "id": "a2-08-nebensaetze",
+    "level": "A2",
+    "order": 8,
+    "title": "Les subordonnées avec weil/dass/wenn",
+    "titleDe": "Nebensätze mit weil, dass, wenn",
+    "explanation": "En allemand, les propositions subordonnées (Nebensätze) suivent une règle fondamentale : le verbe conjugué se place à la fin de la subordonnée.\n\nLes trois conjonctions de subordination les plus importantes au niveau A2 :\n\n1. weil (parce que) — exprime la cause :\n   Ich bleibe zu Hause, weil ich krank bin.\n   (Je reste à la maison parce que je suis malade.)\n\n2. dass (que) — introduit une complétive :\n   Ich glaube, dass er Recht hat.\n   (Je crois qu'il a raison.)\n\n3. wenn (quand/si) — exprime la condition ou la temporalité :\n   Wenn es regnet, bleibe ich zu Hause.\n   (Quand/Si il pleut, je reste à la maison.)\n\nRègles de construction :\n- La subordonnée est toujours séparée de la principale par une virgule.\n- Le verbe conjugué va à la FIN de la subordonnée.\n- Si la phrase commence par la subordonnée, le verbe de la principale vient juste après la virgule (inversion) : Wenn es regnet, bleibe ich zu Hause.\n- Avec un verbe modal dans la subordonnée : le modal conjugué va à la fin, après l'infinitif : ..., weil ich arbeiten muss.",
+    "keyPoints": [
+      "Dans une subordonnée, le verbe conjugué se place à la fin",
+      "Virgule obligatoire entre la principale et la subordonnée",
+      "Si la subordonnée est en tête de phrase, le verbe de la principale suit immédiatement la virgule",
+      "Avec un modal : l'infinitif précède le modal conjugué à la fin (weil ich kommen muss)"
+    ],
+    "examples": [
+      {
+        "de": "Ich lerne Deutsch, weil ich in Berlin arbeiten möchte.",
+        "fr": "J'apprends l'allemand parce que je voudrais travailler à Berlin.",
+        "highlight": "weil ... möchte"
+      },
+      {
+        "de": "Er sagt, dass er morgen kommt.",
+        "fr": "Il dit qu'il vient demain.",
+        "highlight": "dass ... kommt"
+      },
+      {
+        "de": "Wenn ich Zeit habe, gehe ich ins Kino.",
+        "fr": "Quand j'ai le temps, je vais au cinéma.",
+        "highlight": "Wenn ... habe, gehe ich"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Où se place le verbe conjugué dans une subordonnée introduite par « weil » ?",
+        "options": [
+          "En deuxième position",
+          "Juste après weil",
+          "À la fin de la subordonnée",
+          "Avant le sujet"
+        ],
+        "correct": 2,
+        "explanation": "Dans toute subordonnée allemande, le verbe conjugué se place à la fin. C'est la règle la plus importante à retenir."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich glaube, dass er sehr intelligent ___.",
+        "answer": "ist",
+        "hint": "verbe être, 3e personne — à la fin de la subordonnée"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "La phrase « Weil ich bin müde, gehe ich ins Bett » est correcte.",
+        "correct": false,
+        "explanation": "Dans la subordonnée avec weil, le verbe conjugué doit aller à la fin : Weil ich müde bin, gehe ich ins Bett."
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle phrase est correcte ?",
+        "options": [
+          "Wenn es regnet, ich bleibe zu Hause.",
+          "Wenn es regnet, bleibe ich zu Hause.",
+          "Wenn regnet es, bleibe ich zu Hause.",
+          "Wenn es regnet, zu Hause bleibe ich."
+        ],
+        "correct": 1,
+        "explanation": "Quand la subordonnée est en tête, le verbe de la principale suit immédiatement la virgule (inversion sujet-verbe). Le verbe de la subordonnée (regnet) est bien à la fin de celle-ci."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich bleibe zu Hause, weil ich arbeiten ___.",
+        "answer": "muss",
+        "hint": "verbe modal conjugué, à la fin après l'infinitif"
+      }
+    ]
+  },
+  {
+    "id": "a2-09-imperativ",
+    "level": "A2",
+    "order": 9,
+    "title": "L'impératif",
+    "titleDe": "Der Imperativ",
+    "explanation": "L'impératif en allemand sert à donner des ordres, des conseils ou des instructions. Il existe trois formes selon le destinataire :\n\n1. Forme « du » (informel singulier) :\n   - Radical du verbe (sans -st et souvent sans -e final) : Komm! Mach! Schreib!\n   - Les verbes avec changement e→i/ie gardent ce changement : Lies! (lesen), Sprich! (sprechen), Gib! (geben)\n   - Les verbes avec changement a→ä ne prennent PAS l'Umlaut : Fahr! (fahren), Schlaf! (schlafen)\n\n2. Forme « ihr » (informel pluriel) :\n   - Identique à la forme conjuguée de ihr, sans pronom : Kommt! Macht! Lest!\n\n3. Forme « Sie » (formel singulier et pluriel) :\n   - Infinitif + Sie : Kommen Sie! Machen Sie! Lesen Sie!\n\nCas particulier : le verbe sein\n   - du : Sei ruhig! (Sois calme !)\n   - ihr : Seid ruhig! (Soyez calmes !)\n   - Sie : Seien Sie ruhig! (Soyez calme(s) !)\n\nLe pronom sujet n'apparaît qu'à la forme Sie. Pas de pronom pour du et ihr.",
+    "keyPoints": [
+      "Forme du : radical du verbe (souvent sans -e) → Komm! Mach! Schreib!",
+      "Forme ihr : identique à la conjugaison de ihr sans pronom → Kommt! Macht!",
+      "Forme Sie : infinitif + Sie → Kommen Sie! Machen Sie!",
+      "Les verbes avec e→i/ie gardent ce changement au du-Imperativ : Lies! Sprich! Gib!"
+    ],
+    "examples": [
+      {
+        "de": "Mach bitte die Tür zu!",
+        "fr": "Ferme la porte, s'il te plaît !",
+        "highlight": "Mach"
+      },
+      {
+        "de": "Lest den Text auf Seite 10!",
+        "fr": "Lisez le texte page 10 ! (informel pluriel)",
+        "highlight": "Lest"
+      },
+      {
+        "de": "Nehmen Sie bitte Platz!",
+        "fr": "Prenez place, s'il vous plaît ! (formel)",
+        "highlight": "Nehmen Sie"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel est l'impératif de « sprechen » à la forme « du » ?",
+        "options": [
+          "Sprech!",
+          "Sprich!",
+          "Sprichst!",
+          "Spreche!"
+        ],
+        "correct": 1,
+        "explanation": "Sprechen a un changement de voyelle e→i. À l'impératif du, on garde ce changement : Sprich! (et non Sprech!)."
+      },
+      {
+        "type": "fill",
+        "sentence": "___ Sie bitte langsamer!",
+        "answer": "Sprechen",
+        "hint": "impératif formel (Sie) du verbe sprechen"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "L'impératif de « fahren » pour « du » est « Fähr! » avec un Umlaut.",
+        "correct": false,
+        "explanation": "Les verbes avec changement a→ä ne prennent PAS l'Umlaut à l'impératif. On dit Fahr! (et non *Fähr!)."
+      },
+      {
+        "type": "fill",
+        "sentence": "___ ruhig, Kinder!",
+        "answer": "Seid",
+        "hint": "impératif de sein à la forme ihr"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle est la forme correcte pour dire « Lis ce livre ! » (informel) ?",
+        "options": [
+          "Les dieses Buch!",
+          "Lies dieses Buch!",
+          "Liest dieses Buch!",
+          "Lese dieses Buch!"
+        ],
+        "correct": 1,
+        "explanation": "Lesen a un changement e→ie. À l'impératif du, on garde ce changement et on retire la terminaison : Lies! (pas de -e final car le verbe a un changement de voyelle)."
+      }
+    ]
+  },
+  {
+    "id": "a2-10-adjektivdeklination",
+    "level": "A2",
+    "order": 10,
+    "title": "La déclinaison des adjectifs",
+    "titleDe": "Adjektivdeklination",
+    "explanation": "En allemand, quand un adjectif est placé devant un nom (adjectif épithète), il prend une terminaison qui dépend du genre, du cas et du type de déterminant qui le précède.\n\nIl y a trois types de déclinaison :\n\n1. Après un article défini (der, die, das...) — déclinaison faible :\n   Les terminaisons sont soit -e, soit -en.\n   - Nominatif : der große Mann, die kleine Frau, das alte Haus\n   - Accusatif : den großen Mann, die kleine Frau, das alte Haus\n   - Datif : dem großen Mann, der kleinen Frau, dem alten Haus\n\n2. Après un article indéfini (ein, eine, kein...) — déclinaison mixte :\n   L'adjectif porte parfois la marque du genre quand ein ne la montre pas.\n   - Nominatif : ein großer Mann, eine kleine Frau, ein altes Haus\n   - Accusatif : einen großen Mann, eine kleine Frau, ein altes Haus\n   - Datif : einem großen Mann, einer kleinen Frau, einem alten Haus\n\n3. Sans article — déclinaison forte :\n   L'adjectif prend lui-même la marque forte du genre.\n   - Nominatif : großer Mann, kleine Frau, altes Haus\n   - Accusatif : großen Mann, kleine Frau, altes Haus\n   - Datif : großem Mann, kleiner Frau, altem Haus",
+    "keyPoints": [
+      "Après article défini : terminaisons -e ou -en (déclinaison faible)",
+      "Après article indéfini : l'adjectif porte la marque du genre quand ein ne la montre pas",
+      "Sans article : l'adjectif prend les terminaisons fortes (comme les articles définis)",
+      "Au datif, la terminaison de l'adjectif est presque toujours -en, quel que soit le type de déclinaison"
+    ],
+    "examples": [
+      {
+        "de": "Der kleine Hund spielt im Garten.",
+        "fr": "Le petit chien joue dans le jardin.",
+        "highlight": "kleine"
+      },
+      {
+        "de": "Ich habe einen interessanten Film gesehen.",
+        "fr": "J'ai vu un film intéressant.",
+        "highlight": "einen interessanten"
+      },
+      {
+        "de": "Sie trinkt kalten Kaffee.",
+        "fr": "Elle boit du café froid. (sans article)",
+        "highlight": "kalten Kaffee"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Complétez : Ich kaufe ein ___ Buch. (neu)",
+        "options": [
+          "neues",
+          "neuer",
+          "neue",
+          "neuen"
+        ],
+        "correct": 0,
+        "explanation": "Buch est neutre et à l'accusatif. Après ein (qui ne montre pas la marque du neutre), l'adjectif prend la terminaison forte -es : ein neues Buch."
+      },
+      {
+        "type": "fill",
+        "sentence": "Der ___ Mann sitzt auf der Bank.",
+        "answer": "alte",
+        "hint": "adjectif alt après article défini masculin nominatif → terminaison -e"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Après un article défini au datif, l'adjectif prend toujours la terminaison -en.",
+        "correct": true,
+        "explanation": "Au datif, la terminaison de l'adjectif est toujours -en après un article défini : dem großen Mann, der kleinen Frau, dem alten Haus, den kleinen Kindern."
+      },
+      {
+        "type": "fill",
+        "sentence": "Sie hat eine ___ Tasche gekauft.",
+        "answer": "schöne",
+        "hint": "adjectif schön après article indéfini féminin accusatif → terminaison -e"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle est la bonne terminaison : « mit einem gut___ Freund » ?",
+        "options": [
+          "-e",
+          "-er",
+          "-en",
+          "-es"
+        ],
+        "correct": 2,
+        "explanation": "Après einem (datif masculin), l'adjectif prend la terminaison -en. C'est la règle : au datif, la terminaison est presque toujours -en."
+      }
+    ]
+  },
+  {
+    "id": "a2-11-trennbare-verben",
+    "level": "A2",
+    "order": 11,
+    "title": "Les verbes séparables",
+    "titleDe": "Trennbare Verben",
+    "explanation": "Les verbes séparables (trennbare Verben) sont des verbes composés d'un préfixe accentué qui se détache du verbe dans certaines constructions. Le préfixe se place alors à la fin de la phrase.\n\nPréfixes séparables courants : ab-, an-, auf-, aus-, ein-, mit-, vor-, zu-, zurück-, weg-, her-, hin-\n\nComportement selon le type de phrase :\n\n1. Phrase simple au présent : le préfixe va à la fin\n   Ich stehe um 7 Uhr auf. (aufstehen — se lever)\n\n2. Au Perfekt : ge- s'insère entre le préfixe et le radical\n   Ich bin um 7 Uhr aufgestanden. (auf-ge-standen)\n\n3. Avec un verbe modal : le verbe reste à l'infinitif (non séparé) à la fin\n   Ich muss um 7 Uhr aufstehen.\n\n4. Dans une subordonnée : le verbe reste attaché à la fin\n   ..., weil ich um 7 Uhr aufstehe.\n\nComment reconnaître un verbe séparable ? Le préfixe est toujours accentué : AUFstehen, ANfangen, EINkaufen. Les préfixes inséparables (be-, ver-, er-, ent-, emp-, zer-, ge-, miss-) ne sont jamais accentués.\n\nVerbes séparables courants : aufstehen (se lever), anfangen (commencer), einkaufen (faire les courses), anrufen (appeler au téléphone), ausgehen (sortir), zumachen (fermer), aufmachen (ouvrir), mitkommen (venir avec), zurückkommen (revenir).",
+    "keyPoints": [
+      "En phrase simple, le préfixe se sépare et va à la fin : Ich stehe um 7 Uhr auf",
+      "Au Perfekt, ge- s'insère entre le préfixe et le verbe : aufgemacht, eingekauft, angefangen",
+      "Avec un modal ou dans une subordonnée, le verbe reste entier (non séparé) à la fin",
+      "Les préfixes séparables sont accentués : AUFstehen, ANrufen, EINkaufen"
+    ],
+    "examples": [
+      {
+        "de": "Ich stehe jeden Tag um 7 Uhr auf.",
+        "fr": "Je me lève tous les jours à 7 heures.",
+        "highlight": "stehe ... auf"
+      },
+      {
+        "de": "Wir haben gestern eingekauft.",
+        "fr": "Nous avons fait les courses hier.",
+        "highlight": "eingekauft"
+      },
+      {
+        "de": "Kannst du bitte die Tür aufmachen?",
+        "fr": "Peux-tu ouvrir la porte, s'il te plaît ?",
+        "highlight": "aufmachen"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment dit-on « Il appelle son ami » avec le verbe anrufen ?",
+        "options": [
+          "Er anruft seinen Freund.",
+          "Er ruft seinen Freund an.",
+          "Er ruft an seinen Freund.",
+          "Er ruft seinen Freund anruft."
+        ],
+        "correct": 1,
+        "explanation": "En phrase simple au présent, le préfixe séparable (an-) se détache et va à la fin de la phrase : Er ruft seinen Freund an."
+      },
+      {
+        "type": "fill",
+        "sentence": "Wann fängt der Film ___?",
+        "answer": "an",
+        "hint": "préfixe séparable du verbe anfangen"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le Partizip II de « aufmachen » est « geaufmacht ».",
+        "correct": false,
+        "explanation": "Pour les verbes séparables, ge- s'insère entre le préfixe et le radical : auf-ge-macht (et non *geaufmacht)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er ist gestern spät ___.",
+        "answer": "zurückgekommen",
+        "hint": "Partizip II de zurückkommen (ge- s'insère entre le préfixe et le radical)"
+      },
+      {
+        "type": "qcm",
+        "question": "Dans quelle phrase le verbe séparable reste-t-il entier ?",
+        "options": [
+          "Ich stehe um 6 Uhr auf.",
+          "Er kauft im Supermarkt ein.",
+          "Ich muss morgen früh aufstehen.",
+          "Mach bitte die Tür zu!"
+        ],
+        "correct": 2,
+        "explanation": "Avec un verbe modal (muss), le verbe séparable reste à l'infinitif non séparé à la fin de la phrase : Ich muss aufstehen."
+      }
+    ]
+  },
+  {
+    "id": "a2-12-praepositionen-dativ-akkusativ",
+    "level": "A2",
+    "order": 12,
+    "title": "Prépositions avec datif et accusatif",
+    "titleDe": "Präpositionen mit Dativ und Akkusativ",
+    "explanation": "Contrairement aux Wechselpräpositionen (prépositions mixtes), certaines prépositions exigent TOUJOURS le même cas, quel que soit le contexte.\n\nPrépositions toujours suivies du DATIF :\n- mit (avec) : Ich fahre mit dem Bus.\n- nach (après / vers) : Nach dem Essen gehe ich spazieren. / Ich fliege nach Berlin.\n- bei (chez / auprès de) : Ich wohne bei meinen Eltern.\n- seit (depuis) : Ich lerne seit einem Jahr Deutsch.\n- von (de / provenance) : Das Geschenk ist von meiner Mutter.\n- zu (vers / chez) : Ich gehe zum Arzt. (zu + dem = zum, zu + der = zur)\n- aus (de / provenance d'un lieu fermé, origine) : Ich komme aus Frankreich.\n- gegenüber (en face de) : Die Bank ist gegenüber dem Bahnhof.\n\nAstuce mnémotechnique pour les prépositions au datif : « Mit nach bei seit von zu aus gegenüber » (à retenir comme une comptine !)\n\nPrépositions toujours suivies de l'ACCUSATIF :\n- für (pour) : Das Geschenk ist für meinen Bruder.\n- gegen (contre) : Ich bin gegen diesen Plan.\n- ohne (sans) : Ohne einen Regenschirm gehe ich nicht raus.\n- um (autour de / à — pour l'heure) : Wir treffen uns um drei Uhr.\n- durch (à travers) : Wir gehen durch den Park.\n\nAstuce mnémotechnique pour les prépositions à l'accusatif : « FüGO UD » (Für, Gegen, Ohne, Um, Durch).\n\nContractions courantes : zu + dem = zum, zu + der = zur, von + dem = vom, bei + dem = beim.",
+    "keyPoints": [
+      "Prépositions + datif : mit, nach, bei, seit, von, zu, aus, gegenüber",
+      "Prépositions + accusatif : für, gegen, ohne, um, durch",
+      "Contractions : zum (zu+dem), zur (zu+der), vom (von+dem), beim (bei+dem)",
+      "Ces prépositions exigent toujours le même cas, contrairement aux Wechselpräpositionen"
+    ],
+    "examples": [
+      {
+        "de": "Ich fahre mit dem Zug nach Berlin.",
+        "fr": "Je vais à Berlin en train.",
+        "highlight": "mit dem Zug"
+      },
+      {
+        "de": "Das Geschenk ist für meinen Vater.",
+        "fr": "Le cadeau est pour mon père.",
+        "highlight": "für meinen Vater"
+      },
+      {
+        "de": "Seit einem Jahr wohne ich in Deutschland.",
+        "fr": "Depuis un an, j'habite en Allemagne.",
+        "highlight": "Seit einem Jahr"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel cas exige la préposition « mit » ?",
+        "options": [
+          "Nominatif",
+          "Accusatif",
+          "Datif",
+          "Génitif"
+        ],
+        "correct": 2,
+        "explanation": "La préposition mit exige toujours le datif : mit dem Bus, mit einer Freundin, mit den Kindern."
+      },
+      {
+        "type": "fill",
+        "sentence": "Das Geschenk ist für ___ Schwester.",
+        "answer": "meine",
+        "hint": "préposition für + accusatif, Schwester est féminin"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "La préposition « ohne » (sans) est suivie du datif.",
+        "correct": false,
+        "explanation": "Ohne fait partie des prépositions qui exigent toujours l'accusatif : ohne einen Fehler (sans une faute), ohne meinen Bruder (sans mon frère)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich gehe ___ Arzt.",
+        "answer": "zum",
+        "hint": "contraction de zu + dem (datif masculin)"
+      },
+      {
+        "type": "qcm",
+        "question": "Complétez : « Wir gehen durch ___ Park. »",
+        "options": [
+          "dem",
+          "der",
+          "den",
+          "des"
+        ],
+        "correct": 2,
+        "explanation": "La préposition durch exige toujours l'accusatif. Park est masculin, donc l'article défini à l'accusatif est den."
+      }
+    ]
+  },
+  {
+    "id": "b1-01-praeteritum",
+    "level": "B1",
+    "order": 1,
+    "title": "Le Präteritum",
+    "titleDe": "Präteritum",
+    "explanation": "Le Präteritum est le temps du passé utilisé principalement à l'écrit (récits, articles, littérature). Contrairement au Perfekt, qui domine à l'oral, le Präteritum donne un ton narratif au discours. Les verbes réguliers (faibles) ajoutent le suffixe -te à la racine (machen → machte), tandis que les verbes irréguliers (forts) changent leur voyelle radicale (gehen → ging, schreiben → schrieb). Les verbes sein, haben et les verbes modaux sont presque toujours utilisés au Präteritum, même à l'oral.",
+    "keyPoints": [
+      "Les verbes réguliers forment le Präteritum avec le suffixe -te : ich machte, du machtest, er machte",
+      "Les verbes irréguliers changent leur voyelle radicale : gehen → ging, kommen → kam, lesen → las",
+      "Les verbes sein (war), haben (hatte) et les modaux (konnte, musste, wollte...) s'utilisent au Präteritum même à l'oral",
+      "Le Präteritum est le temps privilégié pour la narration écrite et les contes (« Es war einmal... »)"
+    ],
+    "examples": [
+      {
+        "de": "Er ging gestern nach Hause.",
+        "fr": "Il alla à la maison hier.",
+        "highlight": "ging"
+      },
+      {
+        "de": "Sie machte ihre Hausaufgaben.",
+        "fr": "Elle fit ses devoirs.",
+        "highlight": "machte"
+      },
+      {
+        "de": "Wir waren sehr müde.",
+        "fr": "Nous étions très fatigués.",
+        "highlight": "waren"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel est le Präteritum du verbe « gehen » à la 3e personne du singulier ?",
+        "options": [
+          "geht",
+          "ging",
+          "gegangen",
+          "gingte"
+        ],
+        "correct": 1,
+        "explanation": "« Gehen » est un verbe irrégulier. Son Präteritum est « ging » (er/sie/es ging)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Die Kinder ___ den ganzen Tag im Garten.",
+        "answer": "spielten",
+        "hint": "spielen au Präteritum (verbe régulier)"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le Präteritum est principalement utilisé à l'oral en allemand courant.",
+        "correct": false,
+        "explanation": "Le Präteritum est principalement utilisé à l'écrit (récits, journaux, littérature). À l'oral, on préfère le Perfekt, sauf pour sein, haben et les modaux."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er ___ gestern keine Zeit.",
+        "answer": "hatte",
+        "hint": "haben au Präteritum"
+      },
+      {
+        "type": "qcm",
+        "question": "Complétez : « Sie ___ ein Buch. » (lesen, Präteritum)",
+        "options": [
+          "leste",
+          "las",
+          "liest",
+          "gelesen"
+        ],
+        "correct": 1,
+        "explanation": "« Lesen » est un verbe irrégulier. Son Präteritum est « las » (sie las)."
+      }
+    ]
+  },
+  {
+    "id": "b1-02-plusquamperfekt",
+    "level": "B1",
+    "order": 2,
+    "title": "Le Plusquamperfekt",
+    "titleDe": "Plusquamperfekt",
+    "explanation": "Le Plusquamperfekt (plus-que-parfait) exprime une action passée antérieure à une autre action passée. Il se forme avec l'auxiliaire haben ou sein conjugué au Präteritum (hatte / war) suivi du Partizip II du verbe principal. Le choix de l'auxiliaire suit les mêmes règles que le Perfekt : les verbes de mouvement et de changement d'état prennent sein, les autres prennent haben. Ce temps est souvent utilisé avec nachdem pour marquer la chronologie des événements.",
+    "keyPoints": [
+      "Formation : hatte / war + Partizip II (hatte gemacht, war gegangen)",
+      "Le choix de l'auxiliaire (haben/sein) est identique à celui du Perfekt",
+      "Utilisé pour exprimer une action antérieure à une autre action au passé",
+      "Souvent introduit par « nachdem » : Nachdem er gegessen hatte, ging er spazieren"
+    ],
+    "examples": [
+      {
+        "de": "Nachdem er gegessen hatte, ging er spazieren.",
+        "fr": "Après avoir mangé, il alla se promener.",
+        "highlight": "gegessen hatte"
+      },
+      {
+        "de": "Sie war schon abgefahren, als ich ankam.",
+        "fr": "Elle était déjà partie quand je suis arrivé.",
+        "highlight": "war ... abgefahren"
+      },
+      {
+        "de": "Wir hatten den Film schon gesehen.",
+        "fr": "Nous avions déjà vu le film.",
+        "highlight": "hatten ... gesehen"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment forme-t-on le Plusquamperfekt ?",
+        "options": [
+          "haben/sein au présent + Partizip II",
+          "haben/sein au Präteritum + Partizip II",
+          "werden au Präteritum + Partizip II",
+          "haben/sein au présent + Infinitif"
+        ],
+        "correct": 1,
+        "explanation": "Le Plusquamperfekt se forme avec hatte/war (Präteritum de haben/sein) + Partizip II."
+      },
+      {
+        "type": "fill",
+        "sentence": "Nachdem er die Arbeit ___ ___, ging er nach Hause.",
+        "answer": "beendet hatte",
+        "hint": "beenden au Plusquamperfekt avec haben"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le verbe « fahren » utilise « hatte » comme auxiliaire au Plusquamperfekt.",
+        "correct": false,
+        "explanation": "« Fahren » est un verbe de mouvement et utilise « sein » → er war gefahren."
+      },
+      {
+        "type": "fill",
+        "sentence": "Sie ___ schon nach Berlin ___, als wir sie anriefen.",
+        "answer": "war ... geflogen",
+        "hint": "fliegen au Plusquamperfekt avec sein"
+      },
+      {
+        "type": "qcm",
+        "question": "Complétez : « Nachdem wir ___ ___, fuhren wir weiter. » (tanken)",
+        "options": [
+          "getankt hatten",
+          "getankt haben",
+          "tankten hatten",
+          "tanken hatten"
+        ],
+        "correct": 0,
+        "explanation": "Avec « nachdem », on utilise le Plusquamperfekt : hatten getankt → getankt hatten (verbe en fin de subordonnée)."
+      }
+    ]
+  },
+  {
+    "id": "b1-03-passiv",
+    "level": "B1",
+    "order": 3,
+    "title": "Le passif",
+    "titleDe": "Passiv",
+    "explanation": "Le passif en allemand (Vorgangspassiv) se forme avec l'auxiliaire werden conjugué au temps voulu, suivi du Partizip II du verbe principal. L'agent peut être introduit par « von » (+ datif) pour les personnes ou « durch » (+ accusatif) pour les moyens ou causes. Au passif, le sujet de la phrase active devient complément d'agent et le complément d'objet direct devient sujet. Ce procédé est très fréquent en allemand, notamment dans les textes journalistiques, administratifs et scientifiques.",
+    "keyPoints": [
+      "Formation du Vorgangspassiv : werden + Partizip II (Das Buch wird gelesen)",
+      "L'agent est introduit par « von + datif » (personnes) ou « durch + accusatif » (moyens/causes)",
+      "Au Perfekt passif : sein + Partizip II + worden (Das Buch ist gelesen worden)",
+      "Le passif impersonnel existe : Es wird getanzt (On danse)"
+    ],
+    "examples": [
+      {
+        "de": "Das Haus wird gebaut.",
+        "fr": "La maison est construite.",
+        "highlight": "wird gebaut"
+      },
+      {
+        "de": "Der Brief wurde von meinem Bruder geschrieben.",
+        "fr": "La lettre a été écrite par mon frère.",
+        "highlight": "wurde ... geschrieben"
+      },
+      {
+        "de": "Die Tür ist geöffnet worden.",
+        "fr": "La porte a été ouverte.",
+        "highlight": "ist geöffnet worden"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment se forme le passif présent en allemand ?",
+        "options": [
+          "sein + Partizip II",
+          "haben + Partizip II",
+          "werden + Partizip II",
+          "werden + Infinitiv"
+        ],
+        "correct": 2,
+        "explanation": "Le Vorgangspassiv au présent se forme avec werden + Partizip II."
+      },
+      {
+        "type": "fill",
+        "sentence": "Die Suppe ___ von der Mutter ___.",
+        "answer": "wird ... gekocht",
+        "hint": "kochen au passif présent"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Au Perfekt passif, on utilise « geworden » comme participe de werden.",
+        "correct": false,
+        "explanation": "Au Perfekt passif, on utilise « worden » (sans le préfixe ge-) : Das Buch ist gelesen worden."
+      },
+      {
+        "type": "fill",
+        "sentence": "Das Auto ___ gestern ___.",
+        "answer": "wurde ... repariert",
+        "hint": "reparieren au passif Präteritum"
+      },
+      {
+        "type": "qcm",
+        "question": "Quelle préposition introduit l'agent (une personne) au passif ?",
+        "options": [
+          "durch",
+          "mit",
+          "von",
+          "für"
+        ],
+        "correct": 2,
+        "explanation": "L'agent (personne) est introduit par « von » + datif. « Durch » est utilisé pour les moyens ou les causes."
+      }
+    ]
+  },
+  {
+    "id": "b1-04-konjunktiv2",
+    "level": "B1",
+    "order": 4,
+    "title": "Le Konjunktiv II",
+    "titleDe": "Konjunktiv II",
+    "explanation": "Le Konjunktiv II est le mode de l'irréel et du conditionnel en allemand. Il sert à exprimer des souhaits, des hypothèses, des conseils polis et des situations contraires à la réalité. La forme la plus courante utilise würde + infinitif (ich würde gehen = j'irais). Cependant, pour les verbes sein, haben et les modaux, on utilise les formes propres du Konjunktiv II : wäre (serais), hätte (aurais), könnte (pourrais), müsste (devrais), etc. Ces formes dérivent du Präteritum avec un Umlaut ajouté.",
+    "keyPoints": [
+      "La forme générale : würde + Infinitiv (ich würde kommen = je viendrais)",
+      "Formes propres indispensables : wäre (sein), hätte (haben), könnte, müsste, dürfte, sollte, wollte",
+      "Utilisé pour les souhaits irréels : Wenn ich reich wäre, würde ich reisen",
+      "Sert aussi à la politesse : Könnten Sie mir helfen? (Pourriez-vous m'aider ?)"
+    ],
+    "examples": [
+      {
+        "de": "Wenn ich reich wäre, würde ich ein Haus kaufen.",
+        "fr": "Si j'étais riche, j'achèterais une maison.",
+        "highlight": "wäre"
+      },
+      {
+        "de": "Ich hätte gern ein Glas Wasser.",
+        "fr": "J'aimerais un verre d'eau.",
+        "highlight": "hätte"
+      },
+      {
+        "de": "An deiner Stelle würde ich den Arzt anrufen.",
+        "fr": "À ta place, j'appellerais le médecin.",
+        "highlight": "würde ... anrufen"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quelle est la forme du Konjunktiv II de « sein » à la 1re personne du singulier ?",
+        "options": [
+          "wäre",
+          "würde sein",
+          "war",
+          "sei"
+        ],
+        "correct": 0,
+        "explanation": "La forme propre du Konjunktiv II de « sein » est « wäre ». On ne dit pas « würde sein »."
+      },
+      {
+        "type": "fill",
+        "sentence": "Wenn ich mehr Zeit ___, ___ ich mehr lesen.",
+        "answer": "hätte, würde",
+        "hint": "haben au Konjunktiv II, puis würde + Infinitiv"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "On peut dire « würde haben » au lieu de « hätte » au Konjunktiv II.",
+        "correct": false,
+        "explanation": "Pour haben et sein, on utilise toujours les formes propres hätte et wäre. « Würde haben/sein » est incorrect en allemand standard."
+      },
+      {
+        "type": "qcm",
+        "question": "Comment traduire « Je pourrais venir demain » en allemand ?",
+        "options": [
+          "Ich kann morgen kommen.",
+          "Ich konnte morgen kommen.",
+          "Ich könnte morgen kommen.",
+          "Ich würde können morgen kommen."
+        ],
+        "correct": 2,
+        "explanation": "Le Konjunktiv II de « können » est « könnte ». Les modaux ont leurs formes propres."
+      },
+      {
+        "type": "fill",
+        "sentence": "___ Sie mir bitte helfen?",
+        "answer": "Könnten",
+        "hint": "können au Konjunktiv II, forme polie"
+      }
+    ]
+  },
+  {
+    "id": "b1-05-relativsaetze",
+    "level": "B1",
+    "order": 5,
+    "title": "Les relatives",
+    "titleDe": "Relativsätze",
+    "explanation": "Les propositions relatives en allemand permettent de donner des précisions sur un nom. Le pronom relatif (der, die, das) s'accorde en genre et en nombre avec l'antécédent, mais son cas dépend de sa fonction dans la relative. Au nominatif : der/die/das, à l'accusatif : den/die/das, au datif : dem/der/dem, au génitif : dessen/deren/dessen. Le verbe conjugué se place à la fin de la proposition relative, qui est toujours encadrée par des virgules. C'est une différence majeure avec le français où le pronom relatif ne change pas selon le cas.",
+    "keyPoints": [
+      "Le pronom relatif s'accorde en genre et nombre avec l'antécédent, mais le cas dépend de sa fonction dans la relative",
+      "Nominatif : der/die/das/die — Accusatif : den/die/das/die — Datif : dem/der/dem/denen",
+      "Le verbe conjugué va à la fin de la relative : Der Mann, der dort steht, ist mein Vater",
+      "La relative est toujours encadrée par des virgules"
+    ],
+    "examples": [
+      {
+        "de": "Der Mann, der dort steht, ist mein Bruder.",
+        "fr": "L'homme qui se tient là-bas est mon frère.",
+        "highlight": "der"
+      },
+      {
+        "de": "Das Buch, das ich lese, ist spannend.",
+        "fr": "Le livre que je lis est passionnant.",
+        "highlight": "das"
+      },
+      {
+        "de": "Die Frau, der ich geholfen habe, war sehr nett.",
+        "fr": "La femme à qui j'ai aidé était très gentille.",
+        "highlight": "der"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Complétez : « Das ist der Lehrer, ___ ich gefragt habe. »",
+        "options": [
+          "der",
+          "den",
+          "dem",
+          "dessen"
+        ],
+        "correct": 1,
+        "explanation": "« Fragen » demande l'accusatif. L'antécédent est « der Lehrer » (masculin singulier), donc le pronom relatif à l'accusatif est « den »."
+      },
+      {
+        "type": "fill",
+        "sentence": "Die Stadt, in ___ ich wohne, ist sehr schön.",
+        "answer": "der",
+        "hint": "die Stadt est féminin, « in » + datif dans ce contexte"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le pronom relatif a toujours le même cas que l'antécédent.",
+        "correct": false,
+        "explanation": "Le pronom relatif s'accorde en genre et nombre avec l'antécédent, mais son cas dépend de sa fonction grammaticale dans la proposition relative."
+      },
+      {
+        "type": "qcm",
+        "question": "Complétez : « Der Hund, ___ Besitzer verreist ist, bellt laut. »",
+        "options": [
+          "der",
+          "den",
+          "dem",
+          "dessen"
+        ],
+        "correct": 3,
+        "explanation": "On a besoin du génitif (le propriétaire DU chien). Le pronom relatif au génitif masculin est « dessen »."
+      },
+      {
+        "type": "fill",
+        "sentence": "Die Kinder, ___ im Park spielen, sind laut.",
+        "answer": "die",
+        "hint": "Pluriel, fonction sujet → nominatif"
+      }
+    ]
+  },
+  {
+    "id": "b1-06-genitiv",
+    "level": "B1",
+    "order": 6,
+    "title": "Le génitif",
+    "titleDe": "Genitiv",
+    "explanation": "Le génitif est le quatrième cas en allemand. Il exprime principalement la possession ou l'appartenance (comme « de » en français). L'article défini au génitif est : des (masculin/neutre), der (féminin/pluriel). Les noms masculins et neutres prennent la terminaison -s ou -es au génitif (des Mannes, des Buches). Les noms d'une syllabe prennent souvent -es, ceux de plusieurs syllabes prennent -s. Certaines prépositions régissent le génitif : wegen, trotz, während, statt. Dans la langue courante, le génitif est souvent remplacé par « von + datif », mais il reste indispensable à l'écrit.",
+    "keyPoints": [
+      "Articles au génitif : des (m./n.), der (f./pl.) — eines (m./n.), einer (f.)",
+      "Les noms masculins et neutres ajoutent -s ou -es : des Vaters, des Kindes",
+      "Prépositions + génitif : wegen, trotz, während, statt, außerhalb, innerhalb",
+      "Le génitif est plus fréquent à l'écrit ; à l'oral, « von + datif » le remplace souvent"
+    ],
+    "examples": [
+      {
+        "de": "Das Auto des Vaters ist rot.",
+        "fr": "La voiture du père est rouge.",
+        "highlight": "des Vaters"
+      },
+      {
+        "de": "Trotz des Regens gingen wir spazieren.",
+        "fr": "Malgré la pluie, nous sommes allés nous promener.",
+        "highlight": "des Regens"
+      },
+      {
+        "de": "Die Meinung der Lehrerin ist wichtig.",
+        "fr": "L'opinion de la professeure est importante.",
+        "highlight": "der Lehrerin"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel est l'article défini au génitif pour un nom masculin ?",
+        "options": [
+          "der",
+          "dem",
+          "den",
+          "des"
+        ],
+        "correct": 3,
+        "explanation": "L'article défini au génitif masculin (et neutre) est « des ». Le nom prend aussi -s ou -es."
+      },
+      {
+        "type": "fill",
+        "sentence": "Das Spielzeug ___ Kindes liegt auf dem Boden.",
+        "answer": "des",
+        "hint": "das Kind → génitif neutre"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "La préposition « wegen » régit le datif.",
+        "correct": false,
+        "explanation": "« Wegen » régit le génitif : wegen des Wetters (à cause du temps). Même si en langage familier on entend parfois le datif, la forme correcte est le génitif."
+      },
+      {
+        "type": "fill",
+        "sentence": "Während ___ Sommers fahren wir ans Meer.",
+        "answer": "des",
+        "hint": "der Sommer → génitif masculin avec während"
+      },
+      {
+        "type": "qcm",
+        "question": "Comment dit-on « la porte de la maison » en allemand ?",
+        "options": [
+          "die Tür des Hauses",
+          "die Tür dem Haus",
+          "die Tür den Hauses",
+          "die Tür der Haus"
+        ],
+        "correct": 0,
+        "explanation": "« Das Haus » est neutre. Au génitif : des Hauses. L'article est « des » et le nom prend -es."
+      }
+    ]
+  },
+  {
+    "id": "b1-07-n-deklination",
+    "level": "B1",
+    "order": 7,
+    "title": "La N-Deklination",
+    "titleDe": "N-Deklination",
+    "explanation": "La N-Deklination (ou déclinaison faible des noms) concerne un groupe de noms masculins qui prennent la terminaison -(e)n à tous les cas sauf au nominatif singulier. Cela inclut des noms désignant des personnes ou des êtres vivants terminés en -e (der Junge, der Kollege), des noms d'origine étrangère terminés en -ant, -ent, -ist, -at, -oge (der Student, der Journalist, der Demokrat), et quelques noms courants comme der Herr, der Mensch, der Nachbar. Au génitif, certains de ces noms ajoutent -ens au lieu de -en (der Name → des Namens).",
+    "keyPoints": [
+      "Ces noms masculins prennent -(e)n à l'accusatif, au datif et au génitif singulier",
+      "Concernés : noms en -e (der Junge), en -ent, -ant, -ist, -at (der Student, der Journalist)",
+      "Noms courants : der Herr (Herrn), der Mensch (Menschen), der Nachbar (Nachbarn)",
+      "Exception : certains noms ajoutent -ens au génitif (der Name → des Namens, der Herz → des Herzens)"
+    ],
+    "examples": [
+      {
+        "de": "Ich frage den Studenten.",
+        "fr": "Je demande à l'étudiant.",
+        "highlight": "den Studenten"
+      },
+      {
+        "de": "Er hilft dem Kollegen.",
+        "fr": "Il aide le collègue.",
+        "highlight": "dem Kollegen"
+      },
+      {
+        "de": "Der Name des Jungen ist Paul.",
+        "fr": "Le prénom du garçon est Paul.",
+        "highlight": "des Jungen"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Complétez : « Ich kenne ___ nicht. » (der Journalist)",
+        "options": [
+          "der Journalist",
+          "den Journalist",
+          "den Journalisten",
+          "dem Journalisten"
+        ],
+        "correct": 2,
+        "explanation": "« Kennen » demande l'accusatif. « Der Journalist » suit la N-Deklination → den Journalisten."
+      },
+      {
+        "type": "fill",
+        "sentence": "Wir sprechen mit dem ___.",
+        "answer": "Nachbarn",
+        "hint": "der Nachbar au datif, N-Deklination"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le mot « der Junge » garde la même forme à tous les cas.",
+        "correct": false,
+        "explanation": "« Der Junge » suit la N-Deklination : den Jungen (acc.), dem Jungen (dat.), des Jungen (gén.)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Können Sie ___ ___ fragen?",
+        "answer": "den Herrn",
+        "hint": "der Herr à l'accusatif, N-Deklination"
+      },
+      {
+        "type": "qcm",
+        "question": "Lequel de ces noms ne suit PAS la N-Deklination ?",
+        "options": [
+          "der Student",
+          "der Tisch",
+          "der Kollege",
+          "der Mensch"
+        ],
+        "correct": 1,
+        "explanation": "« Der Tisch » est un nom masculin normal (des Tisches). Les trois autres suivent la N-Deklination."
+      }
+    ]
+  },
+  {
+    "id": "b1-08-zu-infinitiv",
+    "level": "B1",
+    "order": 8,
+    "title": "zu + Infinitif",
+    "titleDe": "zu + Infinitiv",
+    "explanation": "La construction zu + Infinitiv est l'équivalent allemand de « de + infinitif » ou « à + infinitif » en français. Le zu se place directement avant l'infinitif en fin de proposition, ou s'insère entre le préfixe séparable et le verbe (anzufangen). Trois constructions importantes utilisent zu + Infinitiv : « um...zu » (pour/afin de), « ohne...zu » (sans) et « (an)statt...zu » (au lieu de). De nombreux verbes sont suivis de zu + Infinitiv : versuchen zu, anfangen zu, aufhören zu, hoffen zu, vergessen zu, etc. Une virgule sépare généralement le groupe infinitif de la proposition principale.",
+    "keyPoints": [
+      "zu se place devant l'infinitif : Ich versuche, pünktlich zu kommen",
+      "Avec un verbe à préfixe séparable, zu s'insère : anzufangen, aufzuhören, mitzubringen",
+      "um...zu (pour), ohne...zu (sans), (an)statt...zu (au lieu de) sont des constructions clés",
+      "Certains verbes n'utilisent PAS zu : les modaux (können, müssen...), lassen, sehen, hören"
+    ],
+    "examples": [
+      {
+        "de": "Ich versuche, Deutsch zu lernen.",
+        "fr": "J'essaie d'apprendre l'allemand.",
+        "highlight": "zu lernen"
+      },
+      {
+        "de": "Er ging weg, ohne etwas zu sagen.",
+        "fr": "Il est parti sans rien dire.",
+        "highlight": "ohne ... zu sagen"
+      },
+      {
+        "de": "Sie ist hier, um Freunde zu treffen.",
+        "fr": "Elle est ici pour rencontrer des amis.",
+        "highlight": "um ... zu treffen"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment dit-on « pour apprendre » avec la construction um...zu ?",
+        "options": [
+          "um lernen zu",
+          "um zu lernen",
+          "für zu lernen",
+          "um lernen"
+        ],
+        "correct": 1,
+        "explanation": "La structure est : um + ... + zu + Infinitiv → um zu lernen."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er hat vergessen, das Fenster ___.",
+        "answer": "zuzumachen",
+        "hint": "zumachen avec zu → le zu s'insère entre le préfixe et le verbe"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "On dit « Ich muss zu gehen » avec les verbes modaux.",
+        "correct": false,
+        "explanation": "Les verbes modaux (müssen, können, etc.) sont suivis directement de l'infinitif SANS zu : Ich muss gehen."
+      },
+      {
+        "type": "fill",
+        "sentence": "Statt ___ ___, blieb er zu Hause.",
+        "answer": "zu arbeiten",
+        "hint": "statt...zu + Infinitiv de arbeiten"
+      },
+      {
+        "type": "qcm",
+        "question": "Où se place « zu » avec le verbe « anfangen » (préfixe séparable) ?",
+        "options": [
+          "zu anfangen",
+          "anfangen zu",
+          "anzufangen",
+          "zuan fangen"
+        ],
+        "correct": 2,
+        "explanation": "Avec un verbe à préfixe séparable, zu s'insère entre le préfixe et le verbe : an-zu-fangen → anzufangen."
+      }
+    ]
+  },
+  {
+    "id": "b1-09-indirekte-fragen",
+    "level": "B1",
+    "order": 9,
+    "title": "Les questions indirectes",
+    "titleDe": "Indirekte Fragen",
+    "explanation": "Les questions indirectes en allemand sont des subordonnées introduites par un mot interrogatif (W-Wort) ou par « ob » (si). Le verbe conjugué se place à la fin de la subordonnée, ce qui est la règle générale pour les subordonnées en allemand. Les questions totales (oui/non) sont introduites par « ob » : Ich weiß nicht, ob er kommt. Les questions partielles gardent le mot interrogatif (wer, was, wo, wann, warum, wie...) : Ich frage mich, wo er wohnt. L'ordre des mots change par rapport à la question directe, et il n'y a pas de point d'interrogation quand la phrase principale n'est pas une question.",
+    "keyPoints": [
+      "Questions totales → « ob » + verbe à la fin : Weißt du, ob er kommt?",
+      "Questions partielles → W-Wort + verbe à la fin : Ich weiß nicht, wann er kommt",
+      "Le verbe conjugué va toujours en position finale dans la subordonnée",
+      "Pas de point d'interrogation si la phrase principale n'est pas une question : Ich frage mich, wo er ist."
+    ],
+    "examples": [
+      {
+        "de": "Ich weiß nicht, ob er morgen kommt.",
+        "fr": "Je ne sais pas s'il vient demain.",
+        "highlight": "ob"
+      },
+      {
+        "de": "Kannst du mir sagen, wo der Bahnhof ist?",
+        "fr": "Peux-tu me dire où est la gare ?",
+        "highlight": "wo"
+      },
+      {
+        "de": "Sie fragt, wann der Zug abfährt.",
+        "fr": "Elle demande quand le train part.",
+        "highlight": "wann"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Comment transformer « Kommt er morgen? » en question indirecte après « Ich weiß nicht, ... » ?",
+        "options": [
+          "Ich weiß nicht, kommt er morgen.",
+          "Ich weiß nicht, ob er morgen kommt.",
+          "Ich weiß nicht, ob kommt er morgen.",
+          "Ich weiß nicht, er morgen kommt."
+        ],
+        "correct": 1,
+        "explanation": "Les questions oui/non deviennent des subordonnées avec « ob » et le verbe à la fin."
+      },
+      {
+        "type": "fill",
+        "sentence": "Weißt du, ___ das Museum ___?",
+        "answer": "wo ... ist",
+        "hint": "Question indirecte : où est le musée ?"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Dans une question indirecte, le verbe conjugué reste en deuxième position.",
+        "correct": false,
+        "explanation": "Dans une question indirecte (subordonnée), le verbe conjugué se place à la fin : Ich frage mich, wo er wohnt."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er möchte wissen, ___ sie Deutsch spricht.",
+        "answer": "ob",
+        "hint": "Introduction d'une question totale (oui/non) indirecte"
+      },
+      {
+        "type": "qcm",
+        "question": "Complétez : « Sag mir, ___ du das gemacht hast. »",
+        "options": [
+          "ob",
+          "warum",
+          "dass",
+          "weil"
+        ],
+        "correct": 1,
+        "explanation": "La phrase demande une raison : « Dis-moi pourquoi tu as fait ça. » → warum."
+      }
+    ]
+  },
+  {
+    "id": "b1-10-verben-mit-praepositionen",
+    "level": "B1",
+    "order": 10,
+    "title": "Verbes à préposition",
+    "titleDe": "Verben mit Präpositionen",
+    "explanation": "En allemand, de nombreux verbes sont liés à une préposition fixe qui détermine le cas du complément. Ces associations sont souvent différentes du français et doivent être apprises par coeur. Par exemple : warten auf + accusatif (attendre qqch/qqn), sich freuen über + accusatif (se réjouir de), denken an + accusatif (penser à), sich interessieren für + accusatif (s'intéresser à), Angst haben vor + datif (avoir peur de). Pour poser une question sur une chose, on utilise wo(r) + préposition (worauf, worüber, woran). Pour une personne, on utilise la préposition + wen/wem (auf wen, über wen).",
+    "keyPoints": [
+      "Chaque verbe a sa préposition fixe et son cas : warten auf + Akk., träumen von + Dat.",
+      "Les prépositions ne correspondent pas toujours au français : denken an (penser à), warten auf (attendre)",
+      "Pour les choses : wo(r) + préposition → Worauf wartest du? (Tu attends quoi ?)",
+      "Pour les personnes : préposition + wen/wem → Auf wen wartest du? (Tu attends qui ?)"
+    ],
+    "examples": [
+      {
+        "de": "Ich warte auf den Bus.",
+        "fr": "J'attends le bus.",
+        "highlight": "auf"
+      },
+      {
+        "de": "Sie freut sich über das Geschenk.",
+        "fr": "Elle se réjouit du cadeau.",
+        "highlight": "über"
+      },
+      {
+        "de": "Er denkt oft an seine Familie.",
+        "fr": "Il pense souvent à sa famille.",
+        "highlight": "an"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quelle préposition accompagne le verbe « warten » ?",
+        "options": [
+          "für",
+          "auf",
+          "über",
+          "an"
+        ],
+        "correct": 1,
+        "explanation": "On dit « warten auf + accusatif » : Ich warte auf dich (Je t'attends)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Ich interessiere mich ___ deutsche Literatur.",
+        "answer": "für",
+        "hint": "sich interessieren + préposition + accusatif"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "« Sich freuen auf » et « sich freuen über » ont le même sens.",
+        "correct": false,
+        "explanation": "« Sich freuen auf » = se réjouir de (quelque chose à venir). « Sich freuen über » = se réjouir de (quelque chose de présent/passé)."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er hat Angst ___ Spinnen.",
+        "answer": "vor",
+        "hint": "Angst haben + préposition + datif"
+      },
+      {
+        "type": "qcm",
+        "question": "Comment demander « À quoi penses-tu ? » en allemand ?",
+        "options": [
+          "An was denkst du?",
+          "Woran denkst du?",
+          "Worauf denkst du?",
+          "Was denkst du an?"
+        ],
+        "correct": 1,
+        "explanation": "Pour les choses, on utilise wo(r) + préposition : denken an → woran. « Woran denkst du? »"
+      }
+    ]
+  },
+  {
+    "id": "b1-11-konnektoren",
+    "level": "B1",
+    "order": 11,
+    "title": "Les connecteurs",
+    "titleDe": "Konnektoren",
+    "explanation": "Les connecteurs (Konnektoren) sont des mots de liaison qui structurent le discours et expriment des relations logiques entre les phrases. Au niveau B1, il est essentiel de maîtriser les adverbes conjonctionnels qui, contrairement aux conjonctions de subordination (weil, obwohl...), se placent en position 1 ou 3 et n'envoient PAS le verbe à la fin. Après un adverbe conjonctionnel en position 1, le verbe vient immédiatement en position 2 (inversion sujet-verbe). Les principaux : trotzdem (malgré tout), deshalb/deswegen (c'est pourquoi), außerdem (de plus), allerdings (cependant, toutefois), jedoch (cependant), daher (c'est pourquoi), stattdessen (à la place).",
+    "keyPoints": [
+      "Les adverbes conjonctionnels provoquent l'inversion : Trotzdem ging er raus (position 1 + verbe position 2)",
+      "trotzdem (malgré tout) ≠ obwohl (bien que) : trotzdem ne met pas le verbe à la fin",
+      "deshalb / deswegen / daher = c'est pourquoi ; außerdem = de plus ; allerdings / jedoch = cependant",
+      "Ils peuvent aussi se placer en position 3 : Er ging trotzdem raus"
+    ],
+    "examples": [
+      {
+        "de": "Es regnet. Trotzdem gehe ich spazieren.",
+        "fr": "Il pleut. Malgré tout, je vais me promener.",
+        "highlight": "Trotzdem"
+      },
+      {
+        "de": "Er war müde, deshalb ging er früh ins Bett.",
+        "fr": "Il était fatigué, c'est pourquoi il est allé se coucher tôt.",
+        "highlight": "deshalb"
+      },
+      {
+        "de": "Das Essen war gut. Außerdem war es günstig.",
+        "fr": "La nourriture était bonne. De plus, elle était bon marché.",
+        "highlight": "Außerdem"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel connecteur signifie « c'est pourquoi » ?",
+        "options": [
+          "trotzdem",
+          "außerdem",
+          "deshalb",
+          "allerdings"
+        ],
+        "correct": 2,
+        "explanation": "« Deshalb » (ainsi que « deswegen » et « daher ») signifie « c'est pourquoi » et exprime la conséquence."
+      },
+      {
+        "type": "fill",
+        "sentence": "Sie hatte Kopfschmerzen. ___ blieb sie zu Hause.",
+        "answer": "Deshalb",
+        "hint": "Conséquence : c'est pourquoi"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Après « trotzdem » en début de phrase, le verbe se place à la fin.",
+        "correct": false,
+        "explanation": "« Trotzdem » est un adverbe conjonctionnel. Il occupe la position 1, et le verbe suit en position 2 : Trotzdem ging er raus."
+      },
+      {
+        "type": "qcm",
+        "question": "Quel est le sens de « allerdings » ?",
+        "options": [
+          "de plus",
+          "c'est pourquoi",
+          "cependant / toutefois",
+          "à la place"
+        ],
+        "correct": 2,
+        "explanation": "« Allerdings » signifie « cependant, toutefois » et introduit une nuance ou une restriction."
+      },
+      {
+        "type": "fill",
+        "sentence": "Das Hotel war teuer. ___ war die Lage sehr gut.",
+        "answer": "Allerdings",
+        "hint": "Introduit une nuance : cependant / toutefois"
+      }
+    ]
+  },
+  {
+    "id": "b1-12-indirekte-rede",
+    "level": "B1",
+    "order": 12,
+    "title": "Le discours indirect",
+    "titleDe": "Indirekte Rede",
+    "explanation": "Le discours indirect (indirekte Rede) en allemand utilise le Konjunktiv I pour rapporter les paroles de quelqu'un. Le Konjunktiv I se forme à partir du radical de l'infinitif + les terminaisons -e, -est, -e, -en, -et, -en. Les formes les plus utilisées sont celles de la 3e personne : er sei (être), er habe (avoir), er könne (pouvoir), er komme (venir). Quand la forme du Konjunktiv I est identique à l'indicatif présent (ce qui arrive souvent au pluriel), on utilise le Konjunktiv II à la place. Le verbe introducteur est généralement sagen, meinen, behaupten, erklären, berichten, suivi de la conjonction « dass » ou d'une proposition sans conjonction.",
+    "keyPoints": [
+      "Le Konjunktiv I se forme sur le radical de l'infinitif : kommen → er komme, haben → er habe",
+      "Formes clés à la 3e personne : er/sie sei, er/sie habe, er/sie könne, er/sie wolle",
+      "Si le Konjunktiv I = indicatif, on utilise le Konjunktiv II : sie kommen → sie kämen",
+      "Avec ou sans « dass » : Er sagt, er sei krank / Er sagt, dass er krank sei"
+    ],
+    "examples": [
+      {
+        "de": "Er sagt, er sei krank.",
+        "fr": "Il dit qu'il est malade.",
+        "highlight": "sei"
+      },
+      {
+        "de": "Sie behauptet, sie habe nichts gehört.",
+        "fr": "Elle affirme qu'elle n'a rien entendu.",
+        "highlight": "habe"
+      },
+      {
+        "de": "Der Lehrer sagte, die Schüler sollten mehr lesen.",
+        "fr": "Le professeur a dit que les élèves devraient lire davantage.",
+        "highlight": "sollten"
+      }
+    ],
+    "exercises": [
+      {
+        "type": "qcm",
+        "question": "Quel mode utilise-t-on principalement pour le discours indirect en allemand ?",
+        "options": [
+          "L'indicatif",
+          "Le Konjunktiv I",
+          "Le Konjunktiv II",
+          "L'impératif"
+        ],
+        "correct": 1,
+        "explanation": "Le discours indirect utilise le Konjunktiv I. Le Konjunktiv II n'est utilisé que lorsque la forme du Konjunktiv I est identique à l'indicatif."
+      },
+      {
+        "type": "fill",
+        "sentence": "Er sagt, er ___ keine Zeit.",
+        "answer": "habe",
+        "hint": "haben au Konjunktiv I, 3e personne du singulier"
+      },
+      {
+        "type": "trueFalse",
+        "statement": "Le Konjunktiv I de « sein » à la 3e personne du singulier est « ist ».",
+        "correct": false,
+        "explanation": "Le Konjunktiv I de « sein » à la 3e personne du singulier est « sei » (et non « ist » qui est l'indicatif)."
+      },
+      {
+        "type": "qcm",
+        "question": "Transformez au discours indirect : « Die Studenten sagen: ‹ Wir kommen morgen. › »",
+        "options": [
+          "Die Studenten sagen, sie kommen morgen.",
+          "Die Studenten sagen, sie kämen morgen.",
+          "Die Studenten sagen, sie seien morgen gekommen.",
+          "Die Studenten sagen, sie kamen morgen."
+        ],
+        "correct": 1,
+        "explanation": "Le Konjunktiv I de « kommen » au pluriel (sie kommen) est identique à l'indicatif, on utilise donc le Konjunktiv II : sie kämen."
+      },
+      {
+        "type": "fill",
+        "sentence": "Sie meint, das ___ nicht richtig.",
+        "answer": "sei",
+        "hint": "sein au Konjunktiv I, 3e personne du singulier"
+      }
+    ]
+  }
+]
