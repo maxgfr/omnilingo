@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { RotateCcw, BookOpen, Trophy, Frown, SmilePlus, Smile, Zap, Volume2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -27,6 +28,7 @@ interface SessionResults {
 }
 
 export default function Review() {
+  const { t } = useTranslation();
   const { activePair, isGerman } = useApp();
   const [cards, setCards] = useState<SrsCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -163,17 +165,17 @@ export default function Review() {
       <div className="flex flex-col items-center justify-center h-full py-20">
         <span className="text-6xl mb-6">🎉</span>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          No cards to review!
+          {t("review.noCards")}
         </h2>
         <p className="text-gray-500 dark:text-gray-400 mb-8 text-center max-w-md">
-          All your cards are up to date. Learn new words to find them here later.
+          {t("review.noCardsDescription")}
         </p>
         <Link
           to="/learn"
           className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors"
         >
           <BookOpen size={20} />
-          Learn new words
+          {t("review.learnNewWords")}
         </Link>
       </div>
     );
@@ -205,10 +207,10 @@ export default function Review() {
             />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-            Session complete!
+            {t("review.sessionComplete")}
           </h2>
           <p className="text-gray-500 dark:text-gray-400">
-            {isGood ? "Great work!" : "Keep practicing, you're making progress!"}
+            {isGood ? t("review.greatWork") : t("review.keepPracticing")}
           </p>
         </div>
 
@@ -218,11 +220,11 @@ export default function Review() {
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {results.total}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Reviewed</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("review.reviewed")}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p className="text-2xl font-bold text-emerald-500">{results.correct}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Correct</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("review.correct")}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
             <p
@@ -232,7 +234,7 @@ export default function Review() {
             >
               {accuracy}%
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Accuracy</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("review.accuracy")}</p>
           </div>
         </div>
 
@@ -240,7 +242,7 @@ export default function Review() {
         {results.forgotten.length > 0 && (
           <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-xl p-4 mb-8">
             <h3 className="font-semibold text-rose-700 dark:text-rose-400 mb-2 text-sm">
-              Words to review ({results.forgotten.length})
+              {t("review.wordsToReview", { count: results.forgotten.length })}
             </h3>
             <div className="flex flex-wrap gap-2">
               {results.forgotten.map((word, i) => (
@@ -262,13 +264,13 @@ export default function Review() {
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors"
           >
             <RotateCcw size={18} />
-            Restart
+            {t("common.restart")}
           </button>
           <Link
             to="/"
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl font-semibold transition-colors"
           >
-            Dashboard
+            {t("review.dashboard")}
           </Link>
         </div>
       </div>
@@ -280,10 +282,10 @@ export default function Review() {
   const sourceLang = getSourceLang(activePair?.source_lang || "de");
 
   const ratingButtons = [
-    { quality: 0, label: "Forgot", icon: Frown, color: "bg-rose-500 hover:bg-rose-600", key: "1" },
-    { quality: 2, label: "Hard", icon: SmilePlus, color: "bg-orange-500 hover:bg-orange-600", key: "2" },
-    { quality: 3, label: "Good", icon: Smile, color: "bg-emerald-500 hover:bg-emerald-600", key: "3" },
-    { quality: 5, label: "Easy", icon: Zap, color: "bg-blue-500 hover:bg-blue-600", key: "4" },
+    { quality: 0, label: t("review.forgot"), icon: Frown, color: "bg-rose-500 hover:bg-rose-600", key: "1" },
+    { quality: 2, label: t("review.hard"), icon: SmilePlus, color: "bg-orange-500 hover:bg-orange-600", key: "2" },
+    { quality: 3, label: t("review.good"), icon: Smile, color: "bg-emerald-500 hover:bg-emerald-600", key: "3" },
+    { quality: 5, label: t("review.easy"), icon: Zap, color: "bg-blue-500 hover:bg-blue-600", key: "4" },
   ];
 
   return (
@@ -291,7 +293,7 @@ export default function Review() {
       {/* Header with progress */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Review</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t("review.title")}</h1>
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {currentIndex + 1} / {cards.length}
           </span>
@@ -349,7 +351,7 @@ export default function Review() {
               <Volume2 size={20} />
             </button>
             <p className="absolute bottom-3 text-xs text-gray-400">
-              Click or Space to flip
+              {t("review.clickOrSpace")}
             </p>
           </div>
 
@@ -404,7 +406,7 @@ export default function Review() {
       ) : (
         <div className="text-center">
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">Space</kbd> to reveal the answer
+            {t("review.pressSpace")}
           </p>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Volume2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { speak, getSourceLang } from "../lib/speech";
 import { useApp } from "../store/AppContext";
 
@@ -33,6 +34,7 @@ export default function Flashcard({
   sourceWord, targetWord, gender, plural, level, category,
   exampleSource, exampleTarget, flipped = false, onFlip,
 }: FlashcardProps) {
+  const { t } = useTranslation();
   const { activePair, isGerman } = useApp();
   const [isFlipped, setIsFlipped] = useState(flipped);
 
@@ -71,7 +73,7 @@ export default function Flashcard({
           >
             <Volume2 size={20} />
           </button>
-          <p className="absolute bottom-3 text-xs text-gray-400">Click to flip</p>
+          <p className="absolute bottom-3 text-xs text-gray-400">{t("flashcard.clickToFlip")}</p>
         </div>
 
         {/* Back */}

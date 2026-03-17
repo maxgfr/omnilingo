@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   CheckCircle,
@@ -13,13 +14,13 @@ import * as bridge from "../lib/bridge";
 import { QCM, FillBlank, TrueFalse } from "../components/Exercise";
 import type { GrammarTopic, Exercise } from "../types";
 
-const levelLabels: Record<string, { label: string; color: string }> = {
-  A1: { label: "A1 - Beginner", color: "text-emerald-600 dark:text-emerald-400" },
-  A2: { label: "A2 - Elementary", color: "text-blue-600 dark:text-blue-400" },
-  B1: { label: "B1 - Intermediate", color: "text-amber-600 dark:text-amber-400" },
-  B2: { label: "B2 - Advanced", color: "text-purple-600 dark:text-purple-400" },
-  C1: { label: "C1 - Proficient", color: "text-rose-600 dark:text-rose-400" },
-  C2: { label: "C2 - Mastery", color: "text-red-600 dark:text-red-400" },
+const levelColors: Record<string, string> = {
+  A1: "text-emerald-600 dark:text-emerald-400",
+  A2: "text-blue-600 dark:text-blue-400",
+  B1: "text-amber-600 dark:text-amber-400",
+  B2: "text-purple-600 dark:text-purple-400",
+  C1: "text-rose-600 dark:text-rose-400",
+  C2: "text-red-600 dark:text-red-400",
 };
 
 /** Simple inline markdown: **bold** and *italic* */
@@ -59,6 +60,7 @@ function renderMarkdown(text: string) {
 }
 
 export default function Grammar() {
+  const { t } = useTranslation();
   const { activePair } = useApp();
   const navigate = useNavigate();
   const [topics, setTopics] = useState<GrammarTopic[]>([]);
@@ -73,7 +75,7 @@ export default function Grammar() {
     setLoading(true);
     bridge
       .getGrammarTopics(activePair.id)
-      .then((t) => setTopics(t))
+      .then((topics) => setTopics(topics))
       .catch((err) => console.error("Failed to load grammar topics:", err))
       .finally(() => setLoading(false));
   }, [activePair]);
@@ -104,7 +106,7 @@ export default function Grammar() {
     setExercisesDone(false);
     // Reload topics to reflect any completion changes
     if (activePair) {
-      bridge.getGrammarTopics(activePair.id).then((t) => setTopics(t));
+      bridge.getGrammarTopics(activePair.id).then((topics) => setTopics(topics));
     }
   }, [activePair]);
 
@@ -166,10 +168,10 @@ export default function Grammar() {
       <div className="flex flex-col items-center justify-center h-full py-20">
         <BookOpen size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          No grammar topics
+          {t("grammar.noTopics")}
         </h2>
         <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
-          Grammar topics will be available after importing data for this language pair.
+          {t("grammar.noTopics")}
         </p>
       </div>
     );
@@ -192,7 +194,7 @@ export default function Grammar() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 mb-4 transition-colors"
         >
           <ChevronLeft size={16} />
-          Back to topics
+          {t("grammar.backToTopics")}
         </button>
 
         <div className="mb-6">
@@ -200,7 +202,7 @@ export default function Grammar() {
             {selectedTopic.level && (
               <span
                 className={`text-xs font-semibold ${
-                  levelLabels[selectedTopic.level]?.color || "text-gray-500"
+                  levelColors[selectedTopic.level] || "text-gray-500"
                 }`}
               >
                 {selectedTopic.level}
@@ -233,7 +235,7 @@ export default function Grammar() {
         {selectedTopic.key_points && selectedTopic.key_points.length > 0 && (
           <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-5 mb-6">
             <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-3 text-sm uppercase tracking-wide">
-              Key points
+              {t("grammar.keyPoints")}
             </h3>
             <ul className="space-y-2">
               {selectedTopic.key_points.map((point, i) => (
@@ -254,7 +256,7 @@ export default function Grammar() {
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
             <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                Examples
+                {t("grammar.examples")}
               </h3>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -291,7 +293,7 @@ export default function Grammar() {
         {exercises.length > 0 && (
           <div className="mb-6">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span>Exercises</span>
+              <span>{t("grammar.exercises")}</span>
               {exercisesDone && (
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
@@ -311,7 +313,7 @@ export default function Grammar() {
                   className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
                 >
                   <div className="text-xs text-gray-400 dark:text-gray-500 mb-3 font-medium uppercase tracking-wide">
-                    Exercise {i + 1} / {totalExercises}
+                    {t("grammar.exerciseProgress", { current: i + 1, total: totalExercises })}
                   </div>
                   {exercise.type === "qcm" && exercise.question && exercise.options && exercise.correctIndex !== undefined && (
                     <QCM
@@ -366,11 +368,11 @@ export default function Grammar() {
               }`}
             >
               {passed
-                ? "Well done! Topic validated!"
-                : "Keep practicing. You need 70% to pass."}
+                ? t("grammar.wellDone")
+                : t("grammar.keepPracticing")}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Score: {correctCount}/{totalExercises} ({scorePercent}%)
+              {t("grammar.score", { correct: correctCount, total: totalExercises })}
             </p>
           </div>
         )}
@@ -382,14 +384,14 @@ export default function Grammar() {
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl text-sm font-semibold transition-colors"
           >
             <MessageCircle size={16} />
-            Ask Claude
+            {t("grammar.askClaude")}
           </button>
           <button
             onClick={goBackToList}
             className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl text-sm font-semibold transition-colors"
           >
             <ChevronLeft size={16} />
-            Back
+            {t("common.back")}
           </button>
         </div>
       </div>
@@ -400,22 +402,30 @@ export default function Grammar() {
   return (
     <div className="max-w-2xl mx-auto py-6 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Grammar</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("grammar.title")}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {topics.filter((t) => t.completed).length} / {topics.length} topics completed
+          {t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })}
         </p>
       </div>
 
       <div className="space-y-8">
         {sortedLevels.map((level) => {
-          const levelInfo = levelLabels[level] || {
-            label: level,
-            color: "text-gray-600 dark:text-gray-400",
+          const levelLabelKeys: Record<string, string> = {
+            A1: t("grammar.levelBeginner"),
+            A2: t("grammar.levelElementary"),
+            B1: t("grammar.levelIntermediate"),
+            B2: t("grammar.levelAdvanced"),
+            C1: t("grammar.levelProficient"),
+            C2: t("grammar.levelMastery"),
+          };
+          const levelInfo = {
+            label: level === "Other" ? t("grammar.other") : `${level} - ${levelLabelKeys[level] || level}`,
+            color: levelColors[level] || "text-gray-600 dark:text-gray-400",
           };
           const levelTopics = topicsByLevel[level].sort(
             (a, b) => a.display_order - b.display_order,
           );
-          const completedInLevel = levelTopics.filter((t) => t.completed).length;
+          const completedInLevel = levelTopics.filter((tp) => tp.completed).length;
 
           return (
             <div key={level}>

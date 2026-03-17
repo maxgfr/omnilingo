@@ -4,21 +4,23 @@ import {
   LayoutDashboard, BookOpen, Repeat, BookText, Languages,
   Search, MessageCircle, Settings as SettingsIcon, Menu, X,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 
-const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/learn", icon: BookOpen, label: "Learn" },
-  { to: "/review", icon: Repeat, label: "Review", badge: true },
-  { to: "/grammar", icon: BookText, label: "Grammar" },
-  { to: "/conjugation", icon: Languages, label: "Conjugation" },
-  { to: "/dictionary", icon: Search, label: "Dictionary" },
-  { to: "/chat", icon: MessageCircle, label: "AI Chat" },
-];
-
 export default function Layout() {
+  const { t } = useTranslation();
   const { settings, activePair } = useApp();
+
+  const navItems = [
+    { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/learn", icon: BookOpen, label: t("nav.learn") },
+    { to: "/review", icon: Repeat, label: t("nav.review"), badge: true },
+    { to: "/grammar", icon: BookText, label: t("nav.grammar") },
+    { to: "/conjugation", icon: Languages, label: t("nav.conjugation") },
+    { to: "/dictionary", icon: Search, label: t("nav.dictionary") },
+    { to: "/chat", icon: MessageCircle, label: t("nav.chat") },
+  ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
 
@@ -49,7 +51,7 @@ export default function Layout() {
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Omnilingo</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : "Language learning"}
+            {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : t("nav.languageLearning")}
           </p>
         </div>
 
@@ -92,14 +94,14 @@ export default function Layout() {
             }
           >
             <SettingsIcon size={20} />
-            <span>Settings</span>
+            <span>{t("nav.settings")}</span>
           </NavLink>
         </nav>
 
         <div className="p-4 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>Level <strong className="text-amber-600 dark:text-amber-400">{settings?.level || "A2"}</strong></span>
-            <span>Streak <strong className="text-emerald-600 dark:text-emerald-400">{settings?.streak || 0}</strong> d</span>
+            <span>{t("sidebar.level")} <strong className="text-amber-600 dark:text-amber-400">{settings?.level || "A2"}</strong></span>
+            <span>{t("sidebar.streak")} <strong className="text-emerald-600 dark:text-emerald-400">{settings?.streak || 0}</strong> {t("sidebar.streakUnit")}</span>
           </div>
         </div>
       </aside>

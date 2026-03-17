@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Flame,
   Clock,
@@ -16,6 +17,7 @@ import { CEFRBar } from "../components/ProgressBar";
 import type { SrsStats, GrammarTopic } from "../types";
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { settings, activePair } = useApp();
   const [stats, setStats] = useState<SrsStats | null>(null);
   const [topics, setTopics] = useState<GrammarTopic[]>([]);
@@ -62,15 +64,15 @@ export default function Dashboard() {
   const statCards = [
     {
       icon: Flame,
-      label: "Streak",
-      value: `${streak} day${streak !== 1 ? "s" : ""}`,
+      label: t("dashboard.streak"),
+      value: `${streak} ${streak !== 1 ? t("dashboard.days") : t("dashboard.day")}`,
       color: "text-orange-500",
       bg: "bg-orange-50 dark:bg-orange-900/20",
       border: "border-orange-200 dark:border-orange-800",
     },
     {
       icon: Clock,
-      label: "Cards due",
+      label: t("dashboard.cardsDue"),
       value: String(dueCount),
       color: "text-blue-500",
       bg: "bg-blue-50 dark:bg-blue-900/20",
@@ -78,7 +80,7 @@ export default function Dashboard() {
     },
     {
       icon: BookOpen,
-      label: "Words learned",
+      label: t("dashboard.wordsLearned"),
       value: String(totalCards),
       color: "text-emerald-500",
       bg: "bg-emerald-50 dark:bg-emerald-900/20",
@@ -86,7 +88,7 @@ export default function Dashboard() {
     },
     {
       icon: Target,
-      label: "Accuracy",
+      label: t("dashboard.accuracy"),
       value: `${accuracy}%`,
       color: "text-purple-500",
       bg: "bg-purple-50 dark:bg-purple-900/20",
@@ -99,8 +101,8 @@ export default function Dashboard() {
       ? [
           {
             icon: Repeat,
-            title: "Review",
-            description: `${dueCount} card${dueCount !== 1 ? "s" : ""} due`,
+            title: t("dashboard.review"),
+            description: dueCount !== 1 ? t("dashboard.cardsDueCount", { count: dueCount }) : t("dashboard.cardDue", { count: dueCount }),
             to: "/review",
             color: "text-amber-500",
             bg: "bg-amber-50 dark:bg-amber-900/20",
@@ -110,8 +112,8 @@ export default function Dashboard() {
       : []),
     {
       icon: BookOpen,
-      title: "Learn",
-      description: "Discover new words",
+      title: t("dashboard.learn"),
+      description: t("dashboard.discoverWords"),
       to: "/learn",
       color: "text-emerald-500",
       bg: "bg-emerald-50 dark:bg-emerald-900/20",
@@ -119,8 +121,8 @@ export default function Dashboard() {
     },
     {
       icon: BookText,
-      title: "Grammar",
-      description: "Explore grammar rules",
+      title: t("dashboard.grammar"),
+      description: t("dashboard.exploreRules"),
       to: "/grammar",
       color: "text-blue-500",
       bg: "bg-blue-50 dark:bg-blue-900/20",
@@ -128,8 +130,8 @@ export default function Dashboard() {
     },
     {
       icon: MessageCircle,
-      title: "AI Chat",
-      description: "Practice with AI",
+      title: t("dashboard.aiChat"),
+      description: t("dashboard.practiceAi"),
       to: "/chat",
       color: "text-purple-500",
       bg: "bg-purple-50 dark:bg-purple-900/20",
@@ -152,12 +154,12 @@ export default function Dashboard() {
       {/* Welcome header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Welcome! <span className="inline-block animate-pulse">🔥</span>
+          {t("dashboard.welcome")} <span className="inline-block animate-pulse">🔥</span>
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">
           {activePair
             ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}`
-            : "No active language pair"}
+            : t("dashboard.noActivePair")}
         </p>
       </div>
 
@@ -185,7 +187,7 @@ export default function Dashboard() {
       {settings?.level && (
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            CEFR Level
+            {t("dashboard.cefrLevel")}
           </h2>
           <CEFRBar level={settings.level} />
         </div>
@@ -194,7 +196,7 @@ export default function Dashboard() {
       {/* Quick actions */}
       <div>
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          Quick actions
+          {t("dashboard.quickActions")}
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {quickActions.map((action) => (
@@ -232,13 +234,13 @@ export default function Dashboard() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Grammar progress
+              {t("dashboard.grammarProgress")}
             </h2>
             <Link
               to="/grammar"
               className="text-xs text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
             >
-              See all <ArrowRight size={12} />
+              {t("dashboard.seeAll")} <ArrowRight size={12} />
             </Link>
           </div>
           <div className="space-y-3">

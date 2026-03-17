@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Search,
   Shuffle,
@@ -18,20 +19,22 @@ import type { Verb } from "../types";
 
 const PERSONS = ["ich", "du", "er/sie/es", "wir", "ihr", "sie/Sie"];
 const IMPERATIVE_PERSONS = ["du", "ihr", "Sie"];
-const TENSE_LABELS: Record<string, string> = {
-  prasens: "Present",
-  prateritum: "Past",
-  perfekt: "Perfect",
-  futur1: "Future I",
-  konjunktiv2: "Subjunctive II",
-  imperativ: "Imperative",
-};
-const TENSE_KEYS = Object.keys(TENSE_LABELS);
+const TENSE_KEYS = ["prasens", "prateritum", "perfekt", "futur1", "konjunktiv2", "imperativ"];
 
 type Mode = "random" | "byTense" | "byVerb";
 
 export default function Conjugation() {
+  const { t } = useTranslation();
   const { activePair } = useApp();
+
+  const TENSE_LABELS: Record<string, string> = {
+    prasens: t("conjugation.present"),
+    prateritum: t("conjugation.past"),
+    perfekt: t("conjugation.perfect"),
+    futur1: t("conjugation.futureI"),
+    konjunktiv2: t("conjugation.subjunctiveII"),
+    imperativ: t("conjugation.imperative"),
+  };
 
   const [verbs, setVerbs] = useState<Verb[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,15 +91,15 @@ export default function Conjugation() {
     if (pool.length === 0) return;
     const verb = pool[Math.floor(Math.random() * pool.length)];
     const availableTenses = TENSE_KEYS.filter(
-      (t) => verb.conjugations[t] && Object.keys(verb.conjugations[t]).length > 0,
+      (k) => verb.conjugations[k] && Object.keys(verb.conjugations[k]).length > 0,
     );
-    const t =
+    const picked =
       tense && availableTenses.includes(tense)
         ? tense
         : availableTenses.length > 0
           ? availableTenses[Math.floor(Math.random() * availableTenses.length)]
           : "prasens";
-    startPractice(verb, t);
+    startPractice(verb, picked);
   }
 
   function startPractice(verb: Verb, tense: string) {
@@ -125,13 +128,13 @@ export default function Conjugation() {
       if (given === expected) {
         correct++;
       } else {
-        errors.push(`${person}: "${given || "(empty)"}" -> "${correctAnswers[person]}"`);
+        errors.push(`${person}: "${given || t("conjugation.empty")}" -> "${correctAnswers[person]}"`);
       }
     });
 
     const allCorrect = correct === p.length;
     setCorrectCount((c) => c + correct);
-    setTotalCount((t) => t + p.length);
+    setTotalCount((prev) => prev + p.length);
 
     if (activePair) {
       bridge
@@ -164,9 +167,9 @@ export default function Conjugation() {
     } else if (mode === "byVerb" && currentVerb) {
       // Go to next tense for same verb
       const available = TENSE_KEYS.filter(
-        (t) =>
-          currentVerb.conjugations[t] &&
-          Object.keys(currentVerb.conjugations[t]).length > 0,
+        (k) =>
+          currentVerb.conjugations[k] &&
+          Object.keys(currentVerb.conjugations[k]).length > 0,
       );
       const idx = available.indexOf(currentTense);
       const nextIdx = (idx + 1) % available.length;
@@ -177,9 +180,9 @@ export default function Conjugation() {
   function handlePrevTense() {
     if (!currentVerb) return;
     const available = TENSE_KEYS.filter(
-      (t) =>
-        currentVerb.conjugations[t] &&
-        Object.keys(currentVerb.conjugations[t]).length > 0,
+      (k) =>
+        currentVerb.conjugations[k] &&
+        Object.keys(currentVerb.conjugations[k]).length > 0,
     );
     const idx = available.indexOf(currentTense);
     const prevIdx = (idx - 1 + available.length) % available.length;
@@ -189,9 +192,9 @@ export default function Conjugation() {
   function handleNextTense() {
     if (!currentVerb) return;
     const available = TENSE_KEYS.filter(
-      (t) =>
-        currentVerb.conjugations[t] &&
-        Object.keys(currentVerb.conjugations[t]).length > 0,
+      (k) =>
+        currentVerb.conjugations[k] &&
+        Object.keys(currentVerb.conjugations[k]).length > 0,
     );
     const idx = available.indexOf(currentTense);
     const nextIdx = (idx + 1) % available.length;
@@ -200,8 +203,8 @@ export default function Conjugation() {
 
   function selectVerb(verb: Verb) {
     const available = TENSE_KEYS.filter(
-      (t) =>
-        verb.conjugations[t] && Object.keys(verb.conjugations[t]).length > 0,
+      (k) =>
+        verb.conjugations[k] && Object.keys(verb.conjugations[k]).length > 0,
     );
     startPractice(verb, available[0] || "prasens");
   }
@@ -226,9 +229,9 @@ export default function Conjugation() {
     return (
       <div className="text-center py-20 text-gray-500 dark:text-gray-400">
         <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
-        <p className="text-lg font-medium">No verbs available</p>
+        <p className="text-lg font-medium">{t("conjugation.noVerbsAvailable")}</p>
         <p className="text-sm mt-1">
-          Import data to start conjugation practice.
+          {t("conjugation.importData")}
         </p>
       </div>
     );
@@ -240,10 +243,10 @@ export default function Conjugation() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Conjugation
+            {t("conjugation.title")}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {verbs.length} verb{verbs.length !== 1 ? "s" : ""} available
+            {t("conjugation.verbsAvailable", { count: verbs.length })}
           </p>
         </div>
         {totalCount > 0 && (
@@ -274,7 +277,7 @@ export default function Conjugation() {
           }`}
         >
           <Shuffle size={16} />
-          Random
+          {t("conjugation.random")}
         </button>
         <button
           onClick={() => {
@@ -293,7 +296,7 @@ export default function Conjugation() {
           }`}
         >
           <BookOpen size={16} />
-          By tense
+          {t("conjugation.byTense")}
         </button>
         <button
           onClick={() => setMode("byVerb")}
@@ -304,7 +307,7 @@ export default function Conjugation() {
           }`}
         >
           <List size={16} />
-          By verb
+          {t("conjugation.byVerb")}
         </button>
       </div>
 
@@ -347,14 +350,14 @@ export default function Conjugation() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search verb..."
+              placeholder={t("conjugation.searchVerb")}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
             />
           </div>
           <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
             {filteredVerbs.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-gray-400">
-                No verb found
+                {t("conjugation.noVerbFound")}
               </div>
             ) : (
               filteredVerbs.map((verb) => (
@@ -420,7 +423,7 @@ export default function Conjugation() {
                     )
                   }
                   className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                  title="Listen"
+                  title={t("common.listen")}
                 >
                   <Volume2 size={16} />
                 </button>
@@ -452,7 +455,7 @@ export default function Conjugation() {
               <button
                 onClick={handlePrevTense}
                 className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                title="Previous tense"
+                title={t("conjugation.previousTense")}
               >
                 <ChevronLeft size={18} />
               </button>
@@ -462,7 +465,7 @@ export default function Conjugation() {
               <button
                 onClick={handleNextTense}
                 className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                title="Next tense"
+                title={t("conjugation.nextTense")}
               >
                 <ChevronRight size={18} />
               </button>
@@ -550,14 +553,14 @@ export default function Conjugation() {
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors shadow-sm"
                 >
                   <Check size={16} />
-                  Check
+                  {t("common.check")}
                 </button>
                 <button
                   onClick={handleReveal}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 >
                   <Eye size={16} />
-                  Show answers
+                  {t("conjugation.showAnswers")}
                 </button>
               </>
             )}
@@ -567,7 +570,7 @@ export default function Conjugation() {
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors shadow-sm"
               >
                 <RotateCcw size={16} />
-                Next
+                {t("common.next")}
               </button>
             )}
           </div>

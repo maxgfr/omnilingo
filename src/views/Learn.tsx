@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,6 +16,7 @@ import { speak, getSourceLang } from "../lib/speech";
 import type { Word } from "../types";
 
 export default function Learn() {
+  const { t } = useTranslation();
   const { settings, activePair } = useApp();
   const [words, setWords] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -60,7 +62,7 @@ export default function Learn() {
       await bridge.addWordToSrs(currentWord.id);
       setAddedIds((prev) => new Set(prev).add(currentWord.id));
     } catch (err) {
-      console.error("Error adding to SRS:", err);
+      console.error(t("learn.errorAddingSrs"), err);
     } finally {
       setAdding(false);
     }
@@ -107,20 +109,19 @@ export default function Learn() {
         </div>
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Session complete!
+            {t("learn.sessionComplete")}
           </h2>
           <p className="text-gray-500 dark:text-gray-400">
             {words.length === 0
-              ? "No new words available at the moment."
-              : `You reviewed ${words.length} word${words.length !== 1 ? "s" : ""}.`}
+              ? t("learn.noWordsAvailable")
+              : t("learn.youReviewed", { count: words.length })}
           </p>
         </div>
 
         {addedCount > 0 && (
           <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-6 py-4 text-center">
             <p className="text-sm text-emerald-700 dark:text-emerald-400">
-              <span className="font-bold text-lg">{addedCount}</span>{" "}
-              word{addedCount !== 1 ? "s" : ""} added to reviews
+              {t("learn.wordsAdded", { count: addedCount })}
             </p>
           </div>
         )}
@@ -132,7 +133,7 @@ export default function Learn() {
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
             >
               <RotateCcw size={16} />
-              Review words
+              {t("learn.reviewWords")}
             </button>
           )}
         </div>
@@ -146,10 +147,10 @@ export default function Learn() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            Learn new words
+            {t("learn.title")}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {words.length} word{words.length !== 1 ? "s" : ""} to discover
+            {t("learn.wordsToDiscover", { count: words.length })}
           </p>
         </div>
         <span className="text-sm font-medium text-gray-500 dark:text-gray-400 tabular-nums">
@@ -187,7 +188,7 @@ export default function Learn() {
         <button
           onClick={handleSpeak}
           className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          title="Pronounce (S)"
+          title={t("learn.pronounce")}
         >
           <Volume2 size={18} />
         </button>
@@ -206,17 +207,17 @@ export default function Learn() {
           {isAdded ? (
             <>
               <CheckCircle size={16} />
-              Added
+              {t("common.added")}
             </>
           ) : adding ? (
             <>
               <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-              Adding...
+              {t("common.adding")}
             </>
           ) : (
             <>
               <Plus size={16} />
-              Add to reviews
+              {t("learn.addToReviews")}
             </>
           )}
         </button>
@@ -234,7 +235,7 @@ export default function Learn() {
           }`}
         >
           <ChevronLeft size={16} />
-          Previous
+          {t("common.previous")}
         </button>
 
         {/* Dot indicators (compact, max ~10 shown) */}
@@ -259,17 +260,17 @@ export default function Learn() {
           onClick={goNext}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 transition-all"
         >
-          {isLast ? "Finish" : "Next"}
+          {isLast ? t("common.finish") : t("common.next")}
           <ChevronRight size={16} />
         </button>
       </div>
 
       {/* Keyboard hint */}
       <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-        Shortcuts: <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">←</kbd>{" "}
-        <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">→</kbd> navigate{" "}
-        <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">A</kbd> add{" "}
-        <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">S</kbd> speak
+        {t("common.shortcuts")}: <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">←</kbd>{" "}
+        <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">→</kbd> {t("common.navigate")}{" "}
+        <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">A</kbd> {t("common.add")}{" "}
+        <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono text-[10px]">S</kbd> {t("common.speak")}
       </p>
     </div>
   );

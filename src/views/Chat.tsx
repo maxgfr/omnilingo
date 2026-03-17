@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -7,14 +8,6 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
-
-const QUICK_ACTIONS = [
-  { label: "Correct a sentence", prompt: "Corrige cette phrase et explique les erreurs : " },
-  { label: "Explain grammar", prompt: "Explique-moi cette regle de grammaire : " },
-  { label: "Free conversation", prompt: "Parlons dans la langue cible ! Commence une conversation simple sur " },
-  { label: "Exercises", prompt: "Donne-moi 5 exercices de niveau " },
-  { label: "Translate", prompt: "Traduis dans la langue cible : " },
-];
 
 const MAX_MESSAGES = 20;
 const STORAGE_KEY = "omnilingo-chat";
@@ -47,7 +40,16 @@ function formatMessage(text: string): string {
 }
 
 export default function Chat() {
+  const { t } = useTranslation();
   const { settings, activePair } = useApp();
+
+  const QUICK_ACTIONS = [
+    { label: t("chat.correctSentence"), prompt: "Corrige cette phrase et explique les erreurs : " },
+    { label: t("chat.explainGrammar"), prompt: "Explique-moi cette regle de grammaire : " },
+    { label: t("chat.freeConversation"), prompt: "Parlons dans la langue cible ! Commence une conversation simple sur " },
+    { label: t("chat.exercises"), prompt: "Donne-moi 5 exercices de niveau " },
+    { label: t("chat.translate"), prompt: "Traduis dans la langue cible : " },
+  ];
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY);
@@ -113,7 +115,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `Error communicating with AI: ${err}` },
+        { role: "assistant", content: `${t("chat.errorAi")}: ${err}` },
       ]);
     } finally {
       setLoading(false);
@@ -149,11 +151,11 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
               <Sparkles size={20} className="text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-white">AI Chat</h1>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t("chat.title")}</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {activePair
-                  ? `Tutor ${activePair.source_name} - Level ${settings?.level || "A2"}`
-                  : "Language tutor"}
+                  ? `${t("chat.tutor")} ${activePair.source_name} - ${t("common.level")} ${settings?.level || "A2"}`
+                  : t("chat.languageTutor")}
               </p>
             </div>
           </div>
@@ -161,10 +163,10 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
             <button
               onClick={clearChat}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-              title="Clear conversation"
+              title={t("chat.clear")}
             >
               <Trash2 size={14} />
-              <span className="hidden sm:inline">Clear</span>
+              <span className="hidden sm:inline">{t("chat.clear")}</span>
             </button>
           )}
         </div>
@@ -192,11 +194,10 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
               <Sparkles size={32} className="text-purple-500 dark:text-purple-400" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Hello! I'm your AI tutor
+              {t("chat.hello")}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-              Ask me questions, request corrections, or practice conversation.
-              Use the quick buttons above to get started.
+              {t("chat.askQuestions")}
             </p>
           </div>
         )}
@@ -225,7 +226,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
               <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <Loader2 size={16} className="animate-spin" />
-                <span>Thinking...</span>
+                <span>{t("chat.thinking")}</span>
               </div>
             </div>
           </div>
@@ -243,7 +244,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
+              placeholder={t("chat.typePlaceholder")}
               disabled={loading}
               rows={1}
               className="w-full resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-3 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50 transition-colors"
@@ -268,7 +269,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
           </button>
         </div>
         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 text-center">
-          Shift+Enter for new line - Enter to send
+          {t("chat.shiftEnter")}
         </p>
       </div>
     </div>

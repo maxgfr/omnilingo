@@ -18,7 +18,11 @@ import {
   Volume2,
   Moon,
   Zap,
+  Languages,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { setUILanguage, getUILanguage, getAvailableLanguages, saveCustomTranslation } from "../i18n";
+import en from "../i18n/locales/en.json";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import type { AiSettings, WhisperModelInfo, DictionarySource } from "../types";
@@ -111,10 +115,25 @@ const AI_PROVIDERS = [
 
 const LEVELS = ["A1", "A2", "B1", "B2"];
 
+const LANG_NAMES: Record<string, string> = {
+  en: "English",
+  fr: "Français",
+  es: "Español",
+  de: "Deutsch",
+  it: "Italiano",
+  pt: "Português",
+  ja: "日本語",
+  zh: "中文",
+  ko: "한국어",
+  ru: "Русский",
+  ar: "العربية",
+};
+
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 export default function Settings() {
+  const { t } = useTranslation();
   const { settings, activePair, languagePairs, switchPair, updateSetting, reloadSettings } = useApp();
 
   const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
@@ -136,6 +155,10 @@ export default function Settings() {
   const [clearingCache, setClearingCache] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
+  const [uiLang, setUiLang] = useState(getUILanguage());
+  const [translateTarget, setTranslateTarget] = useState("");
+  const [translateCode, setTranslateCode] = useState("");
+  const [translatingUi, setTranslatingUi] = useState(false);
 
   // Load all data on mount
   useEffect(() => {
@@ -185,17 +208,17 @@ export default function Settings() {
 
   const handleSwitchPair = async (pairId: number) => {
     await switchPair(pairId);
-    showStatus("Language pair changed");
+    showStatus(t("settings.languagePairChanged"));
   };
 
   const handleLevelChange = async (level: string) => {
     await updateSetting("level", level);
-    showStatus(`Level changed: ${level}`);
+    showStatus(t("settings.levelChanged", { level }));
   };
 
   const handleWordsPerDayChange = async (value: number) => {
     await updateSetting("words_per_day", String(value));
-    showStatus(`Words per day: ${value}`);
+    showStatus(t("settings.wordsPerDayChanged", { value }));
   };
 
   const handleToggleDarkMode = async (v: boolean) => {
@@ -204,7 +227,7 @@ export default function Settings() {
 
   const handleToggleAudio = async (v: boolean) => {
     await updateSetting("audio_enabled", v ? "true" : "false");
-    showStatus(v ? "Audio enabled" : "Audio disabled");
+    showStatus(v ? t("settings.audioEnabled") : t("settings.audioDisabled"));
   };
 
   const handleSaveAi = async () => {
@@ -214,9 +237,9 @@ export default function Settings() {
       await bridge.setAiProvider(newProvider, newApiKey, newModel);
       const ai = await bridge.getAiSettings();
       setAiSettings(ai);
-      showStatus("AI configuration saved");
+      showStatus(t("settings.aiConfigSaved"));
     } catch (err) {
-      showStatus(`Error: ${err}`);
+      showStatus(`${t("common.error")}: ${err}`);
     } finally {
       setSavingAi(false);
     }
@@ -234,9 +257,9 @@ export default function Settings() {
       await bridge.downloadWhisperModel(modelName);
       const models = await bridge.getWhisperModels();
       setWhisperModels(models);
-      showStatus(`Model ${modelName} downloaded`);
+      showStatus(t("settings.modelDownloaded", { name: modelName }));
     } catch (err) {
-      showStatus(`Download error: ${err}`);
+      showStatus(`${t("settings.downloadError")}: ${err}`);
     } finally {
       setDownloadingWhisper(null);
     }
@@ -253,10 +276,10 @@ export default function Settings() {
         dict.source_name,
         dict.target_name,
       );
-      showStatus(`Dictionary ${dict.source_name}-${dict.target_name} downloaded`);
+      showStatus(t("settings.dictDownloaded", { name: `${dict.source_name}-${dict.target_name}` }));
       await reloadSettings();
     } catch (err) {
-      showStatus(`Error: ${err}`);
+      showStatus(`${t("common.error")}: ${err}`);
     } finally {
       setDownloading(null);
     }
@@ -278,7 +301,7 @@ export default function Settings() {
       setGrammarCount(topics.length);
       setVerbCount(verbs.length);
     } catch (err) {
-      showStatus(`Import error: ${err}`);
+      showStatus(`${t("common.error")}: ${err}`);
     } finally {
       setImporting(false);
     }
@@ -290,7 +313,7 @@ export default function Settings() {
       const result = await bridge.clearCache();
       showStatus(result);
     } catch (err) {
-      showStatus(`Error: ${err}`);
+      showStatus(`${t("common.error")}: ${err}`);
     } finally {
       setClearingCache(false);
     }
@@ -304,7 +327,7 @@ export default function Settings() {
       await reloadSettings();
       setShowResetConfirm(false);
     } catch (err) {
-      showStatus(`Error: ${err}`);
+      showStatus(`${t("common.error")}: ${err}`);
     } finally {
       setResetting(false);
     }
@@ -333,16 +356,16 @@ export default function Settings() {
   return (
     <div className="space-y-6 pb-10">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("settings.title")}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Configure your learning experience
+          {t("settings.subtitle")}
         </p>
       </div>
 
       {/* ================= 1. LANGUE ================= */}
-      <Section icon={Globe} title="Language" iconColor="text-blue-500 dark:text-blue-400">
+      <Section icon={Globe} title={t("settings.language")} iconColor="text-blue-500 dark:text-blue-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Choose your active language pair
+          {t("settings.chooseLanguagePair")}
         </p>
         <div className="flex flex-wrap gap-2">
           {languagePairs.map((pair) => (
@@ -366,17 +389,17 @@ export default function Settings() {
         </div>
         {languagePairs.length === 0 && (
           <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-            No language pairs available. Download a dictionary below.
+            {t("settings.noLanguagePairs")}
           </p>
         )}
       </Section>
 
       {/* ================= 2. APPRENTISSAGE ================= */}
-      <Section icon={Brain} title="Learning" iconColor="text-emerald-500 dark:text-emerald-400">
+      <Section icon={Brain} title={t("settings.learning")} iconColor="text-emerald-500 dark:text-emerald-400">
         {/* Level selector */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            CEFR Level
+            {t("settings.cefrLevel")}
           </label>
           <div className="flex gap-2">
             {LEVELS.map((level) => (
@@ -398,7 +421,7 @@ export default function Settings() {
         {/* Words per day */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Words per day: <span className="text-amber-600 dark:text-amber-400 font-bold">{settings?.words_per_day ?? 10}</span>
+            {t("settings.wordsPerDay")}: <span className="text-amber-600 dark:text-amber-400 font-bold">{settings?.words_per_day ?? 10}</span>
           </label>
           <input
             type="range"
@@ -418,12 +441,12 @@ export default function Settings() {
       </Section>
 
       {/* ================= 3. INTELLIGENCE ARTIFICIELLE ================= */}
-      <Section icon={Zap} title="Artificial Intelligence" iconColor="text-purple-500 dark:text-purple-400">
+      <Section icon={Zap} title={t("settings.ai")} iconColor="text-purple-500 dark:text-purple-400">
         <div className="space-y-4">
           {/* Provider */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Provider
+              {t("settings.provider")}
             </label>
             <div className="relative">
               <select
@@ -450,7 +473,7 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
                   <Key size={14} />
-                  API Key
+                  {t("settings.apiKey")}
                 </span>
               </label>
               <input
@@ -466,7 +489,7 @@ export default function Settings() {
           {/* Model */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Model
+              {t("settings.model")}
             </label>
             <input
               type="text"
@@ -484,28 +507,28 @@ export default function Settings() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {savingAi ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-            Save
+            {t("common.save")}
           </button>
 
           {/* Current config info */}
           {aiSettings && (
             <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-              Current config: <span className="font-medium text-gray-700 dark:text-gray-300">{aiSettings.provider}</span> / <span className="font-mono text-gray-700 dark:text-gray-300">{aiSettings.model}</span>
-              {aiSettings.api_key ? " — Key configured" : " — No key"}
+              {t("settings.currentConfig")}: <span className="font-medium text-gray-700 dark:text-gray-300">{aiSettings.provider}</span> / <span className="font-mono text-gray-700 dark:text-gray-300">{aiSettings.model}</span>
+              {aiSettings.api_key ? ` — ${t("settings.keyConfigured")}` : ` — ${t("settings.noKey")}`}
             </div>
           )}
         </div>
       </Section>
 
       {/* ================= 4. APPARENCE ================= */}
-      <Section icon={Palette} title="Appearance" iconColor="text-pink-500 dark:text-pink-400">
+      <Section icon={Palette} title={t("settings.appearance")} iconColor="text-pink-500 dark:text-pink-400">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Moon size={18} className="text-gray-500 dark:text-gray-400" />
               <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Dark mode</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Dark theme interface</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{t("settings.darkMode")}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t("settings.darkModeDescription")}</p>
               </div>
             </div>
             <Toggle
@@ -520,8 +543,8 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <Volume2 size={18} className="text-gray-500 dark:text-gray-400" />
               <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Audio</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Pronunciation and sound effects</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{t("settings.audio")}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t("settings.audioDescription")}</p>
               </div>
             </div>
             <Toggle
@@ -532,14 +555,107 @@ export default function Settings() {
         </div>
       </Section>
 
-      {/* ================= 5. WHISPER (STT) ================= */}
-      <Section icon={Mic} title="Whisper Models (STT)" iconColor="text-orange-500 dark:text-orange-400">
+      {/* ================= 4b. UI LANGUAGE ================= */}
+      <Section icon={Languages} title={t("settings.uiLanguage")} iconColor="text-indigo-500 dark:text-indigo-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Download a model for offline speech recognition
+          {t("settings.uiLanguageDescription")}
+        </p>
+
+        {/* Language selector */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {getAvailableLanguages().map((code) => (
+            <button
+              key={code}
+              onClick={() => {
+                setUILanguage(code);
+                setUiLang(code);
+              }}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                uiLang === code
+                  ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
+                  : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500"
+              }`}
+            >
+              {LANG_NAMES[code] ?? code}
+              {uiLang === code && <Check size={16} className="ml-2 inline text-amber-500" />}
+            </button>
+          ))}
+        </div>
+
+        {/* AI Translate */}
+        <div className="border-t border-gray-100 dark:border-gray-700/50 pt-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            {t("settings.translateWithAi")}
+          </p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            <input
+              type="text"
+              value={translateTarget}
+              onChange={(e) => setTranslateTarget(e.target.value)}
+              placeholder="Language name (e.g. Spanish)"
+              className="flex-1 min-w-[160px] rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            />
+            <input
+              type="text"
+              value={translateCode}
+              onChange={(e) => setTranslateCode(e.target.value)}
+              placeholder="Code (e.g. es)"
+              className="w-28 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
+            />
+          </div>
+          <button
+            onClick={async () => {
+              if (!translateTarget.trim() || !translateCode.trim()) return;
+              setTranslatingUi(true);
+              try {
+                const jsonContent = JSON.stringify(en, null, 2);
+                const prompt = `Translate the following JSON translation file from English to ${translateTarget}.\nTranslate ONLY the values, keep all keys exactly as-is.\nReturn ONLY valid JSON, no markdown, no explanation.\n${jsonContent}`;
+                const response = await bridge.askAi(prompt);
+                // Extract JSON from the response (handle possible markdown wrapping)
+                let jsonStr = response.trim();
+                if (jsonStr.startsWith("```")) {
+                  jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+                }
+                const parsed = JSON.parse(jsonStr);
+                saveCustomTranslation(translateCode.trim().toLowerCase(), parsed);
+                const code = translateCode.trim().toLowerCase();
+                setUILanguage(code);
+                setUiLang(code);
+                setTranslateTarget("");
+                setTranslateCode("");
+                showStatus(t("settings.translationSaved"));
+              } catch (err) {
+                showStatus(`${t("settings.translationError")}: ${err}`);
+              } finally {
+                setTranslatingUi(false);
+              }
+            }}
+            disabled={translatingUi || !translateTarget.trim() || !translateCode.trim()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {translatingUi ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {t("settings.translating")}
+              </>
+            ) : (
+              <>
+                <Languages size={16} />
+                {t("settings.translateWithAi")}
+              </>
+            )}
+          </button>
+        </div>
+      </Section>
+
+      {/* ================= 5. WHISPER (STT) ================= */}
+      <Section icon={Mic} title={t("settings.whisperModels")} iconColor="text-orange-500 dark:text-orange-400">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          {t("settings.whisperDescription")}
         </p>
         {whisperModels.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-            No models available
+            {t("settings.noModelsAvailable")}
           </p>
         ) : (
           <div className="space-y-2">
@@ -559,7 +675,7 @@ export default function Settings() {
                 {model.downloaded ? (
                   <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     <Check size={14} />
-                    Installed
+                    {t("common.installed")}
                   </span>
                 ) : (
                   <button
@@ -570,12 +686,12 @@ export default function Settings() {
                     {downloadingWhisper === model.name ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        Downloading...
+                        {t("common.downloading")}
                       </>
                     ) : (
                       <>
                         <Download size={14} />
-                        Download
+                        {t("common.download")}
                       </>
                     )}
                   </button>
@@ -587,9 +703,9 @@ export default function Settings() {
       </Section>
 
       {/* ================= 6. DICTIONNAIRES ================= */}
-      <Section icon={BookOpen} title="Dictionaries" iconColor="text-blue-500 dark:text-blue-400">
+      <Section icon={BookOpen} title={t("settings.dictionaries")} iconColor="text-blue-500 dark:text-blue-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Browse and download dictionaries from FreeDict
+          {t("settings.dictionariesDescription")}
         </p>
 
         {/* Search */}
@@ -599,14 +715,14 @@ export default function Settings() {
             type="text"
             value={dictSearch}
             onChange={(e) => setDictSearch(e.target.value)}
-            placeholder="Search by language..."
+            placeholder={t("settings.searchByLanguage")}
             className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
 
         {filteredDicts.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500 italic text-center py-4">
-            {dictSources.length === 0 ? "No dictionaries available" : "No results"}
+            {dictSources.length === 0 ? t("settings.noDictionaries") : t("common.noResults")}
           </p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -629,7 +745,7 @@ export default function Settings() {
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {dict.provider}
-                        {dict.word_count ? ` — ${dict.word_count.toLocaleString()} words` : ""}
+                        {dict.word_count ? ` — ${dict.word_count.toLocaleString()} ${t("common.words").toLowerCase()}` : ""}
                         {dict.size_mb ? ` — ${dict.size_mb} MB` : ""}
                       </p>
                     </div>
@@ -642,12 +758,12 @@ export default function Settings() {
                     {downloading === key ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        <span className="hidden sm:inline">Downloading...</span>
+                        <span className="hidden sm:inline">{t("common.downloading")}</span>
                       </>
                     ) : (
                       <>
                         <Download size={14} />
-                        <span className="hidden sm:inline">Download</span>
+                        <span className="hidden sm:inline">{t("common.download")}</span>
                       </>
                     )}
                   </button>
@@ -656,7 +772,7 @@ export default function Settings() {
             })}
             {filteredDicts.length > 50 && (
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
-                {filteredDicts.length - 50} more dictionaries — refine your search
+                {t("settings.moreDictionaries", { count: filteredDicts.length - 50 })}
               </p>
             )}
           </div>
@@ -664,20 +780,20 @@ export default function Settings() {
       </Section>
 
       {/* ================= 7. DONNEES ================= */}
-      <Section icon={Database} title="Data" iconColor="text-gray-500 dark:text-gray-400">
+      <Section icon={Database} title={t("settings.data")} iconColor="text-gray-500 dark:text-gray-400">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordCount.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Words</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("common.words")}</p>
           </div>
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{grammarCount}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Grammar</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("common.grammar")}</p>
           </div>
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{verbCount}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Verbs</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("common.verbs")}</p>
           </div>
         </div>
 
@@ -695,9 +811,9 @@ export default function Settings() {
               <RefreshCw size={18} className="text-amber-500" />
             )}
             <div className="text-left">
-              <p>Import built-in data</p>
+              <p>{t("settings.importBuiltinData")}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                Load words, verbs and grammar for the active pair
+                {t("settings.importDescription")}
               </p>
             </div>
           </button>
@@ -714,9 +830,9 @@ export default function Settings() {
               <Trash2 size={18} className="text-gray-500" />
             )}
             <div className="text-left">
-              <p>Clear cache</p>
+              <p>{t("settings.clearCache")}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                Delete temporary files
+                {t("settings.clearCacheDescription")}
               </p>
             </div>
           </button>
@@ -729,9 +845,9 @@ export default function Settings() {
             >
               <AlertTriangle size={18} />
               <div className="text-left">
-                <p>Reset progress</p>
+                <p>{t("settings.resetProgress")}</p>
                 <p className="text-xs text-red-500 dark:text-red-400/70 font-normal">
-                  Delete all learning data
+                  {t("settings.resetDescription")}
                 </p>
               </div>
             </button>
@@ -740,11 +856,11 @@ export default function Settings() {
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
                 <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                  Are you sure?
+                  {t("settings.areYouSure")}
                 </p>
               </div>
               <p className="text-xs text-red-600 dark:text-red-400/80 mb-4">
-                This action is irreversible. All your progress, SRS cards, and statistics will be deleted.
+                {t("settings.resetWarning")}
               </p>
               <div className="flex gap-2">
                 <button
@@ -753,13 +869,13 @@ export default function Settings() {
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   {resetting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  Confirm reset
+                  {t("settings.confirmReset")}
                 </button>
                 <button
                   onClick={() => setShowResetConfirm(false)}
                   className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               </div>
             </div>

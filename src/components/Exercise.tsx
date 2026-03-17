@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface QCMProps {
   question: string;
@@ -57,6 +58,7 @@ interface FillBlankProps {
 }
 
 export function FillBlank({ sentence, answer, hint, onAnswer }: FillBlankProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const isCorrect = value.trim().toLowerCase() === answer.toLowerCase();
@@ -95,12 +97,12 @@ export function FillBlank({ sentence, answer, hint, onAnswer }: FillBlankProps) 
           onClick={handleSubmit}
           className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
         >
-          Check
+          {t("common.check")}
         </button>
       )}
       {submitted && !isCorrect && (
         <p className="text-sm text-rose-600 dark:text-rose-400">
-          Correct answer: <strong>{answer}</strong>
+          {t("common.correctAnswer")}: <strong>{answer}</strong>
         </p>
       )}
     </div>
@@ -115,6 +117,7 @@ interface TrueFalseProps {
 }
 
 export function TrueFalse({ statement, isTrue, explanation, onAnswer }: TrueFalseProps) {
+  const { t } = useTranslation();
   const [answered, setAnswered] = useState(false);
   const [userAnswer, setUserAnswer] = useState<boolean | null>(null);
 
@@ -142,7 +145,7 @@ export function TrueFalse({ statement, isTrue, explanation, onAnswer }: TrueFals
               : "border-gray-200 dark:border-gray-700 hover:border-emerald-400"
           }`}
         >
-          True
+          {t("common.true")}
         </button>
         <button
           onClick={() => handleAnswer(false)}
@@ -155,7 +158,7 @@ export function TrueFalse({ statement, isTrue, explanation, onAnswer }: TrueFals
               : "border-gray-200 dark:border-gray-700 hover:border-rose-400"
           }`}
         >
-          False
+          {t("common.false")}
         </button>
       </div>
       {answered && explanation && (
