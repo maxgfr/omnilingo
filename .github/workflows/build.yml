@@ -10,31 +10,58 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: Check & Lint
+  # ─────────────────────────────────────────────
+  # Frontend: TypeScript typecheck + Vite build
+  # ─────────────────────────────────────────────
+  frontend:
+    name: Frontend (typecheck + build)
     runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript typecheck
+        run: ./node_modules/.bin/tsc --noEmit
+
+      - name: Vite build
+        run: bun run build
+
+  # ─────────────────────────────────────────────
+  # Rust: cargo check + clippy on macOS & Windows
+  # ─────────────────────────────────────────────
+  clippy:
+    name: Clippy (${{ matrix.label }})
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            label: macOS
+          - platform: windows-latest
+            label: Windows
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf
+        with:
+          components: clippy
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
 
-      - name: Check
-        run: cd src-tauri && cargo check
+      - name: Cargo check
+        run: cargo check --manifest-path src-tauri/Cargo.toml
 
       - name: Clippy
-        run: cd src-tauri && cargo clippy -- -D warnings
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings

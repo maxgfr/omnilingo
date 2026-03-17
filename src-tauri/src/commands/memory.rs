@@ -1,9 +1,9 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::State;
 
 use crate::BaseDirState;
 
-fn safe_memory_path(base_dir: &PathBuf, rel_path: &str) -> Result<PathBuf, String> {
+fn safe_memory_path(base_dir: &Path, rel_path: &str) -> Result<PathBuf, String> {
     let memory_dir = base_dir.join("memory");
     let full_path = memory_dir.join(rel_path);
     let canonical_base = memory_dir.canonicalize().unwrap_or_else(|_| memory_dir.clone());

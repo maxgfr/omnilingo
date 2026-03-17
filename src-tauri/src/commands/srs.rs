@@ -245,7 +245,8 @@ fn sync_vocabulary_markdown(db: &Connection, pair_id: i64, base_dir: &std::path:
         )
         .map_err(|e| e.to_string())?;
 
-    let rows: Vec<(String, String, Option<String>, Option<String>, f64, i64, String, Option<i64>)> = stmt
+    type VocabRow = (String, String, Option<String>, Option<String>, f64, i64, String, Option<i64>);
+    let rows: Vec<VocabRow> = stmt
         .query_map([pair_id], |row| {
             Ok((
                 row.get(0)?,

@@ -1,136 +1,110 @@
 # Omnilingo
 
-**Desktop language learning app with spaced repetition and AI tutoring.**
+App desktop pour apprendre les langues, construite avec [Tauri v2](https://tauri.app), React et TypeScript.
 
-Built with [Tauri v2](https://tauri.app) (Rust + vanilla JS). Offline-first, multi-language, multi-AI-provider.
+## Fonctionnalites
 
-![Tauri](https://img.shields.io/badge/Tauri-v2-blue?logo=tauri)
-![Rust](https://img.shields.io/badge/Rust-2021-orange?logo=rust)
-![License](https://img.shields.io/badge/license-MIT-green)
+- **Flashcards SRS** — Algorithme SM-2 avec repetition espacee (Oublie / Difficile / Bien / Facile)
+- **Dictionnaire** — 500+ mots DE-FR integres, recherche, filtres par niveau et categorie
+- **Grammaire** — 36 lecons (A1-B1) avec exercices interactifs (QCM, texte a trous, vrai/faux)
+- **Conjugaison** — 100+ verbes allemands, 6 temps, 3 modes de pratique
+- **Chat IA** — Tuteur de langues multi-provider (Anthropic, OpenAI, Gemini, Mistral, GLM, Claude CLI)
+- **Dictionnaires FreeDict** — Catalogue de 305 paires de langues telechargeables
+- **Speech-to-Text** — Reconnaissance vocale via Whisper (optionnel)
+- **Text-to-Speech** — Synthese vocale via Web Speech API
+- **Dark mode** — Theme sombre complet
+- **Multi-langues** — Architecture multi-paires (DE-FR par defaut, extensible)
 
----
+## Prerequis
 
-## Features
+- [Rust](https://rustup.rs/) (>= 1.77)
+- [Bun](https://bun.sh/) (>= 1.0)
+- Dependances systeme Tauri ([voir la doc](https://v2.tauri.app/start/prerequisites/))
 
-- **Spaced Repetition (SM-2)** — Learn vocabulary with scientifically proven intervals
-- **305+ downloadable dictionaries** — FreeDict catalog, StarDict format
-- **Grammar lessons** — 36 topics (A1/A2/B1) with exercises
-- **Verb conjugation** — 100+ verbs, 6 tenses, interactive practice
-- **AI chat tutor** — 6 providers: Anthropic, OpenAI/Codex, Gemini, Mistral, GLM, Claude CLI
-- **Speech-to-text** — Whisper (optional, offline)
-- **Text-to-speech** — Native Web Speech API
-- **Multi-language** — DE↔FR built-in, download any pair from FreeDict
-- **Offline-first** — Everything works without internet (except AI chat)
-- **Auto-update** — Built-in updater checks for new versions
-
-## Screenshots
-
-> Coming soon
-
-## Quick Start
+## Installation
 
 ```bash
-# Clone
 git clone https://github.com/maxgfr/omnilingo.git
 cd omnilingo
+bun install
+```
 
-# Run (requires Rust + Cargo)
+## Developpement
+
+```bash
+# Lancer l'app en mode dev (hot reload frontend + backend)
 cargo tauri dev
 
-# Build release
+# Build frontend seul
+bun run build
+
+# Typecheck
+bun run --bun tsc --noEmit
+
+# Lint Rust
+cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+```
+
+## Build release
+
+```bash
 cargo tauri build
-
-# With speech-to-text (compiles whisper.cpp, slower first build)
-cargo tauri dev --features stt
 ```
 
-### Prerequisites
+Les artefacts sont generes dans `src-tauri/target/release/bundle/` :
+- **macOS** : `.dmg`, `.app`
+- **Windows** : `.msi`, `.exe`
 
-- [Rust](https://rustup.rs/) (1.77+)
-- [Tauri CLI](https://tauri.app/start/): `cargo install tauri-cli`
-- macOS: Xcode Command Line Tools
-- Linux: `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`
-- Windows: Visual Studio C++ Build Tools
-
-## Architecture
-
-```
-[Tauri Webview — vanilla JS SPA]
-        ↕ IPC (invoke)
-[Rust Backend — src-tauri/]
-   ↕            ↕              ↕
-[SQLite]   [memory/*.md]   [AI API]
-```
-
-| Layer | Tech | Purpose |
-|-------|------|---------|
-| Frontend | Vanilla JS, Tailwind CSS | SPA with 7 views |
-| Backend | Rust, Tauri v2 | SQLite, SRS, AI, file I/O |
-| Database | SQLite + FTS5 | Words, cards, grammar, settings |
-| AI | reqwest HTTP | Anthropic, OpenAI, Gemini, Mistral, GLM |
-| STT | whisper-rs (optional) | Speech-to-text via Whisper |
-| TTS | Web Speech API | Native browser voices |
-
-## AI Providers
-
-Configure in **Settings > AI Provider**. Bring your own API key.
-
-| Provider | Models | Free tier? |
-|----------|--------|-----------|
-| Anthropic | claude-haiku-4-5, claude-sonnet-4, claude-opus-4 | No |
-| OpenAI | gpt-4o-mini, gpt-4o, codex-mini | No |
-| Gemini | gemini-2.0-flash, gemini-2.5-flash/pro | Yes (free tier) |
-| Mistral | mistral-small/medium/large | Yes (free tier) |
-| GLM (Zhipu) | glm-4-flash, glm-4 | Yes (free tier) |
-| Claude CLI | claude-haiku-4-5 (local) | Requires Claude CLI |
-
-## Project Structure
+## Structure du projet
 
 ```
 omnilingo/
-├── index.html              # SPA entry point
-├── style.css               # Custom theme + Tailwind
-├── js/
-│   ├── bridge.js           # Tauri IPC bridge (44 methods)
-│   ├── srs.js              # SRS wrapper
-│   ├── app.js              # Router + state + settings
-│   ├── views/              # 7 views (dashboard, learn, review, ...)
-│   └── components/         # Flashcard, Exercise, ProgressBar
-├── data/
-│   ├── dictionary.json     # 500+ DE-FR words (builtin)
-│   ├── verbs.json          # 100+ conjugated verbs
-│   ├── grammar-topics.json # 36 grammar lessons
-│   └── dictionary-sources.json  # 305 FreeDict pairs catalog
-├── memory/                 # Markdown progress files
-├── src-tauri/
-│   ├── src/
-│   │   ├── lib.rs          # Tauri setup + 30 commands
-│   │   ├── db.rs           # SQLite + migrations
-│   │   └── commands/       # 10 command modules
-│   └── migrations/         # SQL schema
-└── .github/workflows/      # CI/CD
+├── src/                    Frontend React + TypeScript
+│   ├── components/         Composants reutilisables
+│   ├── views/              Pages (Dashboard, Learn, Review, ...)
+│   ├── store/              React Context (etat global)
+│   ├── lib/                Bridge IPC + utilitaires
+│   └── types/              Interfaces TypeScript
+├── src-tauri/              Backend Rust
+│   ├── src/commands/       Commandes IPC
+│   └── migrations/         Schemas SQL
+├── data/                   Donnees statiques (dictionnaire, grammaire, verbes)
+├── memory/                 Fichiers Markdown de progression
+└── .github/workflows/      CI/CD (build + release)
 ```
 
-## Development
+## CI/CD
+
+| Workflow | Declencheur | Description |
+|----------|-------------|-------------|
+| `build.yml` | Push/PR sur `main` | TypeScript typecheck + Vite build, puis Clippy Rust sur macOS et Windows |
+| `release.yml` | Tag `v*` | Build macOS (arm64 + x64) + Windows (x64), GitHub Release avec auto-update |
+
+### Creer une release
 
 ```bash
-# Check compilation (fast after first build)
-cd src-tauri && cargo check
-
-# Run with hot reload
-cargo tauri dev
-
-# Clippy lint
-cargo clippy -- -D warnings
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
-## Contributing
+Le workflow `release.yml` :
+1. Verifie le typecheck TypeScript
+2. Build l'app pour macOS Apple Silicon, macOS Intel et Windows
+3. Cree une GitHub Release avec les `.dmg` et `.msi`/`.exe`
+4. Genere le `latest.json` pour la mise a jour automatique
 
-1. Fork the repo
-2. Create a branch (`git checkout -b feature/amazing`)
-3. Commit with [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, etc.)
-4. Push and open a PR
+### Secrets GitHub (optionnels)
 
-## License
+Pour la signature et la notarisation :
+
+| Secret | Description |
+|--------|-------------|
+| `TAURI_SIGNING_PRIVATE_KEY` | Cle de signature des artefacts updater |
+| `APPLE_CERTIFICATE` | Certificat .p12 encode en base64 |
+| `APPLE_CERTIFICATE_PASSWORD` | Mot de passe du certificat |
+| `APPLE_SIGNING_IDENTITY` | Identite de signature macOS |
+| `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` | Notarisation Apple |
+
+## Licence
 
 [MIT](LICENSE)

@@ -121,8 +121,8 @@ fn clear_cache(base_dir: tauri::State<'_, BaseDirState>) -> Result<String, Strin
     // Clear whisper models
     let models_dir = base_dir.0.join("models");
     if models_dir.exists() {
-        for entry in std::fs::read_dir(&models_dir).unwrap_or_else(|_| std::fs::read_dir(".").unwrap()) {
-            if let Ok(e) = entry {
+        if let Ok(entries) = std::fs::read_dir(&models_dir) {
+            for e in entries.flatten() {
                 freed += e.metadata().map(|m| m.len()).unwrap_or(0);
             }
         }
@@ -132,8 +132,8 @@ fn clear_cache(base_dir: tauri::State<'_, BaseDirState>) -> Result<String, Strin
     // Clear downloaded dictionaries
     let downloads_dir = base_dir.0.join("downloads");
     if downloads_dir.exists() {
-        for entry in std::fs::read_dir(&downloads_dir).unwrap_or_else(|_| std::fs::read_dir(".").unwrap()) {
-            if let Ok(e) = entry {
+        if let Ok(entries) = std::fs::read_dir(&downloads_dir) {
+            for e in entries.flatten() {
                 freed += e.metadata().map(|m| m.len()).unwrap_or(0);
             }
         }

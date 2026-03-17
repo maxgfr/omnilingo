@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::State;
 
 use crate::BaseDirState;
@@ -12,13 +12,13 @@ pub struct WhisperModelInfo {
     pub downloaded: bool,
 }
 
-fn models_dir(base_dir: &PathBuf) -> PathBuf {
+fn models_dir(base_dir: &Path) -> PathBuf {
     let dir = base_dir.join("models");
     let _ = std::fs::create_dir_all(&dir);
     dir
 }
 
-fn model_path(base_dir: &PathBuf, model_name: &str) -> PathBuf {
+fn model_path(base_dir: &Path, model_name: &str) -> PathBuf {
     models_dir(base_dir).join(format!("ggml-{}.bin", model_name))
 }
 

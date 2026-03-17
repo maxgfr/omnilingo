@@ -1,13 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
 # Rust
 src-tauri/target/
 src-tauri/gen/
 
 # Database
-omnilingo.db
-omnilingo.db-wal
-omnilingo.db-shm
+*.db
+*.db-wal
+*.db-shm
 
-# Whisper models (large files)
+# Whisper models (large binary files)
 models/
 
 # Downloaded dictionaries
@@ -17,5 +23,12 @@ downloads/
 .DS_Store
 Thumbs.db
 
-# Node (shouldn't be needed but just in case)
-node_modules/
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.sw?
+
+# Env
+*.local
+.env

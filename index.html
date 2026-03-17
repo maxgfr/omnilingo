@@ -1,94 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Omnilingo — Apprendre les langues</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body class="bg-surface text-dark min-h-screen">
-  <!-- Mobile header -->
-  <header class="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-    <button id="menu-toggle" class="p-1">
-      <i data-lucide="menu" class="w-6 h-6"></i>
-    </button>
-    <h1 class="text-lg font-bold">Omnilingo</h1>
-    <div class="w-6"></div>
-  </header>
-
-  <!-- Sidebar -->
-  <aside id="sidebar" class="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
-    <div class="p-6 border-b border-gray-100">
-      <h1 class="text-xl font-bold flex items-center gap-2">Omnilingo</h1>
-      <p class="text-sm text-gray-500 mt-1" id="sidebar-pair">Apprendre les langues</p>
-    </div>
-    <nav class="p-4 space-y-1" id="nav">
-      <a href="#dashboard" class="nav-link" data-view="dashboard">
-        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-        <span>Tableau de bord</span>
-      </a>
-      <a href="#learn" class="nav-link" data-view="learn">
-        <i data-lucide="book-open" class="w-5 h-5"></i>
-        <span>Apprendre</span>
-      </a>
-      <a href="#review" class="nav-link" data-view="review">
-        <i data-lucide="repeat" class="w-5 h-5"></i>
-        <span>Réviser</span>
-        <span id="review-badge" class="ml-auto bg-accent text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
-      </a>
-      <a href="#grammar" class="nav-link" data-view="grammar">
-        <i data-lucide="book-text" class="w-5 h-5"></i>
-        <span>Grammaire</span>
-      </a>
-      <a href="#conjugation" class="nav-link" data-view="conjugation">
-        <i data-lucide="languages" class="w-5 h-5"></i>
-        <span>Conjugaison</span>
-      </a>
-      <a href="#dictionary" class="nav-link" data-view="dictionary">
-        <i data-lucide="search" class="w-5 h-5"></i>
-        <span>Dictionnaire</span>
-      </a>
-      <a href="#chat" class="nav-link" data-view="chat">
-        <i data-lucide="message-circle" class="w-5 h-5"></i>
-        <span>Chat Claude</span>
-      </a>
-      <hr class="my-3 border-gray-200">
-      <a href="#settings" class="nav-link" data-view="settings">
-        <i data-lucide="settings" class="w-5 h-5"></i>
-        <span>Paramètres</span>
-      </a>
-    </nav>
-    <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
-      <div class="text-xs text-gray-400">Niveau : <span id="sidebar-level" class="font-semibold text-accent">A2</span></div>
-      <div class="text-xs text-gray-400 mt-1">Série : <span id="sidebar-streak" class="font-semibold text-success">0</span> jours</div>
-    </div>
-  </aside>
-
-  <!-- Overlay for mobile sidebar -->
-  <div id="sidebar-overlay" class="fixed inset-0 bg-black/30 z-30 hidden lg:hidden"></div>
-
-  <!-- Main content -->
-  <main id="main-content" class="lg:ml-64 pt-16 lg:pt-0 min-h-screen">
-    <div id="view-container" class="p-6 max-w-4xl mx-auto"></div>
-  </main>
-
-  <!-- Scripts -->
-  <script src="js/bridge.js"></script>
-  <script src="js/srs.js"></script>
-  <script src="js/components/progress-bar.js"></script>
-  <script src="js/components/flashcard.js"></script>
-  <script src="js/components/exercise.js"></script>
-  <script src="js/views/dashboard.js"></script>
-  <script src="js/views/learn.js"></script>
-  <script src="js/views/review.js"></script>
-  <script src="js/views/grammar.js"></script>
-  <script src="js/views/conjugation.js"></script>
-  <script src="js/views/dictionary.js"></script>
-  <script src="js/views/chat.js"></script>
-  <script src="js/app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Omnilingo — Apprendre les langues</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

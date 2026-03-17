@@ -3,13 +3,36 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
 
 jobs:
+  # ─────────────────────────────────────────────
+  # Gate: typecheck avant build
+  # ─────────────────────────────────────────────
+  check:
+    name: Typecheck
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript typecheck
+        run: ./node_modules/.bin/tsc --noEmit
+
+  # ─────────────────────────────────────────────
+  # Build + publish: macOS (arm64, x64) + Windows
+  # ─────────────────────────────────────────────
   release:
+    name: Build (${{ matrix.label }})
+    needs: check
     strategy:
       fail-fast: false
       matrix:
@@ -25,10 +48,15 @@ jobs:
             label: Windows-x64
 
     runs-on: ${{ matrix.platform }}
-    name: Build (${{ matrix.label }})
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -40,24 +68,57 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
+      # ── macOS code signing (skip si pas de certificat) ──
+      - name: Import Apple certificate
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::notice::Certificat Apple non configure, signature ignoree"
+            exit 0
+          fi
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
+          rm certificate.p12
+
+      # ── Build & Release ──
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS notarization (optionnel)
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'Omnilingo ${{ github.ref_name }}'
+          releaseName: "Omnilingo ${{ github.ref_name }}"
           releaseBody: |
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+            ## Omnilingo ${{ github.ref_name }}
 
-            ## Install
-            - **macOS (Apple Silicon)**: Download `.dmg` (arm64)
-            - **macOS (Intel)**: Download `.dmg` (x64)
-            - **Windows**: Download `.msi` or `.exe`
+            ### Installation
 
-            Auto-update is built-in — the app will notify you of new versions.
+            | Plateforme | Fichier |
+            |------------|---------|
+            | **macOS Apple Silicon** | `.dmg` (arm64) |
+            | **macOS Intel** | `.dmg` (x64) |
+            | **Windows** | `.msi` ou `.exe` |
+
+            ### Mise a jour
+            La mise a jour automatique est integree — l'app vous notifiera des nouvelles versions.
+
+            ### Notes
+            Voir les commits pour le detail des changements.
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}

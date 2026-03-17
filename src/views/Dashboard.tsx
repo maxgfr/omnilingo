@@ -1,0 +1,275 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Flame,
+  Clock,
+  BookOpen,
+  Target,
+  Repeat,
+  MessageCircle,
+  BookText,
+  ArrowRight,
+} from "lucide-react";
+import { useApp } from "../store/AppContext";
+import * as bridge from "../lib/bridge";
+import { CEFRBar } from "../components/ProgressBar";
+import type { SrsStats, GrammarTopic } from "../types";
+
+export default function Dashboard() {
+  const { settings, activePair } = useApp();
+  const [stats, setStats] = useState<SrsStats | null>(null);
+  const [topics, setTopics] = useState<GrammarTopic[]>([]);
+  const [dueCount, setDueCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!activePair) return;
+    Promise.all([
+      bridge.getSrsStats(activePair.id),
+      bridge.getGrammarTopics(activePair.id),
+      bridge.getDueCount(activePair.id),
+    ])
+      .then(([s, t, d]) => {
+        setStats(s);
+        setTopics(t);
+        setDueCount(d);
+      })
+      .finally(() => setLoading(false));
+  }, [activePair]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-amber-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const streak = settings?.streak ?? 0;
+  const accuracy = stats ? Math.round(stats.average_accuracy) : 0;
+  const totalCards = stats?.total_cards ?? 0;
+
+  const grammarByLevel = topics.reduce(
+    (acc, t) => {
+      acc[t.level] = acc[t.level] || { total: 0, done: 0 };
+      acc[t.level].total++;
+      if (t.completed) acc[t.level].done++;
+      return acc;
+    },
+    {} as Record<string, { total: number; done: number }>,
+  );
+
+  const statCards = [
+    {
+      icon: Flame,
+      label: "Serie",
+      value: `${streak} jour${streak !== 1 ? "s" : ""}`,
+      color: "text-orange-500",
+      bg: "bg-orange-50 dark:bg-orange-900/20",
+      border: "border-orange-200 dark:border-orange-800",
+    },
+    {
+      icon: Clock,
+      label: "Cartes dues",
+      value: String(dueCount),
+      color: "text-blue-500",
+      bg: "bg-blue-50 dark:bg-blue-900/20",
+      border: "border-blue-200 dark:border-blue-800",
+    },
+    {
+      icon: BookOpen,
+      label: "Mots appris",
+      value: String(totalCards),
+      color: "text-emerald-500",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20",
+      border: "border-emerald-200 dark:border-emerald-800",
+    },
+    {
+      icon: Target,
+      label: "Precision",
+      value: `${accuracy}%`,
+      color: "text-purple-500",
+      bg: "bg-purple-50 dark:bg-purple-900/20",
+      border: "border-purple-200 dark:border-purple-800",
+    },
+  ];
+
+  const quickActions = [
+    ...(dueCount > 0
+      ? [
+          {
+            icon: Repeat,
+            title: "Reviser",
+            description: `${dueCount} carte${dueCount !== 1 ? "s" : ""} en attente`,
+            to: "/review",
+            color: "text-amber-500",
+            bg: "bg-amber-50 dark:bg-amber-900/20",
+            border: "border-amber-200 dark:border-amber-800",
+          },
+        ]
+      : []),
+    {
+      icon: BookOpen,
+      title: "Apprendre",
+      description: "Decouvrir de nouveaux mots",
+      to: "/learn",
+      color: "text-emerald-500",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20",
+      border: "border-emerald-200 dark:border-emerald-800",
+    },
+    {
+      icon: BookText,
+      title: "Grammaire",
+      description: "Explorer les regles",
+      to: "/grammar",
+      color: "text-blue-500",
+      bg: "bg-blue-50 dark:bg-blue-900/20",
+      border: "border-blue-200 dark:border-blue-800",
+    },
+    {
+      icon: MessageCircle,
+      title: "Chat IA",
+      description: "Pratiquer avec l'IA",
+      to: "/chat",
+      color: "text-purple-500",
+      bg: "bg-purple-50 dark:bg-purple-900/20",
+      border: "border-purple-200 dark:border-purple-800",
+    },
+  ];
+
+  const levelOrder = ["A1", "A2", "B1", "B2", "C1", "C2"];
+  const levelColors: Record<string, string> = {
+    A1: "bg-emerald-500",
+    A2: "bg-blue-500",
+    B1: "bg-amber-500",
+    B2: "bg-purple-500",
+    C1: "bg-rose-500",
+    C2: "bg-red-500",
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Welcome header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Bonjour ! <span className="inline-block animate-pulse">🔥</span>
+        </h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
+          {activePair
+            ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}`
+            : "Aucune paire de langues active"}
+        </p>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className={`rounded-xl border ${card.border} ${card.bg} p-4 transition-shadow hover:shadow-md`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <card.icon size={18} className={card.color} />
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {card.label}
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {card.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* CEFR Level */}
+      {settings?.level && (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            Niveau CECR
+          </h2>
+          <CEFRBar level={settings.level} />
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          Actions rapides
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => (
+            <Link
+              key={action.title}
+              to={action.to}
+              className={`group flex items-start gap-3 rounded-xl border ${action.border} ${action.bg} p-4 transition-all hover:shadow-md hover:scale-[1.02]`}
+            >
+              <div
+                className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow-sm ${action.color}`}
+              >
+                <action.icon size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                    {action.title}
+                  </h3>
+                  <ArrowRight
+                    size={14}
+                    className="text-gray-400 transition-transform group-hover:translate-x-1"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {action.description}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Grammar progress */}
+      {Object.keys(grammarByLevel).length > 0 && (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Progression grammaire
+            </h2>
+            <Link
+              to="/grammar"
+              className="text-xs text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+            >
+              Voir tout <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {levelOrder
+              .filter((lvl) => grammarByLevel[lvl])
+              .map((lvl) => {
+                const { total, done } = grammarByLevel[lvl];
+                const percent =
+                  total > 0 ? Math.round((done / total) * 100) : 0;
+                return (
+                  <div key={lvl}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">
+                        {lvl}
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {done}/{total} ({percent}%)
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${levelColors[lvl] || "bg-gray-400"}`}
+                        style={{ width: `${Math.min(percent, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
