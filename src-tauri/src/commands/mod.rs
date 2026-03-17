@@ -8,3 +8,5 @@ pub mod grammar;
 pub mod conjugation;
 pub mod speech;
 pub mod download;
+pub mod favorites;
+pub mod stats;

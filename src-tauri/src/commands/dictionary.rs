@@ -85,15 +85,17 @@ pub fn search_words(
 ) -> Result<Vec<Word>, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
 
-    // Use LIKE for search (FTS might not be populated yet, and simpler)
+    // Try FTS5 first, fall back to LIKE
+    let fts_query = format!("{}*", query.replace('"', ""));
     let pattern = format!("%{}%", query);
 
     let mut sql = String::from(
-        "SELECT id, language_pair_id, source_word, target_word, gender, plural, level, category, tags, example_source, example_target
-         FROM words
-         WHERE language_pair_id = ?1 AND (source_word LIKE ?2 OR target_word LIKE ?2)",
+        "SELECT w.id, w.language_pair_id, w.source_word, w.target_word, w.gender, w.plural, w.level, w.category, w.tags, w.example_source, w.example_target
+         FROM words w
+         LEFT JOIN words_fts fts ON fts.rowid = w.id
+         WHERE w.language_pair_id = ?1 AND (fts.words_fts MATCH ?2 OR w.source_word LIKE ?3 OR w.target_word LIKE ?3)",
     );
-    let mut param_values: Vec<String> = vec![pair_id.to_string(), pattern];
+    let mut param_values: Vec<String> = vec![pair_id.to_string(), fts_query, pattern];
 
     if let Some(ref lvl) = level {
         sql.push_str(&format!(" AND level = ?{}", param_values.len() + 1));

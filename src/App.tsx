@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "./store/AppContext";
+import Onboarding from "./components/Onboarding";
 import Layout from "./components/Layout";
 import Dashboard from "./views/Dashboard";
 import Learn from "./views/Learn";
@@ -9,24 +10,30 @@ import Conjugation from "./views/Conjugation";
 import Dictionary from "./views/Dictionary";
 import Chat from "./views/Chat";
 import Settings from "./views/Settings";
+import Stats from "./views/Stats";
+import Quiz from "./views/Quiz";
 
 export default function App() {
   return (
     <AppProvider>
-      <HashRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/learn" element={<Learn />} />
-            <Route path="/review" element={<Review />} />
-            <Route path="/grammar" element={<Grammar />} />
-            <Route path="/conjugation" element={<Conjugation />} />
-            <Route path="/dictionary" element={<Dictionary />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </HashRouter>
+      <Onboarding>
+        <HashRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/learn" element={<Learn />} />
+              <Route path="/review" element={<Review />} />
+              <Route path="/grammar" element={<Grammar />} />
+              <Route path="/conjugation" element={<Conjugation />} />
+              <Route path="/dictionary" element={<Dictionary />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/stats" element={<Stats />} />
+              <Route path="/quiz" element={<Quiz />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </HashRouter>
+      </Onboarding>
     </AppProvider>
   );
 }

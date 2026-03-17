@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Repeat, BookText, Languages,
   Search, MessageCircle, Settings as SettingsIcon, Menu, X,
+  BarChart3, Zap,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../store/AppContext";
@@ -20,7 +21,9 @@ export default function Layout() {
     { to: "/grammar", icon: BookText, label: t("nav.grammar") },
     { to: "/conjugation", icon: Languages, label: t("nav.conjugation") },
     { to: "/dictionary", icon: Search, label: t("nav.dictionary") },
+    { to: "/quiz", icon: Zap, label: t("quiz.title") },
     { to: "/chat", icon: MessageCircle, label: t("nav.chat") },
+    { to: "/stats", icon: BarChart3, label: t("stats.title") },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);

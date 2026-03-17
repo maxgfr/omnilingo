@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Settings, LanguagePair, Word, SrsCard, SrsStats, GrammarTopic, Verb, AiSettings, WhisperModelInfo, DictionarySource } from "../types";
+import type { Settings, LanguagePair, Word, SrsCard, SrsStats, GrammarTopic, Verb, AiSettings, WhisperModelInfo, DictionarySource, FavoriteWord, DailyStatRow, OverviewStats } from "../types";
 
 // Settings
 export const getSettings = () => invoke<Settings>("get_settings");
@@ -62,6 +62,22 @@ export const transcribeAudio = (audioData: number[], language?: string) =>
 export const getAvailableDictionaries = () => invoke<DictionarySource[]>("get_available_dictionaries");
 export const downloadDictionary = (sourceLang: string, targetLang: string, url: string, sourceName: string, targetName: string) =>
   invoke<string>("download_dictionary", { sourceLang, targetLang, url, sourceName, targetName });
+
+// Favorites
+export const toggleFavorite = (wordId: number) => invoke<boolean>("toggle_favorite", { wordId });
+export const getFavorites = (pairId: number) => invoke<FavoriteWord[]>("get_favorites", { pairId });
+export const isFavorite = (wordId: number) => invoke<boolean>("is_favorite", { wordId });
+
+// Stats
+export const getDailyStats = (pairId: number, days: number) => invoke<DailyStatRow[]>("get_daily_stats", { pairId, days });
+export const getOverviewStats = (pairId: number) => invoke<OverviewStats>("get_overview_stats", { pairId });
+export const logError = (pairId: number, errorType: string, wordOrTopic: string, userAnswer: string, correctAnswer: string) =>
+  invoke<void>("log_error", { pairId, errorType, wordOrTopic, userAnswer, correctAnswer });
+export const getFrequentErrors = (pairId: number, limit?: number) =>
+  invoke<Array<{ word: string; type: string; count: number; correct: string }>>("get_frequent_errors", { pairId, limit: limit ?? null });
+export const addCustomWord = (pairId: number, sourceWord: string, targetWord: string, gender?: string, level?: string, category?: string) =>
+  invoke<number>("add_custom_word", { pairId, sourceWord, targetWord, gender: gender ?? null, level: level ?? null, category: category ?? null });
+export const getRandomWord = (pairId: number) => invoke<Word | null>("get_random_word", { pairId });
 
 // Maintenance
 export const clearCache = () => invoke<string>("clear_cache");

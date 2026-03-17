@@ -28,6 +28,12 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Migration 002 failed: {}", e))?;
     }
 
+    if current_version < 3 {
+        let migration_sql = include_str!("../migrations/003_favorites_and_stats.sql");
+        conn.execute_batch(migration_sql)
+            .map_err(|e| format!("Migration 003 failed: {}", e))?;
+    }
+
     Ok(())
 }
 

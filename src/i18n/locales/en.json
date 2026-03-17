@@ -259,5 +259,60 @@
   },
   "mic": {
     "record": "Record pronunciation"
+  },
+  "stats": {
+    "title": "Statistics",
+    "overview": "Overview",
+    "totalWords": "Total words",
+    "wordsLearned": "Words learned",
+    "totalReviews": "Reviews done",
+    "grammarCompleted": "Grammar completed",
+    "studyDays": "Study days",
+    "favorites": "Favorites",
+    "activity": "Activity (last 30 days)",
+    "learned": "Learned",
+    "reviewed": "Reviewed",
+    "noData": "No activity data yet. Start learning!",
+    "frequentErrors": "Frequent errors",
+    "noErrors": "No errors recorded yet.",
+    "times": "{{count}} times"
+  },
+  "quiz": {
+    "title": "Quiz",
+    "subtitle": "Test your knowledge across all areas",
+    "start": "Start quiz",
+    "question": "Question {{current}} / {{total}}",
+    "vocabulary": "Vocabulary",
+    "grammarQ": "Grammar",
+    "conjugationQ": "Conjugation",
+    "complete": "Quiz complete!",
+    "score": "Score: {{correct}} / {{total}}",
+    "excellent": "Excellent!",
+    "good": "Good job!",
+    "keepGoing": "Keep practicing!",
+    "tryAgain": "Try again",
+    "chooseTranslation": "What is the translation of:",
+    "chooseWord": "What is the word for:",
+    "conjugate": "Conjugate \"{{verb}}\" ({{tense}}, {{person}}):"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "empty": "No favorites yet. Add words from the dictionary!",
+    "remove": "Remove from favorites"
+  },
+  "onboarding": {
+    "welcome": "Welcome to Omnilingo!",
+    "subtitle": "Your personal language learning companion",
+    "selectNative": "What is your native language?",
+    "selectTarget": "What language do you want to learn?",
+    "selectLevel": "What is your current level?",
+    "getStarted": "Get started",
+    "beginner": "Beginner — I'm just starting",
+    "elementary": "Elementary — I know the basics",
+    "intermediate": "Intermediate — I can hold a conversation"
+  },
+  "wordOfDay": {
+    "title": "Word of the day",
+    "addToReviews": "Add to reviews"
   }
 }

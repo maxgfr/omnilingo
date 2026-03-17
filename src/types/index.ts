@@ -129,4 +129,34 @@ export interface DictionarySource {
   size_mb: number | null;
 }
 
-export type ViewName = 'dashboard' | 'learn' | 'review' | 'grammar' | 'conjugation' | 'dictionary' | 'chat' | 'settings';
+export interface FavoriteWord {
+  id: number;
+  word_id: number;
+  source_word: string;
+  target_word: string;
+  gender: string | null;
+  level: string | null;
+  category: string | null;
+}
+
+export interface DailyStatRow {
+  date: string;
+  words_learned: number;
+  words_reviewed: number;
+  correct_count: number;
+  total_count: number;
+}
+
+export interface OverviewStats {
+  total_words: number;
+  total_learned: number;
+  total_reviews: number;
+  total_grammar_completed: number;
+  total_grammar: number;
+  streak: number;
+  accuracy: number;
+  study_days: number;
+  favorite_count: number;
+}
+
+export type ViewName = 'dashboard' | 'learn' | 'review' | 'grammar' | 'conjugation' | 'dictionary' | 'chat' | 'settings' | 'stats' | 'quiz';

@@ -14,6 +14,7 @@ import {
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import { CEFRBar } from "../components/ProgressBar";
+import WordOfDay from "../components/WordOfDay";
 import type { SrsStats, GrammarTopic } from "../types";
 
 export default function Dashboard() {
@@ -162,6 +163,9 @@ export default function Dashboard() {
             : t("dashboard.noActivePair")}
         </p>
       </div>
+
+      {/* Word of the day */}
+      <WordOfDay />
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
