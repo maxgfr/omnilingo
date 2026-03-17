@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Trophy,
   BookOpen,
+  Search,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -68,6 +69,7 @@ export default function Grammar() {
   const [loading, setLoading] = useState(true);
   const [exerciseResults, setExerciseResults] = useState<boolean[]>([]);
   const [exercisesDone, setExercisesDone] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load topics
   useEffect(() => {
@@ -80,8 +82,16 @@ export default function Grammar() {
       .finally(() => setLoading(false));
   }, [activePair]);
 
+  // Filter topics based on search query
+  const filteredTopics = searchQuery.trim()
+    ? topics.filter(tp =>
+        tp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tp.level.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : topics;
+
   // Group topics by level
-  const topicsByLevel = topics.reduce<Record<string, GrammarTopic[]>>((acc, topic) => {
+  const topicsByLevel = filteredTopics.reduce<Record<string, GrammarTopic[]>>((acc, topic) => {
     const level = topic.level || "Other";
     if (!acc[level]) acc[level] = [];
     acc[level].push(topic);
@@ -413,6 +423,17 @@ export default function Grammar() {
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })}
         </p>
+      </div>
+
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("grammar.searchTopics")}
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder:text-gray-400"
+        />
       </div>
 
       <div className="space-y-8">

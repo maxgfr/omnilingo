@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "./store/AppContext";
 import Onboarding from "./components/Onboarding";
 import Layout from "./components/Layout";
+import CommandPalette from "./components/CommandPalette";
 import Dashboard from "./views/Dashboard";
 import Learn from "./views/Learn";
 import Review from "./views/Review";
@@ -18,6 +19,7 @@ export default function App() {
     <AppProvider>
       <Onboarding>
         <HashRouter>
+          <CommandPalette />
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />

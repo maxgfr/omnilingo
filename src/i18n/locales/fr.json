@@ -104,7 +104,10 @@
     "good": "Bien",
     "easy": "Facile",
     "clickOrSpace": "Cliquer ou Espace pour retourner",
-    "pressSpace": "Appuyez sur Espace pour révéler la réponse"
+    "pressSpace": "Appuyez sur Espace pour révéler la réponse",
+    "reverse": "Inversé",
+    "spelling": "Orthographe",
+    "typeTheWord": "Tapez le mot pour :"
   },
   "grammar": {
     "title": "Grammaire",
@@ -125,7 +128,8 @@
     "levelAdvanced": "Avancé",
     "levelProficient": "Compétent",
     "levelMastery": "Maîtrise",
-    "other": "Autre"
+    "other": "Autre",
+    "searchTopics": "Rechercher des sujets..."
   },
   "conjugation": {
     "title": "Conjugaison",

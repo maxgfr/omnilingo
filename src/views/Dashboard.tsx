@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<SrsStats | null>(null);
   const [topics, setTopics] = useState<GrammarTopic[]>([]);
   const [dueCount, setDueCount] = useState(0);
+  const [todayLearned, setTodayLearned] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +39,9 @@ export default function Dashboard() {
         setDueCount(d);
       })
       .finally(() => setLoading(false));
+    bridge.getDailyStats(activePair.id, 1).then(daily => {
+      if (daily.length > 0) setTodayLearned(daily[0].words_learned);
+    });
   }, [activePair]);
 
   if (loading) {
@@ -150,6 +154,26 @@ export default function Dashboard() {
     C2: "bg-red-500",
   };
 
+  interface Achievement {
+    id: string;
+    icon: string;
+    label: string;
+    unlocked: boolean;
+  }
+
+  const achievements: Achievement[] = [
+    { id: "first_word", icon: "📖", label: t("achievements.firstWord"), unlocked: totalCards > 0 },
+    { id: "ten_words", icon: "🌱", label: t("achievements.tenWords"), unlocked: totalCards >= 10 },
+    { id: "fifty_words", icon: "🌿", label: t("achievements.fiftyWords"), unlocked: totalCards >= 50 },
+    { id: "hundred_words", icon: "🌳", label: t("achievements.hundredWords"), unlocked: totalCards >= 100 },
+    { id: "streak_7", icon: "🔥", label: t("achievements.streak7"), unlocked: streak >= 7 },
+    { id: "streak_30", icon: "💪", label: t("achievements.streak30"), unlocked: streak >= 30 },
+    { id: "accuracy_90", icon: "🎯", label: t("achievements.accuracy90"), unlocked: accuracy >= 90 },
+    { id: "grammar_half", icon: "📚", label: t("achievements.grammarHalf"), unlocked: Object.values(grammarByLevel).reduce((s, l) => s + l.done, 0) > Object.values(grammarByLevel).reduce((s, l) => s + l.total, 0) / 2 },
+  ];
+
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+
   return (
     <div className="space-y-8">
       {/* Welcome header */}
@@ -186,6 +210,33 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* Daily goal */}
+      {settings && (
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              {t("dashboard.dailyGoal")}
+            </h2>
+            <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
+              {todayLearned} / {settings.words_per_day}
+            </span>
+          </div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${
+                todayLearned >= settings.words_per_day ? "bg-emerald-500" : "bg-amber-500"
+              }`}
+              style={{ width: `${Math.min((todayLearned / settings.words_per_day) * 100, 100)}%` }}
+            />
+          </div>
+          {todayLearned >= settings.words_per_day && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium">
+              {t("dashboard.goalReached")} 🎉
+            </p>
+          )}
+        </div>
+      )}
 
       {/* CEFR Level */}
       {settings?.level && (
@@ -276,6 +327,30 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Achievements */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            {t("achievements.title")}
+          </h2>
+          <span className="text-xs text-gray-400">{unlockedCount}/{achievements.length}</span>
+        </div>
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+          {achievements.map((a) => (
+            <div
+              key={a.id}
+              className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
+                a.unlocked ? "opacity-100" : "opacity-30 grayscale"
+              }`}
+              title={a.label}
+            >
+              <span className="text-2xl">{a.icon}</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center leading-tight">{a.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

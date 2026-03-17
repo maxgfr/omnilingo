@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { RotateCcw, BookOpen, Trophy, Frown, SmilePlus, Smile, Zap, Volume2 } from "lucide-react";
+import { RotateCcw, BookOpen, Trophy, Frown, SmilePlus, Smile, Zap, Volume2, ArrowLeftRight, Keyboard, Check, X } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import { speak, getSourceLang } from "../lib/speech";
 import ProgressBar from "../components/ProgressBar";
+import SessionTimer from "../components/SessionTimer";
 import MicButton from "../components/MicButton";
 import type { SrsCard } from "../types";
 
@@ -41,6 +42,10 @@ export default function Review() {
     total: 0,
     forgotten: [],
   });
+  const [reverseMode, setReverseMode] = useState(false);
+  const [spellingMode, setSpellingMode] = useState(false);
+  const [spellingInput, setSpellingInput] = useState("");
+  const [spellingCorrect, setSpellingCorrect] = useState(false);
 
   // Load and shuffle cards
   useEffect(() => {
@@ -105,10 +110,20 @@ export default function Review() {
       } else {
         setCurrentIndex((prev) => prev + 1);
         setFlipped(false);
+        setSpellingInput("");
       }
     },
     [currentCard, flipped, results, currentIndex, cards.length, activePair],
   );
+
+  const handleSpellingCheck = useCallback(() => {
+    if (!currentCard || flipped) return;
+    const isCorrect = spellingInput.trim().toLowerCase() === currentCard.source_word.toLowerCase();
+    setSpellingCorrect(isCorrect);
+    setFlipped(true);
+    // Auto-rate after a short delay
+    setTimeout(() => handleRate(isCorrect ? 3 : 0), 1500);
+  }, [currentCard, flipped, spellingInput, handleRate]);
 
   // Keyboard shortcuts
   const handleKeyDown = useCallback(
@@ -291,6 +306,10 @@ export default function Review() {
   const genderInfo = currentCard.gender ? genderColors[currentCard.gender] : null;
   const sourceLang = getSourceLang(activePair?.source_lang || "de");
 
+  const frontWord = reverseMode ? currentCard.target_word : currentCard.source_word;
+  const backWord = reverseMode ? currentCard.source_word : currentCard.target_word;
+  const showGenderFront = !reverseMode;
+
   const ratingButtons = [
     { quality: 0, label: t("review.forgot"), icon: Frown, color: "bg-rose-500 hover:bg-rose-600", key: "1" },
     { quality: 2, label: t("review.hard"), icon: SmilePlus, color: "bg-orange-500 hover:bg-orange-600", key: "2" },
@@ -303,98 +322,175 @@ export default function Review() {
       {/* Header with progress */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t("review.title")}</h1>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {currentIndex + 1} / {cards.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t("review.title")}</h1>
+            <button
+              onClick={() => setReverseMode(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                reverseMode
+                  ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+                  : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300"
+              }`}
+            >
+              <ArrowLeftRight size={14} />
+              {t("review.reverse")}
+            </button>
+            <button
+              onClick={() => setSpellingMode(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                spellingMode
+                  ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+                  : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300"
+              }`}
+            >
+              <Keyboard size={14} />
+              {t("review.spelling")}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <SessionTimer />
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {currentIndex + 1} / {cards.length}
+            </span>
+          </div>
         </div>
         <ProgressBar value={currentIndex} max={cards.length} color="bg-amber-500" />
       </div>
 
       {/* Flashcard */}
-      <div
-        className="perspective-1000 w-full h-64 mb-6 cursor-pointer select-none"
-        onClick={() => !flipped && handleFlip()}
-      >
+      {spellingMode && !flipped ? (
+        <div className="w-full h-64 mb-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col items-center justify-center p-6">
+          <p className="text-sm text-gray-400 mb-2">{t("review.typeTheWord")}</p>
+          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-6">{currentCard.target_word}</p>
+          <input
+            type="text"
+            value={spellingInput}
+            onChange={(e) => setSpellingInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSpellingCheck()}
+            placeholder="..."
+            autoFocus
+            className="w-full max-w-xs px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-center text-lg font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-amber-500"
+          />
+          <button onClick={handleSpellingCheck} className="mt-4 px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm">
+            {t("common.check")}
+          </button>
+        </div>
+      ) : spellingMode && flipped ? (
+        <div className="w-full h-64 mb-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col items-center justify-center p-6">
+          {spellingCorrect ? (
+            <div className="text-center">
+              <Check size={40} className="text-emerald-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-emerald-600">{currentCard.source_word}</p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <X size={40} className="text-rose-500 mx-auto mb-2" />
+              <p className="text-lg text-rose-600 line-through">{spellingInput}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{currentCard.source_word}</p>
+            </div>
+          )}
+        </div>
+      ) : (
         <div
-          className={`relative w-full h-full transition-transform duration-500 transform-3d ${
-            flipped ? "rotate-y-180" : ""
-          }`}
+          className="perspective-1000 w-full h-64 mb-6 cursor-pointer select-none"
+          onClick={() => !flipped && handleFlip()}
         >
-          {/* Front: source word */}
-          <div className="absolute inset-0 backface-hidden rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col items-center justify-center p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              {isGerman() && genderInfo && (
-                <span
-                  className={`${genderInfo.bg} text-white text-xs px-2 py-0.5 rounded-full font-bold`}
-                >
-                  {genderInfo.label}
-                </span>
-              )}
-              {currentCard.level && (
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                    levelColors[currentCard.level] || "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {currentCard.level}
-                </span>
-              )}
-            </div>
-            <p
-              className={`text-3xl font-bold text-center ${
-                genderInfo ? genderInfo.text : "text-gray-900 dark:text-white"
-              }`}
-            >
-              {currentCard.source_word}
-            </p>
-            {currentCard.plural && (
-              <p className="text-sm text-gray-400 mt-2">pl. {currentCard.plural}</p>
-            )}
-            <div className="mt-4 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => speak(currentCard.source_word, sourceLang)}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-              >
-                <Volume2 size={20} />
-              </button>
-              <MicButton expectedText={currentCard.source_word} language={sourceLang} />
-            </div>
-            <p className="absolute bottom-3 text-xs text-gray-400">
-              {t("review.clickOrSpace")}
-            </p>
-          </div>
-
-          {/* Back: target word */}
-          <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 flex flex-col items-center justify-center p-6 shadow-sm">
-            <p className="text-3xl font-bold text-amber-700 dark:text-amber-400 text-center">
-              {currentCard.target_word}
-            </p>
-            {(currentCard.example_source || currentCard.example_target) && (
-              <div className="mt-4 text-center space-y-1">
-                {currentCard.example_source && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                    &laquo;{currentCard.example_source}&raquo;
-                  </p>
+          <div
+            className={`relative w-full h-full transition-transform duration-500 transform-3d ${
+              flipped ? "rotate-y-180" : ""
+            }`}
+          >
+            {/* Front */}
+            <div className="absolute inset-0 backface-hidden rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col items-center justify-center p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                {showGenderFront && isGerman() && genderInfo && (
+                  <span
+                    className={`${genderInfo.bg} text-white text-xs px-2 py-0.5 rounded-full font-bold`}
+                  >
+                    {genderInfo.label}
+                  </span>
                 )}
-                {currentCard.example_target && (
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
-                    &laquo;{currentCard.example_target}&raquo;
-                  </p>
+                {currentCard.level && (
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                      levelColors[currentCard.level] || "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {currentCard.level}
+                  </span>
                 )}
               </div>
-            )}
-            {currentCard.category && (
-              <span className="mt-3 text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                {currentCard.category}
-              </span>
-            )}
+              <p
+                className={`text-3xl font-bold text-center ${
+                  showGenderFront && genderInfo ? genderInfo.text : "text-gray-900 dark:text-white"
+                }`}
+              >
+                {frontWord}
+              </p>
+              {!reverseMode && currentCard.plural && (
+                <p className="text-sm text-gray-400 mt-2">pl. {currentCard.plural}</p>
+              )}
+              <div className="mt-4 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => speak(frontWord, sourceLang)}
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
+                >
+                  <Volume2 size={20} />
+                </button>
+                {!reverseMode && (
+                  <MicButton expectedText={currentCard.source_word} language={sourceLang} />
+                )}
+              </div>
+              <p className="absolute bottom-3 text-xs text-gray-400">
+                {t("review.clickOrSpace")}
+              </p>
+            </div>
+
+            {/* Back */}
+            <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 flex flex-col items-center justify-center p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                {!showGenderFront && isGerman() && genderInfo && (
+                  <span
+                    className={`${genderInfo.bg} text-white text-xs px-2 py-0.5 rounded-full font-bold`}
+                  >
+                    {genderInfo.label}
+                  </span>
+                )}
+              </div>
+              <p className={`text-3xl font-bold text-center ${
+                !showGenderFront && genderInfo ? genderInfo.text : "text-amber-700 dark:text-amber-400"
+              }`}>
+                {backWord}
+              </p>
+              {reverseMode && currentCard.plural && (
+                <p className="text-sm text-gray-400 mt-2">pl. {currentCard.plural}</p>
+              )}
+              {(currentCard.example_source || currentCard.example_target) && (
+                <div className="mt-4 text-center space-y-1">
+                  {currentCard.example_source && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                      &laquo;{currentCard.example_source}&raquo;
+                    </p>
+                  )}
+                  {currentCard.example_target && (
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      &laquo;{currentCard.example_target}&raquo;
+                    </p>
+                  )}
+                </div>
+              )}
+              {currentCard.category && (
+                <span className="mt-3 text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                  {currentCard.category}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Rating buttons (visible only when flipped) */}
-      {flipped ? (
+      {/* Rating buttons (visible only when flipped, hidden in spelling mode since auto-rated) */}
+      {spellingMode ? null : flipped ? (
         <div className="grid grid-cols-4 gap-2">
           {ratingButtons.map((btn) => {
             const Icon = btn.icon;

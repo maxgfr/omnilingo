@@ -12,6 +12,7 @@ import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import Flashcard from "../components/Flashcard";
 import ProgressBar from "../components/ProgressBar";
+import SessionTimer from "../components/SessionTimer";
 import { speak, getSourceLang } from "../lib/speech";
 import MicButton from "../components/MicButton";
 import type { Word } from "../types";
@@ -154,9 +155,12 @@ export default function Learn() {
             {t("learn.wordsToDiscover", { count: words.length })}
           </p>
         </div>
-        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 tabular-nums">
-          {currentIndex + 1} / {words.length}
-        </span>
+        <div className="flex items-center gap-3">
+          <SessionTimer />
+          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 tabular-nums">
+            {currentIndex + 1} / {words.length}
+          </span>
+        </div>
       </div>
 
       {/* Progress bar */}

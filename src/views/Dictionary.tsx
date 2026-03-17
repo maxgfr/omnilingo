@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
   Loader2,
+  Heart,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -49,6 +50,18 @@ export default function Dictionary() {
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Favorites
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  // Add custom word
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSource, setNewSource] = useState("");
+  const [newTarget, setNewTarget] = useState("");
+  const [newGender, setNewGender] = useState("");
+  const [newLevel, setNewLevel] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+
   // SRS tracking
   const [addedToSrs, setAddedToSrs] = useState<Set<number>>(new Set());
   const [addingToSrs, setAddingToSrs] = useState<Set<number>>(new Set());
@@ -65,13 +78,15 @@ export default function Dictionary() {
       bridge.getWords(activePair.id, undefined, PAGE_SIZE, 0),
       bridge.getCategories(activePair.id),
       bridge.getWordCount(activePair.id),
+      bridge.getFavorites(activePair.id),
     ])
-      .then(([w, c, count]) => {
+      .then(([w, c, count, favs]) => {
         setWords(w);
         setCategories(c);
         setTotalCount(count);
         setOffset(PAGE_SIZE);
         setHasMore(w.length >= PAGE_SIZE);
+        setFavoriteIds(new Set(favs.map((f: { word_id: number }) => f.word_id)));
       })
       .finally(() => setLoading(false));
   }, [activePair]);
@@ -163,6 +178,37 @@ export default function Dictionary() {
     setFilterLevel((prev) => (prev === level ? null : level));
   }
 
+  // Filtered words for favorites
+  const displayWords = showFavoritesOnly ? words.filter(w => favoriteIds.has(w.id)) : words;
+
+  // Save custom word
+  async function handleSaveWord() {
+    if (!activePair || !newSource.trim() || !newTarget.trim()) return;
+    await bridge.addCustomWord(
+      activePair.id,
+      newSource.trim(),
+      newTarget.trim(),
+      newGender || undefined,
+      newLevel || undefined,
+      newCategory.trim() || undefined,
+    );
+    setNewSource("");
+    setNewTarget("");
+    setNewGender("");
+    setNewLevel("");
+    setNewCategory("");
+    setShowAddForm(false);
+    // Refresh word list
+    const [w, count] = await Promise.all([
+      bridge.getWords(activePair.id, undefined, PAGE_SIZE, 0),
+      bridge.getWordCount(activePair.id),
+    ]);
+    setWords(w);
+    setTotalCount(count);
+    setOffset(PAGE_SIZE);
+    setHasMore(w.length >= PAGE_SIZE);
+  }
+
   const sourceLang = getSourceLang(activePair?.source_lang || "de");
 
   if (loading && words.length === 0) {
@@ -185,7 +231,75 @@ export default function Dictionary() {
             {t("dictionary.wordsAvailable", { count: totalCount })}
           </p>
         </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+            showAddForm
+              ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+          }`}
+          title={t("dictionary.addWord")}
+        >
+          <Plus size={16} />
+          {t("dictionary.addWord")}
+        </button>
       </div>
+
+      {/* Add custom word form */}
+      {showAddForm && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              placeholder={t("dictionary.sourceWord")}
+              value={newSource}
+              onChange={(e) => setNewSource(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+            />
+            <input
+              placeholder={t("dictionary.targetWord")}
+              value={newTarget}
+              onChange={(e) => setNewTarget(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <select
+              value={newGender}
+              onChange={(e) => setNewGender(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
+            >
+              <option value="">{t("dictionary.gender")}</option>
+              <option value="m">m</option>
+              <option value="f">f</option>
+              <option value="n">n</option>
+            </select>
+            <select
+              value={newLevel}
+              onChange={(e) => setNewLevel(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
+            >
+              <option value="">{t("common.level")}</option>
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+            </select>
+            <input
+              placeholder={t("settings.category")}
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+            />
+          </div>
+          <button
+            onClick={handleSaveWord}
+            disabled={!newSource.trim() || !newTarget.trim()}
+            className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {t("common.save")}
+          </button>
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="flex gap-3">
@@ -202,6 +316,17 @@ export default function Dictionary() {
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
           />
         </div>
+        <button
+          onClick={() => setShowFavoritesOnly(prev => !prev)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+            showFavoritesOnly
+              ? "bg-rose-50 dark:bg-rose-900/20 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400"
+              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+          }`}
+          title={t("dictionary.favoritesOnly")}
+        >
+          <Heart size={16} fill={showFavoritesOnly ? "currentColor" : "none"} />
+        </button>
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
@@ -290,14 +415,14 @@ export default function Dictionary() {
       )}
 
       {/* Word list */}
-      {words.length === 0 ? (
+      {displayWords.length === 0 ? (
         <div className="text-center py-16 text-gray-500 dark:text-gray-400">
           <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
           <p className="text-lg font-medium">{t("dictionary.noWordsFound")}</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {words.map((word) => {
+          {displayWords.map((word) => {
             const gender = word.gender ? genderBadges[word.gender] : null;
             const isAdded = addedToSrs.has(word.id);
             const isAdding = addingToSrs.has(word.id);
@@ -349,6 +474,26 @@ export default function Dictionary() {
                   </span>
                 )}
 
+                {/* Favorite button */}
+                <button
+                  onClick={async () => {
+                    const isFav = await bridge.toggleFavorite(word.id);
+                    setFavoriteIds(prev => {
+                      const next = new Set(prev);
+                      isFav ? next.add(word.id) : next.delete(word.id);
+                      return next;
+                    });
+                  }}
+                  className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
+                    favoriteIds.has(word.id)
+                      ? "text-rose-500 hover:text-rose-600"
+                      : "text-gray-300 dark:text-gray-600 hover:text-rose-400"
+                  }`}
+                  title={t("favorites.title")}
+                >
+                  <Heart size={16} fill={favoriteIds.has(word.id) ? "currentColor" : "none"} />
+                </button>
+
                 {/* Speak button */}
                 <button
                   onClick={() => speak(word.source_word, sourceLang)}
@@ -392,7 +537,7 @@ export default function Dictionary() {
       )}
 
       {/* Load more */}
-      {hasMore && !searchQuery.trim() && words.length > 0 && (
+      {hasMore && !searchQuery.trim() && !showFavoritesOnly && words.length > 0 && (
         <div className="flex justify-center pt-2 pb-4">
           <button
             onClick={loadMore}

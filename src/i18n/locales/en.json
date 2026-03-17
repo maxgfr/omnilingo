@@ -72,7 +72,9 @@
     "cefrLevel": "CEFR Level",
     "quickActions": "Quick actions",
     "grammarProgress": "Grammar progress",
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "dailyGoal": "Daily goal",
+    "goalReached": "Goal reached!"
   },
   "learn": {
     "title": "Learn new words",
@@ -104,7 +106,10 @@
     "good": "Good",
     "easy": "Easy",
     "clickOrSpace": "Click or Space to flip",
-    "pressSpace": "Press Space to reveal the answer"
+    "pressSpace": "Press Space to reveal the answer",
+    "reverse": "Reverse",
+    "spelling": "Spelling",
+    "typeTheWord": "Type the word for:"
   },
   "grammar": {
     "title": "Grammar",
@@ -125,7 +130,8 @@
     "levelAdvanced": "Advanced",
     "levelProficient": "Proficient",
     "levelMastery": "Mastery",
-    "other": "Other"
+    "other": "Other",
+    "searchTopics": "Search topics..."
   },
   "conjugation": {
     "title": "Conjugation",
@@ -161,7 +167,13 @@
     "noWordsFound": "No words found.",
     "addToSrs": "Add to SRS",
     "alreadyAdded": "Already added",
-    "loadMore": "Load more words"
+    "loadMore": "Load more words",
+    "sourceWord": "Source word",
+    "targetWord": "Target word",
+    "gender": "Gender",
+    "addWord": "Add word",
+    "wordAdded": "Word added!",
+    "favoritesOnly": "Favorites only"
   },
   "chat": {
     "title": "AI Chat",
@@ -314,5 +326,21 @@
   "wordOfDay": {
     "title": "Word of the day",
     "addToReviews": "Add to reviews"
+  },
+  "achievements": {
+    "title": "Achievements",
+    "firstWord": "First word",
+    "tenWords": "10 words",
+    "fiftyWords": "50 words",
+    "hundredWords": "100 words",
+    "streak7": "7-day streak",
+    "streak30": "30-day streak",
+    "accuracy90": "90% accuracy",
+    "grammarHalf": "Grammar 50%"
+  },
+  "commandPalette": {
+    "placeholder": "Search or navigate...",
+    "select": "select",
+    "close": "close"
   }
 }

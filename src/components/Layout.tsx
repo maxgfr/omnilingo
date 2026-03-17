@@ -107,6 +107,9 @@ export default function Layout() {
             <span>{t("sidebar.level")} <strong className="text-amber-600 dark:text-amber-400">{settings?.level || "A2"}</strong></span>
             <span>{t("sidebar.streak")} <strong className="text-emerald-600 dark:text-emerald-400">{settings?.streak || 0}</strong> {t("sidebar.streakUnit")}</span>
           </div>
+          <div className="text-[10px] text-gray-400 dark:text-gray-600 mt-1.5 text-center">
+            {"\u2318"}K {t("commandPalette.placeholder")}
+          </div>
         </div>
       </aside>
 

@@ -1,0 +1,147 @@
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import {
+  Search, LayoutDashboard, BookOpen, Repeat, BookText, Languages,
+  MessageCircle, BarChart3, Zap, Settings,
+} from "lucide-react";
+
+interface CommandItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  action: () => void;
+  keywords?: string;
+}
+
+export default function CommandPalette() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commands: CommandItem[] = [
+    { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, action: () => navigate("/"), keywords: "home main" },
+    { id: "learn", label: t("nav.learn"), icon: BookOpen, action: () => navigate("/learn"), keywords: "study words new" },
+    { id: "review", label: t("nav.review"), icon: Repeat, action: () => navigate("/review"), keywords: "srs flashcard practice" },
+    { id: "grammar", label: t("nav.grammar"), icon: BookText, action: () => navigate("/grammar"), keywords: "rules lessons" },
+    { id: "conjugation", label: t("nav.conjugation"), icon: Languages, action: () => navigate("/conjugation"), keywords: "verbs tenses" },
+    { id: "dictionary", label: t("nav.dictionary"), icon: Search, action: () => navigate("/dictionary"), keywords: "words search find" },
+    { id: "quiz", label: t("quiz.title"), icon: Zap, action: () => navigate("/quiz"), keywords: "test exam" },
+    { id: "chat", label: t("nav.chat"), icon: MessageCircle, action: () => navigate("/chat"), keywords: "ai tutor conversation" },
+    { id: "stats", label: t("stats.title"), icon: BarChart3, action: () => navigate("/stats"), keywords: "progress statistics" },
+    { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config" },
+  ];
+
+  const filtered = query.trim()
+    ? commands.filter(cmd => {
+        const q = query.toLowerCase();
+        return cmd.label.toLowerCase().includes(q) || (cmd.keywords || "").toLowerCase().includes(q);
+      })
+    : commands;
+
+  // Open on Cmd+K / Ctrl+K
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setOpen(prev => !prev);
+        setQuery("");
+        setSelectedIndex(0);
+      }
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open]);
+
+  // Arrow key navigation
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter" && filtered[selectedIndex]) {
+      e.preventDefault();
+      filtered[selectedIndex].action();
+      setOpen(false);
+    }
+  }, [filtered, selectedIndex]);
+
+  // Reset selection when query changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+
+      {/* Palette */}
+      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* Search input */}
+        <div className="flex items-center gap-3 px-4 border-b border-gray-200 dark:border-gray-700">
+          <Search size={18} className="text-gray-400 flex-shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleInputKeyDown}
+            placeholder={t("commandPalette.placeholder")}
+            className="flex-1 py-3.5 bg-transparent text-gray-900 dark:text-white text-sm outline-none placeholder:text-gray-400"
+          />
+          <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-400 font-mono">ESC</kbd>
+        </div>
+
+        {/* Results */}
+        <div className="max-h-72 overflow-y-auto py-2">
+          {filtered.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-gray-400">{t("common.noResults")}</p>
+          ) : (
+            filtered.map((cmd, i) => (
+              <button
+                key={cmd.id}
+                onClick={() => { cmd.action(); setOpen(false); }}
+                onMouseEnter={() => setSelectedIndex(i)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                  i === selectedIndex
+                    ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                }`}
+              >
+                <cmd.icon size={18} className={i === selectedIndex ? "text-amber-500" : "text-gray-400"} />
+                <span className="font-medium">{cmd.label}</span>
+                {i === selectedIndex && (
+                  <span className="ml-auto text-xs text-gray-400">{"\u21B5"}</span>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center justify-between text-[10px] text-gray-400">
+          <span>{"\u2191\u2193"} {t("common.navigate")} {"\u00B7"} {"\u21B5"} {t("commandPalette.select")} {"\u00B7"} ESC {t("commandPalette.close")}</span>
+          <span>{"\u2318"}K</span>
+        </div>
+      </div>
+    </div>
+  );
+}
