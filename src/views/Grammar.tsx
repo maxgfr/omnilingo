@@ -116,6 +116,13 @@ export default function Grammar() {
       newResults[index] = correct;
       setExerciseResults(newResults);
 
+      if (!correct && activePair) {
+        bridge.logSession(activePair.id, "grammar_error", {
+          topic: selectedTopic?.title,
+          exerciseIndex: index,
+        }).catch(() => {});
+      }
+
       // Check if all exercises are answered
       const totalExercises = selectedTopic?.exercises?.length || 0;
       const answeredCount = newResults.filter((r) => r !== undefined).length;

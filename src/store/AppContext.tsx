@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import * as bridge from "../lib/bridge";
+import { setAudioEnabled } from "../lib/speech";
 import type { Settings, LanguagePair } from "../types";
 
 interface AppState {
@@ -62,6 +63,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       document.documentElement.classList.remove("dark");
     }
   }, [settings?.dark_mode]);
+
+  // Sync audio_enabled setting to speech module
+  useEffect(() => {
+    setAudioEnabled(settings?.audio_enabled ?? true);
+  }, [settings?.audio_enabled]);
 
   return (
     <AppContext.Provider

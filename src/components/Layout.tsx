@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Repeat, BookText, Languages,
   Search, MessageCircle, Settings as SettingsIcon, Menu, X,
@@ -10,7 +10,8 @@ import * as bridge from "../lib/bridge";
 
 export default function Layout() {
   const { t } = useTranslation();
-  const { settings, activePair } = useApp();
+  const { settings, activePair, loading } = useApp();
+  const location = useLocation();
 
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
@@ -109,7 +110,18 @@ export default function Layout() {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
         <div className="max-w-5xl mx-auto p-6">
-          <Outlet />
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-amber-500 rounded-full animate-spin" />
+                <p className="text-sm text-gray-400">{t("common.loading")}</p>
+              </div>
+            </div>
+          ) : (
+            <div key={location.pathname} className="animate-fadeIn">
+              <Outlet />
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -6,6 +6,7 @@ import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import { speak, getSourceLang } from "../lib/speech";
 import ProgressBar from "../components/ProgressBar";
+import MicButton from "../components/MicButton";
 import type { SrsCard } from "../types";
 
 const genderColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -81,6 +82,15 @@ export default function Review() {
       }
 
       const isCorrect = quality >= 3;
+
+      if (!isCorrect && activePair) {
+        bridge.logSession(activePair.id, "review_error", {
+          word: currentCard.source_word,
+          expected: currentCard.target_word,
+          quality,
+        }).catch(() => {});
+      }
+
       const newResults: SessionResults = {
         correct: results.correct + (isCorrect ? 1 : 0),
         total: results.total + 1,
@@ -97,7 +107,7 @@ export default function Review() {
         setFlipped(false);
       }
     },
-    [currentCard, flipped, results, currentIndex, cards.length],
+    [currentCard, flipped, results, currentIndex, cards.length, activePair],
   );
 
   // Keyboard shortcuts
@@ -341,15 +351,15 @@ export default function Review() {
             {currentCard.plural && (
               <p className="text-sm text-gray-400 mt-2">pl. {currentCard.plural}</p>
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                speak(currentCard.source_word, sourceLang);
-              }}
-              className="mt-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-            >
-              <Volume2 size={20} />
-            </button>
+            <div className="mt-4 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => speak(currentCard.source_word, sourceLang)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
+              >
+                <Volume2 size={20} />
+              </button>
+              <MicButton expectedText={currentCard.source_word} language={sourceLang} />
+            </div>
             <p className="absolute bottom-3 text-xs text-gray-400">
               {t("review.clickOrSpace")}
             </p>

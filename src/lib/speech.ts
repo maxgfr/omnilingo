@@ -14,7 +14,14 @@ if (typeof window !== "undefined" && window.speechSynthesis) {
   window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
 }
 
+let audioEnabled = true;
+
+export function setAudioEnabled(enabled: boolean) {
+  audioEnabled = enabled;
+}
+
 export function speak(text: string, lang: string) {
+  if (!audioEnabled) return;
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
 

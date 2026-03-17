@@ -13,6 +13,7 @@ import * as bridge from "../lib/bridge";
 import Flashcard from "../components/Flashcard";
 import ProgressBar from "../components/ProgressBar";
 import { speak, getSourceLang } from "../lib/speech";
+import MicButton from "../components/MicButton";
 import type { Word } from "../types";
 
 export default function Learn() {
@@ -192,6 +193,11 @@ export default function Learn() {
         >
           <Volume2 size={18} />
         </button>
+
+        <MicButton
+          expectedText={currentWord.source_word}
+          language={getSourceLang(activePair?.source_lang || "de")}
+        />
 
         <button
           onClick={handleAddToSrs}
