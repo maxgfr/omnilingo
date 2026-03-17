@@ -9,11 +9,11 @@ interface ChatMessage {
 }
 
 const QUICK_ACTIONS = [
-  { label: "Corriger une phrase", prompt: "Corrige cette phrase et explique les erreurs : " },
-  { label: "Expliquer la grammaire", prompt: "Explique-moi cette regle de grammaire : " },
-  { label: "Conversation libre", prompt: "Parlons dans la langue cible ! Commence une conversation simple sur " },
-  { label: "Exercices", prompt: "Donne-moi 5 exercices de niveau " },
-  { label: "Traduire", prompt: "Traduis dans la langue cible : " },
+  { label: "Correct a sentence", prompt: "Corrige cette phrase et explique les erreurs : " },
+  { label: "Explain grammar", prompt: "Explique-moi cette regle de grammaire : " },
+  { label: "Free conversation", prompt: "Parlons dans la langue cible ! Commence une conversation simple sur " },
+  { label: "Exercises", prompt: "Donne-moi 5 exercices de niveau " },
+  { label: "Translate", prompt: "Traduis dans la langue cible : " },
 ];
 
 const MAX_MESSAGES = 20;
@@ -113,7 +113,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `Erreur lors de la communication avec l'IA : ${err}` },
+        { role: "assistant", content: `Error communicating with AI: ${err}` },
       ]);
     } finally {
       setLoading(false);
@@ -149,11 +149,11 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
               <Sparkles size={20} className="text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-white">Chat IA</h1>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-white">AI Chat</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {activePair
-                  ? `Tuteur ${activePair.source_name} - Niveau ${settings?.level || "A2"}`
-                  : "Tuteur de langues"}
+                  ? `Tutor ${activePair.source_name} - Level ${settings?.level || "A2"}`
+                  : "Language tutor"}
               </p>
             </div>
           </div>
@@ -161,10 +161,10 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
             <button
               onClick={clearChat}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-              title="Effacer la conversation"
+              title="Clear conversation"
             >
               <Trash2 size={14} />
-              <span className="hidden sm:inline">Effacer</span>
+              <span className="hidden sm:inline">Clear</span>
             </button>
           )}
         </div>
@@ -192,11 +192,11 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
               <Sparkles size={32} className="text-purple-500 dark:text-purple-400" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Bonjour ! Je suis votre tuteur IA
+              Hello! I'm your AI tutor
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-              Posez-moi des questions, demandez des corrections, ou pratiquez la conversation.
-              Utilisez les boutons rapides ci-dessus pour commencer.
+              Ask me questions, request corrections, or practice conversation.
+              Use the quick buttons above to get started.
             </p>
           </div>
         )}
@@ -225,7 +225,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
               <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <Loader2 size={16} className="animate-spin" />
-                <span>Reflexion en cours...</span>
+                <span>Thinking...</span>
               </div>
             </div>
           </div>
@@ -243,7 +243,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ecrivez votre message..."
+              placeholder="Type your message..."
               disabled={loading}
               rows={1}
               className="w-full resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-3 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50 transition-colors"
@@ -268,7 +268,7 @@ ${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
           </button>
         </div>
         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 text-center">
-          Shift+Entree pour un retour a la ligne - Entree pour envoyer
+          Shift+Enter for new line - Enter to send
         </p>
       </div>
     </div>

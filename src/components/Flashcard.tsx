@@ -71,7 +71,7 @@ export default function Flashcard({
           >
             <Volume2 size={20} />
           </button>
-          <p className="absolute bottom-3 text-xs text-gray-400">Cliquer pour retourner</p>
+          <p className="absolute bottom-3 text-xs text-gray-400">Click to flip</p>
         </div>
 
         {/* Back */}

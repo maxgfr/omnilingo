@@ -19,12 +19,12 @@ import type { Verb } from "../types";
 const PERSONS = ["ich", "du", "er/sie/es", "wir", "ihr", "sie/Sie"];
 const IMPERATIVE_PERSONS = ["du", "ihr", "Sie"];
 const TENSE_LABELS: Record<string, string> = {
-  prasens: "Prasens",
-  prateritum: "Prateritum",
-  perfekt: "Perfekt",
-  futur1: "Futur I",
-  konjunktiv2: "Konjunktiv II",
-  imperativ: "Imperativ",
+  prasens: "Present",
+  prateritum: "Past",
+  perfekt: "Perfect",
+  futur1: "Future I",
+  konjunktiv2: "Subjunctive II",
+  imperativ: "Imperative",
 };
 const TENSE_KEYS = Object.keys(TENSE_LABELS);
 
@@ -125,7 +125,7 @@ export default function Conjugation() {
       if (given === expected) {
         correct++;
       } else {
-        errors.push(`${person}: "${given || "(vide)"}" -> "${correctAnswers[person]}"`);
+        errors.push(`${person}: "${given || "(empty)"}" -> "${correctAnswers[person]}"`);
       }
     });
 
@@ -226,9 +226,9 @@ export default function Conjugation() {
     return (
       <div className="text-center py-20 text-gray-500 dark:text-gray-400">
         <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
-        <p className="text-lg font-medium">Aucun verbe disponible</p>
+        <p className="text-lg font-medium">No verbs available</p>
         <p className="text-sm mt-1">
-          Importez des donnees pour commencer la conjugaison.
+          Import data to start conjugation practice.
         </p>
       </div>
     );
@@ -240,11 +240,10 @@ export default function Conjugation() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Conjugaison
+            Conjugation
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {verbs.length} verbe{verbs.length !== 1 ? "s" : ""} disponible
-            {verbs.length !== 1 ? "s" : ""}
+            {verbs.length} verb{verbs.length !== 1 ? "s" : ""} available
           </p>
         </div>
         {totalCount > 0 && (
@@ -275,7 +274,7 @@ export default function Conjugation() {
           }`}
         >
           <Shuffle size={16} />
-          Aleatoire
+          Random
         </button>
         <button
           onClick={() => {
@@ -294,7 +293,7 @@ export default function Conjugation() {
           }`}
         >
           <BookOpen size={16} />
-          Par temps
+          By tense
         </button>
         <button
           onClick={() => setMode("byVerb")}
@@ -305,7 +304,7 @@ export default function Conjugation() {
           }`}
         >
           <List size={16} />
-          Par verbe
+          By verb
         </button>
       </div>
 
@@ -348,14 +347,14 @@ export default function Conjugation() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher un verbe..."
+              placeholder="Search verb..."
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
             />
           </div>
           <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
             {filteredVerbs.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-gray-400">
-                Aucun verbe trouve
+                No verb found
               </div>
             ) : (
               filteredVerbs.map((verb) => (
@@ -421,7 +420,7 @@ export default function Conjugation() {
                     )
                   }
                   className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                  title="Ecouter"
+                  title="Listen"
                 >
                   <Volume2 size={16} />
                 </button>
@@ -453,7 +452,7 @@ export default function Conjugation() {
               <button
                 onClick={handlePrevTense}
                 className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                title="Temps precedent"
+                title="Previous tense"
               >
                 <ChevronLeft size={18} />
               </button>
@@ -463,7 +462,7 @@ export default function Conjugation() {
               <button
                 onClick={handleNextTense}
                 className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                title="Temps suivant"
+                title="Next tense"
               >
                 <ChevronRight size={18} />
               </button>
@@ -551,14 +550,14 @@ export default function Conjugation() {
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors shadow-sm"
                 >
                   <Check size={16} />
-                  Verifier
+                  Check
                 </button>
                 <button
                   onClick={handleReveal}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 >
                   <Eye size={16} />
-                  Voir les reponses
+                  Show answers
                 </button>
               </>
             )}
@@ -568,7 +567,7 @@ export default function Conjugation() {
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors shadow-sm"
               >
                 <RotateCcw size={16} />
-                Suivant
+                Next
               </button>
             )}
           </div>

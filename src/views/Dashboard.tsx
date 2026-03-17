@@ -62,15 +62,15 @@ export default function Dashboard() {
   const statCards = [
     {
       icon: Flame,
-      label: "Serie",
-      value: `${streak} jour${streak !== 1 ? "s" : ""}`,
+      label: "Streak",
+      value: `${streak} day${streak !== 1 ? "s" : ""}`,
       color: "text-orange-500",
       bg: "bg-orange-50 dark:bg-orange-900/20",
       border: "border-orange-200 dark:border-orange-800",
     },
     {
       icon: Clock,
-      label: "Cartes dues",
+      label: "Cards due",
       value: String(dueCount),
       color: "text-blue-500",
       bg: "bg-blue-50 dark:bg-blue-900/20",
@@ -78,7 +78,7 @@ export default function Dashboard() {
     },
     {
       icon: BookOpen,
-      label: "Mots appris",
+      label: "Words learned",
       value: String(totalCards),
       color: "text-emerald-500",
       bg: "bg-emerald-50 dark:bg-emerald-900/20",
@@ -86,7 +86,7 @@ export default function Dashboard() {
     },
     {
       icon: Target,
-      label: "Precision",
+      label: "Accuracy",
       value: `${accuracy}%`,
       color: "text-purple-500",
       bg: "bg-purple-50 dark:bg-purple-900/20",
@@ -99,8 +99,8 @@ export default function Dashboard() {
       ? [
           {
             icon: Repeat,
-            title: "Reviser",
-            description: `${dueCount} carte${dueCount !== 1 ? "s" : ""} en attente`,
+            title: "Review",
+            description: `${dueCount} card${dueCount !== 1 ? "s" : ""} due`,
             to: "/review",
             color: "text-amber-500",
             bg: "bg-amber-50 dark:bg-amber-900/20",
@@ -110,8 +110,8 @@ export default function Dashboard() {
       : []),
     {
       icon: BookOpen,
-      title: "Apprendre",
-      description: "Decouvrir de nouveaux mots",
+      title: "Learn",
+      description: "Discover new words",
       to: "/learn",
       color: "text-emerald-500",
       bg: "bg-emerald-50 dark:bg-emerald-900/20",
@@ -119,8 +119,8 @@ export default function Dashboard() {
     },
     {
       icon: BookText,
-      title: "Grammaire",
-      description: "Explorer les regles",
+      title: "Grammar",
+      description: "Explore grammar rules",
       to: "/grammar",
       color: "text-blue-500",
       bg: "bg-blue-50 dark:bg-blue-900/20",
@@ -128,8 +128,8 @@ export default function Dashboard() {
     },
     {
       icon: MessageCircle,
-      title: "Chat IA",
-      description: "Pratiquer avec l'IA",
+      title: "AI Chat",
+      description: "Practice with AI",
       to: "/chat",
       color: "text-purple-500",
       bg: "bg-purple-50 dark:bg-purple-900/20",
@@ -152,12 +152,12 @@ export default function Dashboard() {
       {/* Welcome header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Bonjour ! <span className="inline-block animate-pulse">🔥</span>
+          Welcome! <span className="inline-block animate-pulse">🔥</span>
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">
           {activePair
             ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}`
-            : "Aucune paire de langues active"}
+            : "No active language pair"}
         </p>
       </div>
 
@@ -185,7 +185,7 @@ export default function Dashboard() {
       {settings?.level && (
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Niveau CECR
+            CEFR Level
           </h2>
           <CEFRBar level={settings.level} />
         </div>
@@ -194,7 +194,7 @@ export default function Dashboard() {
       {/* Quick actions */}
       <div>
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          Actions rapides
+          Quick actions
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {quickActions.map((action) => (
@@ -232,13 +232,13 @@ export default function Dashboard() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Progression grammaire
+              Grammar progress
             </h2>
             <Link
               to="/grammar"
               className="text-xs text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
             >
-              Voir tout <ArrowRight size={12} />
+              See all <ArrowRight size={12} />
             </Link>
           </div>
           <div className="space-y-3">

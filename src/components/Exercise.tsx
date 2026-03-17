@@ -95,12 +95,12 @@ export function FillBlank({ sentence, answer, hint, onAnswer }: FillBlankProps) 
           onClick={handleSubmit}
           className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
         >
-          Verifier
+          Check
         </button>
       )}
       {submitted && !isCorrect && (
         <p className="text-sm text-rose-600 dark:text-rose-400">
-          Reponse correcte : <strong>{answer}</strong>
+          Correct answer: <strong>{answer}</strong>
         </p>
       )}
     </div>
@@ -142,7 +142,7 @@ export function TrueFalse({ statement, isTrue, explanation, onAnswer }: TrueFals
               : "border-gray-200 dark:border-gray-700 hover:border-emerald-400"
           }`}
         >
-          Vrai
+          True
         </button>
         <button
           onClick={() => handleAnswer(false)}
@@ -155,7 +155,7 @@ export function TrueFalse({ statement, isTrue, explanation, onAnswer }: TrueFals
               : "border-gray-200 dark:border-gray-700 hover:border-rose-400"
           }`}
         >
-          Faux
+          False
         </button>
       </div>
       {answered && explanation && (

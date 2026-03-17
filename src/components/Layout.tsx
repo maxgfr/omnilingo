@@ -8,13 +8,13 @@ import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Tableau de bord" },
-  { to: "/learn", icon: BookOpen, label: "Apprendre" },
-  { to: "/review", icon: Repeat, label: "Réviser", badge: true },
-  { to: "/grammar", icon: BookText, label: "Grammaire" },
-  { to: "/conjugation", icon: Languages, label: "Conjugaison" },
-  { to: "/dictionary", icon: Search, label: "Dictionnaire" },
-  { to: "/chat", icon: MessageCircle, label: "Chat IA" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/learn", icon: BookOpen, label: "Learn" },
+  { to: "/review", icon: Repeat, label: "Review", badge: true },
+  { to: "/grammar", icon: BookText, label: "Grammar" },
+  { to: "/conjugation", icon: Languages, label: "Conjugation" },
+  { to: "/dictionary", icon: Search, label: "Dictionary" },
+  { to: "/chat", icon: MessageCircle, label: "AI Chat" },
 ];
 
 export default function Layout() {
@@ -49,7 +49,7 @@ export default function Layout() {
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Omnilingo</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : "Apprendre les langues"}
+            {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : "Language learning"}
           </p>
         </div>
 
@@ -92,14 +92,14 @@ export default function Layout() {
             }
           >
             <SettingsIcon size={20} />
-            <span>Parametres</span>
+            <span>Settings</span>
           </NavLink>
         </nav>
 
         <div className="p-4 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>Niveau <strong className="text-amber-600 dark:text-amber-400">{settings?.level || "A2"}</strong></span>
-            <span>Serie <strong className="text-emerald-600 dark:text-emerald-400">{settings?.streak || 0}</strong> j</span>
+            <span>Level <strong className="text-amber-600 dark:text-amber-400">{settings?.level || "A2"}</strong></span>
+            <span>Streak <strong className="text-emerald-600 dark:text-emerald-400">{settings?.streak || 0}</strong> d</span>
           </div>
         </div>
       </aside>

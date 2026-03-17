@@ -177,11 +177,10 @@ export default function Dictionary() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Dictionnaire
+            Dictionary
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {totalCount} mot{totalCount !== 1 ? "s" : ""} disponible
-            {totalCount !== 1 ? "s" : ""}
+            {totalCount} word{totalCount !== 1 ? "s" : ""} available
           </p>
         </div>
       </div>
@@ -197,7 +196,7 @@ export default function Dictionary() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un mot..."
+            placeholder="Search..."
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
           />
         </div>
@@ -210,7 +209,7 @@ export default function Dictionary() {
           }`}
         >
           <Filter size={16} />
-          Filtres
+          Filters
           {(filterLevel || filterCategory) && (
             <span className="w-2 h-2 rounded-full bg-amber-500" />
           )}
@@ -223,7 +222,7 @@ export default function Dictionary() {
           {/* Level filter */}
           <div>
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">
-              Niveau
+              Level
             </label>
             <div className="flex flex-wrap gap-2">
               {LEVELS.map((level) => (
@@ -244,7 +243,7 @@ export default function Dictionary() {
                   onClick={() => setFilterLevel(null)}
                   className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
-                  Effacer
+                  Clear
                 </button>
               )}
             </div>
@@ -254,7 +253,7 @@ export default function Dictionary() {
           {categories.length > 0 && (
             <div>
               <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">
-                Categorie
+                Category
               </label>
               <div className="relative">
                 <select
@@ -264,7 +263,7 @@ export default function Dictionary() {
                   }
                   className="w-full appearance-none px-3 py-2 pr-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
                 >
-                  <option value="">Toutes les categories</option>
+                  <option value="">All categories</option>
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>
                       {cat}
@@ -284,7 +283,7 @@ export default function Dictionary() {
       {/* Results count */}
       {searchQuery.trim() && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {words.length} resultat{words.length !== 1 ? "s" : ""} pour "
+          {words.length} result{words.length !== 1 ? "s" : ""} for "
           {searchQuery}"
         </p>
       )}
@@ -293,9 +292,9 @@ export default function Dictionary() {
       {words.length === 0 ? (
         <div className="text-center py-16 text-gray-500 dark:text-gray-400">
           <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium">Aucun mot trouve</p>
+          <p className="text-lg font-medium">No words found</p>
           <p className="text-sm mt-1">
-            Essayez un autre terme de recherche ou modifiez les filtres.
+            Try a different search term or adjust the filters.
           </p>
         </div>
       ) : (
@@ -356,7 +355,7 @@ export default function Dictionary() {
                 <button
                   onClick={() => speak(word.source_word, sourceLang)}
                   className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors flex-shrink-0"
-                  title="Ecouter"
+                  title="Listen"
                 >
                   <Volume2 size={16} />
                 </button>
@@ -372,12 +371,12 @@ export default function Dictionary() {
                         ? "bg-gray-100 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-700 cursor-wait"
                         : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 hover:border-amber-400 dark:hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400"
                   }`}
-                  title={isAdded ? "Deja ajoute" : "Ajouter au SRS"}
+                  title={isAdded ? "Already added" : "Add to SRS"}
                 >
                   {isAdded ? (
                     <>
                       <Check size={14} />
-                      <span className="hidden sm:inline">Ajoute</span>
+                      <span className="hidden sm:inline">Added</span>
                     </>
                   ) : isAdding ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -405,12 +404,12 @@ export default function Dictionary() {
             {loadingMore ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                Chargement...
+                Loading...
               </>
             ) : (
               <>
                 <ChevronDown size={16} />
-                Charger plus de mots
+                Load more words
               </>
             )}
           </button>

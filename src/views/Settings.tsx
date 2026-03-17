@@ -185,17 +185,17 @@ export default function Settings() {
 
   const handleSwitchPair = async (pairId: number) => {
     await switchPair(pairId);
-    showStatus("Paire de langues changee");
+    showStatus("Language pair changed");
   };
 
   const handleLevelChange = async (level: string) => {
     await updateSetting("level", level);
-    showStatus(`Niveau change : ${level}`);
+    showStatus(`Level changed: ${level}`);
   };
 
   const handleWordsPerDayChange = async (value: number) => {
     await updateSetting("words_per_day", String(value));
-    showStatus(`Mots par jour : ${value}`);
+    showStatus(`Words per day: ${value}`);
   };
 
   const handleToggleDarkMode = async (v: boolean) => {
@@ -204,7 +204,7 @@ export default function Settings() {
 
   const handleToggleAudio = async (v: boolean) => {
     await updateSetting("audio_enabled", v ? "true" : "false");
-    showStatus(v ? "Audio active" : "Audio desactive");
+    showStatus(v ? "Audio enabled" : "Audio disabled");
   };
 
   const handleSaveAi = async () => {
@@ -214,9 +214,9 @@ export default function Settings() {
       await bridge.setAiProvider(newProvider, newApiKey, newModel);
       const ai = await bridge.getAiSettings();
       setAiSettings(ai);
-      showStatus("Configuration IA sauvegardee");
+      showStatus("AI configuration saved");
     } catch (err) {
-      showStatus(`Erreur : ${err}`);
+      showStatus(`Error: ${err}`);
     } finally {
       setSavingAi(false);
     }
@@ -234,9 +234,9 @@ export default function Settings() {
       await bridge.downloadWhisperModel(modelName);
       const models = await bridge.getWhisperModels();
       setWhisperModels(models);
-      showStatus(`Modele ${modelName} telecharge`);
+      showStatus(`Model ${modelName} downloaded`);
     } catch (err) {
-      showStatus(`Erreur telechargement : ${err}`);
+      showStatus(`Download error: ${err}`);
     } finally {
       setDownloadingWhisper(null);
     }
@@ -253,10 +253,10 @@ export default function Settings() {
         dict.source_name,
         dict.target_name,
       );
-      showStatus(`Dictionnaire ${dict.source_name}-${dict.target_name} telecharge`);
+      showStatus(`Dictionary ${dict.source_name}-${dict.target_name} downloaded`);
       await reloadSettings();
     } catch (err) {
-      showStatus(`Erreur : ${err}`);
+      showStatus(`Error: ${err}`);
     } finally {
       setDownloading(null);
     }
@@ -278,7 +278,7 @@ export default function Settings() {
       setGrammarCount(topics.length);
       setVerbCount(verbs.length);
     } catch (err) {
-      showStatus(`Erreur import : ${err}`);
+      showStatus(`Import error: ${err}`);
     } finally {
       setImporting(false);
     }
@@ -290,7 +290,7 @@ export default function Settings() {
       const result = await bridge.clearCache();
       showStatus(result);
     } catch (err) {
-      showStatus(`Erreur : ${err}`);
+      showStatus(`Error: ${err}`);
     } finally {
       setClearingCache(false);
     }
@@ -304,7 +304,7 @@ export default function Settings() {
       await reloadSettings();
       setShowResetConfirm(false);
     } catch (err) {
-      showStatus(`Erreur : ${err}`);
+      showStatus(`Error: ${err}`);
     } finally {
       setResetting(false);
     }
@@ -333,16 +333,16 @@ export default function Settings() {
   return (
     <div className="space-y-6 pb-10">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Parametres</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Configurez votre experience d'apprentissage
+          Configure your learning experience
         </p>
       </div>
 
       {/* ================= 1. LANGUE ================= */}
-      <Section icon={Globe} title="Langue" iconColor="text-blue-500 dark:text-blue-400">
+      <Section icon={Globe} title="Language" iconColor="text-blue-500 dark:text-blue-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Choisissez votre paire de langues active
+          Choose your active language pair
         </p>
         <div className="flex flex-wrap gap-2">
           {languagePairs.map((pair) => (
@@ -366,17 +366,17 @@ export default function Settings() {
         </div>
         {languagePairs.length === 0 && (
           <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-            Aucune paire de langues disponible. Telechargez un dictionnaire ci-dessous.
+            No language pairs available. Download a dictionary below.
           </p>
         )}
       </Section>
 
       {/* ================= 2. APPRENTISSAGE ================= */}
-      <Section icon={Brain} title="Apprentissage" iconColor="text-emerald-500 dark:text-emerald-400">
+      <Section icon={Brain} title="Learning" iconColor="text-emerald-500 dark:text-emerald-400">
         {/* Level selector */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Niveau CECRL
+            CEFR Level
           </label>
           <div className="flex gap-2">
             {LEVELS.map((level) => (
@@ -398,7 +398,7 @@ export default function Settings() {
         {/* Words per day */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Mots par jour : <span className="text-amber-600 dark:text-amber-400 font-bold">{settings?.words_per_day ?? 10}</span>
+            Words per day: <span className="text-amber-600 dark:text-amber-400 font-bold">{settings?.words_per_day ?? 10}</span>
           </label>
           <input
             type="range"
@@ -418,12 +418,12 @@ export default function Settings() {
       </Section>
 
       {/* ================= 3. INTELLIGENCE ARTIFICIELLE ================= */}
-      <Section icon={Zap} title="Intelligence Artificielle" iconColor="text-purple-500 dark:text-purple-400">
+      <Section icon={Zap} title="Artificial Intelligence" iconColor="text-purple-500 dark:text-purple-400">
         <div className="space-y-4">
           {/* Provider */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Fournisseur
+              Provider
             </label>
             <div className="relative">
               <select
@@ -450,7 +450,7 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
                   <Key size={14} />
-                  Cle API
+                  API Key
                 </span>
               </label>
               <input
@@ -466,13 +466,13 @@ export default function Settings() {
           {/* Model */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              Modele
+              Model
             </label>
             <input
               type="text"
               value={newModel}
               onChange={(e) => setNewModel(e.target.value)}
-              placeholder="Nom du modele"
+              placeholder="Model name"
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
             />
           </div>
@@ -484,28 +484,28 @@ export default function Settings() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {savingAi ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-            Sauvegarder
+            Save
           </button>
 
           {/* Current config info */}
           {aiSettings && (
             <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-              Configuration actuelle : <span className="font-medium text-gray-700 dark:text-gray-300">{aiSettings.provider}</span> / <span className="font-mono text-gray-700 dark:text-gray-300">{aiSettings.model}</span>
-              {aiSettings.api_key ? " — Cle configuree" : " — Aucune cle"}
+              Current config: <span className="font-medium text-gray-700 dark:text-gray-300">{aiSettings.provider}</span> / <span className="font-mono text-gray-700 dark:text-gray-300">{aiSettings.model}</span>
+              {aiSettings.api_key ? " — Key configured" : " — No key"}
             </div>
           )}
         </div>
       </Section>
 
       {/* ================= 4. APPARENCE ================= */}
-      <Section icon={Palette} title="Apparence" iconColor="text-pink-500 dark:text-pink-400">
+      <Section icon={Palette} title="Appearance" iconColor="text-pink-500 dark:text-pink-400">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Moon size={18} className="text-gray-500 dark:text-gray-400" />
               <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Mode sombre</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Interface en theme sombre</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Dark mode</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Dark theme interface</p>
               </div>
             </div>
             <Toggle
@@ -521,7 +521,7 @@ export default function Settings() {
               <Volume2 size={18} className="text-gray-500 dark:text-gray-400" />
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">Audio</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Prononciation et effets sonores</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Pronunciation and sound effects</p>
               </div>
             </div>
             <Toggle
@@ -533,13 +533,13 @@ export default function Settings() {
       </Section>
 
       {/* ================= 5. WHISPER (STT) ================= */}
-      <Section icon={Mic} title="Modeles Whisper (STT)" iconColor="text-orange-500 dark:text-orange-400">
+      <Section icon={Mic} title="Whisper Models (STT)" iconColor="text-orange-500 dark:text-orange-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Telechargez un modele pour la reconnaissance vocale hors-ligne
+          Download a model for offline speech recognition
         </p>
         {whisperModels.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-            Aucun modele disponible
+            No models available
           </p>
         ) : (
           <div className="space-y-2">
@@ -553,13 +553,13 @@ export default function Settings() {
                     {model.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {model.size_mb} Mo
+                    {model.size_mb} MB
                   </p>
                 </div>
                 {model.downloaded ? (
                   <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     <Check size={14} />
-                    Installe
+                    Installed
                   </span>
                 ) : (
                   <button
@@ -570,12 +570,12 @@ export default function Settings() {
                     {downloadingWhisper === model.name ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        Telechargement...
+                        Downloading...
                       </>
                     ) : (
                       <>
                         <Download size={14} />
-                        Telecharger
+                        Download
                       </>
                     )}
                   </button>
@@ -587,9 +587,9 @@ export default function Settings() {
       </Section>
 
       {/* ================= 6. DICTIONNAIRES ================= */}
-      <Section icon={BookOpen} title="Dictionnaires" iconColor="text-blue-500 dark:text-blue-400">
+      <Section icon={BookOpen} title="Dictionaries" iconColor="text-blue-500 dark:text-blue-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Parcourez et telechargez des dictionnaires depuis FreeDict
+          Browse and download dictionaries from FreeDict
         </p>
 
         {/* Search */}
@@ -599,14 +599,14 @@ export default function Settings() {
             type="text"
             value={dictSearch}
             onChange={(e) => setDictSearch(e.target.value)}
-            placeholder="Rechercher par langue..."
+            placeholder="Search by language..."
             className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
 
         {filteredDicts.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500 italic text-center py-4">
-            {dictSources.length === 0 ? "Aucun dictionnaire disponible" : "Aucun resultat"}
+            {dictSources.length === 0 ? "No dictionaries available" : "No results"}
           </p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -629,8 +629,8 @@ export default function Settings() {
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {dict.provider}
-                        {dict.word_count ? ` — ${dict.word_count.toLocaleString("fr-FR")} mots` : ""}
-                        {dict.size_mb ? ` — ${dict.size_mb} Mo` : ""}
+                        {dict.word_count ? ` — ${dict.word_count.toLocaleString()} words` : ""}
+                        {dict.size_mb ? ` — ${dict.size_mb} MB` : ""}
                       </p>
                     </div>
                   </div>
@@ -642,12 +642,12 @@ export default function Settings() {
                     {downloading === key ? (
                       <>
                         <Loader2 size={14} className="animate-spin" />
-                        <span className="hidden sm:inline">Telechargement...</span>
+                        <span className="hidden sm:inline">Downloading...</span>
                       </>
                     ) : (
                       <>
                         <Download size={14} />
-                        <span className="hidden sm:inline">Telecharger</span>
+                        <span className="hidden sm:inline">Download</span>
                       </>
                     )}
                   </button>
@@ -656,7 +656,7 @@ export default function Settings() {
             })}
             {filteredDicts.length > 50 && (
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
-                {filteredDicts.length - 50} dictionnaires supplementaires — affinez votre recherche
+                {filteredDicts.length - 50} more dictionaries — refine your search
               </p>
             )}
           </div>
@@ -664,20 +664,20 @@ export default function Settings() {
       </Section>
 
       {/* ================= 7. DONNEES ================= */}
-      <Section icon={Database} title="Donnees" iconColor="text-gray-500 dark:text-gray-400">
+      <Section icon={Database} title="Data" iconColor="text-gray-500 dark:text-gray-400">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordCount.toLocaleString("fr-FR")}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Mots</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordCount.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Words</p>
           </div>
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{grammarCount}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Grammaire</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Grammar</p>
           </div>
           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{verbCount}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Verbes</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Verbs</p>
           </div>
         </div>
 
@@ -695,9 +695,9 @@ export default function Settings() {
               <RefreshCw size={18} className="text-amber-500" />
             )}
             <div className="text-left">
-              <p>Importer les donnees integrees</p>
+              <p>Import built-in data</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                Charger les mots, verbes et grammaire pour la paire active
+                Load words, verbs and grammar for the active pair
               </p>
             </div>
           </button>
@@ -714,9 +714,9 @@ export default function Settings() {
               <Trash2 size={18} className="text-gray-500" />
             )}
             <div className="text-left">
-              <p>Vider le cache</p>
+              <p>Clear cache</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                Supprimer les fichiers temporaires
+                Delete temporary files
               </p>
             </div>
           </button>
@@ -729,9 +729,9 @@ export default function Settings() {
             >
               <AlertTriangle size={18} />
               <div className="text-left">
-                <p>Reinitialiser la progression</p>
+                <p>Reset progress</p>
                 <p className="text-xs text-red-500 dark:text-red-400/70 font-normal">
-                  Supprimer toutes les donnees d'apprentissage
+                  Delete all learning data
                 </p>
               </div>
             </button>
@@ -740,11 +740,11 @@ export default function Settings() {
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
                 <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                  Etes-vous sur ?
+                  Are you sure?
                 </p>
               </div>
               <p className="text-xs text-red-600 dark:text-red-400/80 mb-4">
-                Cette action est irreversible. Toute votre progression, vos cartes SRS et vos statistiques seront supprimees.
+                This action is irreversible. All your progress, SRS cards, and statistics will be deleted.
               </p>
               <div className="flex gap-2">
                 <button
@@ -753,13 +753,13 @@ export default function Settings() {
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   {resetting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  Confirmer la reinitialisation
+                  Confirm reset
                 </button>
                 <button
                   onClick={() => setShowResetConfirm(false)}
                   className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
-                  Annuler
+                  Cancel
                 </button>
               </div>
             </div>

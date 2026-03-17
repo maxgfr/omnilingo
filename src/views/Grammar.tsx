@@ -14,12 +14,12 @@ import { QCM, FillBlank, TrueFalse } from "../components/Exercise";
 import type { GrammarTopic, Exercise } from "../types";
 
 const levelLabels: Record<string, { label: string; color: string }> = {
-  A1: { label: "A1 - Debutant", color: "text-emerald-600 dark:text-emerald-400" },
-  A2: { label: "A2 - Elementaire", color: "text-blue-600 dark:text-blue-400" },
-  B1: { label: "B1 - Intermediaire", color: "text-amber-600 dark:text-amber-400" },
-  B2: { label: "B2 - Avance", color: "text-purple-600 dark:text-purple-400" },
-  C1: { label: "C1 - Autonome", color: "text-rose-600 dark:text-rose-400" },
-  C2: { label: "C2 - Maitrise", color: "text-red-600 dark:text-red-400" },
+  A1: { label: "A1 - Beginner", color: "text-emerald-600 dark:text-emerald-400" },
+  A2: { label: "A2 - Elementary", color: "text-blue-600 dark:text-blue-400" },
+  B1: { label: "B1 - Intermediate", color: "text-amber-600 dark:text-amber-400" },
+  B2: { label: "B2 - Advanced", color: "text-purple-600 dark:text-purple-400" },
+  C1: { label: "C1 - Proficient", color: "text-rose-600 dark:text-rose-400" },
+  C2: { label: "C2 - Mastery", color: "text-red-600 dark:text-red-400" },
 };
 
 /** Simple inline markdown: **bold** and *italic* */
@@ -80,14 +80,14 @@ export default function Grammar() {
 
   // Group topics by level
   const topicsByLevel = topics.reduce<Record<string, GrammarTopic[]>>((acc, topic) => {
-    const level = topic.level || "Autre";
+    const level = topic.level || "Other";
     if (!acc[level]) acc[level] = [];
     acc[level].push(topic);
     return acc;
   }, {});
 
   // Sort levels in CEFR order
-  const levelOrder = ["A1", "A2", "B1", "B2", "C1", "C2", "Autre"];
+  const levelOrder = ["A1", "A2", "B1", "B2", "C1", "C2", "Other"];
   const sortedLevels = Object.keys(topicsByLevel).sort(
     (a, b) => levelOrder.indexOf(a) - levelOrder.indexOf(b),
   );
@@ -166,10 +166,10 @@ export default function Grammar() {
       <div className="flex flex-col items-center justify-center h-full py-20">
         <BookOpen size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          Aucun sujet de grammaire
+          No grammar topics
         </h2>
         <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
-          Les sujets de grammaire seront disponibles apres l'import des donnees pour cette paire de langues.
+          Grammar topics will be available after importing data for this language pair.
         </p>
       </div>
     );
@@ -192,7 +192,7 @@ export default function Grammar() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 mb-4 transition-colors"
         >
           <ChevronLeft size={16} />
-          Retour aux sujets
+          Back to topics
         </button>
 
         <div className="mb-6">
@@ -233,7 +233,7 @@ export default function Grammar() {
         {selectedTopic.key_points && selectedTopic.key_points.length > 0 && (
           <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-5 mb-6">
             <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-3 text-sm uppercase tracking-wide">
-              Points cles
+              Key points
             </h3>
             <ul className="space-y-2">
               {selectedTopic.key_points.map((point, i) => (
@@ -254,7 +254,7 @@ export default function Grammar() {
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
             <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                Exemples
+                Examples
               </h3>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -291,7 +291,7 @@ export default function Grammar() {
         {exercises.length > 0 && (
           <div className="mb-6">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span>Exercices</span>
+              <span>Exercises</span>
               {exercisesDone && (
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
@@ -311,7 +311,7 @@ export default function Grammar() {
                   className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5"
                 >
                   <div className="text-xs text-gray-400 dark:text-gray-500 mb-3 font-medium uppercase tracking-wide">
-                    Exercice {i + 1} / {totalExercises}
+                    Exercise {i + 1} / {totalExercises}
                   </div>
                   {exercise.type === "qcm" && exercise.question && exercise.options && exercise.correctIndex !== undefined && (
                     <QCM
@@ -366,11 +366,11 @@ export default function Grammar() {
               }`}
             >
               {passed
-                ? "Bravo ! Sujet valide !"
-                : "Continuez a pratiquer. Il faut 70% pour valider."}
+                ? "Well done! Topic validated!"
+                : "Keep practicing. You need 70% to pass."}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Score : {correctCount}/{totalExercises} ({scorePercent}%)
+              Score: {correctCount}/{totalExercises} ({scorePercent}%)
             </p>
           </div>
         )}
@@ -382,14 +382,14 @@ export default function Grammar() {
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl text-sm font-semibold transition-colors"
           >
             <MessageCircle size={16} />
-            Demander a Claude
+            Ask Claude
           </button>
           <button
             onClick={goBackToList}
             className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl text-sm font-semibold transition-colors"
           >
             <ChevronLeft size={16} />
-            Retour
+            Back
           </button>
         </div>
       </div>
@@ -400,9 +400,9 @@ export default function Grammar() {
   return (
     <div className="max-w-2xl mx-auto py-6 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Grammaire</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Grammar</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {topics.filter((t) => t.completed).length} / {topics.length} sujets completes
+          {topics.filter((t) => t.completed).length} / {topics.length} topics completed
         </p>
       </div>
 
