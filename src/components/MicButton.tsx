@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Mic, Loader2, Check, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { recordAudio } from "../lib/speech";
 import * as bridge from "../lib/bridge";
 
@@ -10,6 +11,7 @@ interface MicButtonProps {
 }
 
 export default function MicButton({ expectedText, language, onResult }: MicButtonProps) {
+  const { t } = useTranslation();
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [result, setResult] = useState<{ text: string; match: boolean } | null>(null);
@@ -53,7 +55,7 @@ export default function MicButton({ expectedText, language, onResult }: MicButto
               ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-400 cursor-wait"
               : "border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
         }`}
-        title="Record pronunciation"
+        title={t("mic.record")}
       >
         {transcribing ? (
           <Loader2 size={18} className="animate-spin" />

@@ -146,7 +146,10 @@
     "futureI": "Future I",
     "subjunctiveII": "Subjunctive II",
     "imperative": "Imperative",
-    "empty": "(empty)"
+    "empty": "(empty)",
+    "separable": "separable",
+    "correct": "correct",
+    "total": "total"
   },
   "dictionary": {
     "title": "Dictionary",
@@ -231,7 +234,25 @@
     "translateWithAi": "Translate with AI",
     "translating": "Translating...",
     "translationSaved": "Translation saved!",
-    "translationError": "Translation error"
+    "translationError": "Translation error",
+    "modelPlaceholder": "Model name",
+    "languageNamePlaceholder": "Language name (e.g. Spanish)",
+    "codePlaceholder": "Code (e.g. es)",
+    "category": "Category",
+    "mb": "MB",
+    "update": "Update",
+    "updateAvailable": "Update available",
+    "updateDescription": "Version {{version}} is available",
+    "updateNow": "Update now",
+    "upToDate": "Up to date",
+    "checkingUpdate": "Checking for updates...",
+    "updateError": "Update check failed",
+    "installing": "Installing update...",
+    "restartRequired": "Restart required to apply the update"
+  },
+  "app": {
+    "name": "Omnilingo",
+    "wordIndex": "Word {{index}}"
   },
   "flashcard": {
     "clickToFlip": "Click to flip"

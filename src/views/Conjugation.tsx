@@ -444,7 +444,7 @@ export default function Conjugation() {
                 )}
                 {currentVerb.is_separable && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 font-medium">
-                    separable
+                    {t("conjugation.separable")}
                   </span>
                 )}
               </div>

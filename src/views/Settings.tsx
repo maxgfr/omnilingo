@@ -136,6 +136,10 @@ export default function Settings() {
   const { t } = useTranslation();
   const { settings, activePair, languagePairs, switchPair, updateSetting, reloadSettings } = useApp();
 
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'upToDate' | 'error'>('idle');
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
   const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
   const [whisperModels, setWhisperModels] = useState<WhisperModelInfo[]>([]);
   const [dictSources, setDictSources] = useState<DictionarySource[]>([]);
@@ -204,7 +208,63 @@ export default function Settings() {
     setStatus(msg);
   }, []);
 
+  // ---- Auto-update check on mount ----
+  useEffect(() => {
+    (async () => {
+      try {
+        setUpdateStatus('checking');
+        const { check } = await import("@tauri-apps/plugin-updater");
+        const update = await check();
+        if (update) {
+          setUpdateVersion(update.version);
+          setUpdateStatus('available');
+        } else {
+          setUpdateStatus('upToDate');
+        }
+      } catch {
+        // Silently fall back to idle (e.g. in dev mode where updater is unavailable)
+        setUpdateStatus('idle');
+      }
+    })();
+  }, []);
+
   // ---- Handlers ----
+
+  const handleCheckUpdate = async () => {
+    setUpdateStatus('checking');
+    setUpdateError(null);
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const update = await check();
+      if (update) {
+        setUpdateVersion(update.version);
+        setUpdateStatus('available');
+      } else {
+        setUpdateStatus('upToDate');
+      }
+    } catch (err) {
+      setUpdateStatus('error');
+      setUpdateError(String(err));
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    setUpdateStatus('downloading');
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const { relaunch } = await import("@tauri-apps/plugin-process");
+      const update = await check();
+      if (update) {
+        await update.downloadAndInstall();
+        setUpdateStatus('ready');
+        // Auto-relaunch after short delay
+        setTimeout(() => relaunch(), 1000);
+      }
+    } catch (err) {
+      setUpdateStatus('error');
+      setUpdateError(String(err));
+    }
+  };
 
   const handleSwitchPair = async (pairId: number) => {
     await switchPair(pairId);
@@ -362,6 +422,75 @@ export default function Settings() {
         </p>
       </div>
 
+      {/* ================= 0. MISE A JOUR ================= */}
+      <Section icon={RefreshCw} title={t("settings.update")} iconColor="text-cyan-500 dark:text-cyan-400">
+        <div className="flex items-center justify-between">
+          <div>
+            {updateStatus === 'idle' && (
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t("settings.checkingUpdate").replace("...", "")}</p>
+            )}
+            {updateStatus === 'checking' && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin" />
+                {t("settings.checkingUpdate")}
+              </p>
+            )}
+            {updateStatus === 'upToDate' && (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                <Check size={14} />
+                {t("settings.upToDate")}
+              </p>
+            )}
+            {updateStatus === 'available' && (
+              <div>
+                <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  {t("settings.updateAvailable")}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {t("settings.updateDescription", { version: updateVersion })}
+                </p>
+              </div>
+            )}
+            {updateStatus === 'downloading' && (
+              <p className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin" />
+                {t("settings.installing")}
+              </p>
+            )}
+            {updateStatus === 'ready' && (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                {t("settings.restartRequired")}
+              </p>
+            )}
+            {updateStatus === 'error' && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {t("settings.updateError")}: {updateError}
+              </p>
+            )}
+          </div>
+          <div>
+            {(updateStatus === 'idle' || updateStatus === 'upToDate' || updateStatus === 'error') && (
+              <button
+                onClick={handleCheckUpdate}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <RefreshCw size={14} />
+                {t("settings.update")}
+              </button>
+            )}
+            {updateStatus === 'available' && (
+              <button
+                onClick={handleInstallUpdate}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors"
+              >
+                <Download size={14} />
+                {t("settings.updateNow")}
+              </button>
+            )}
+          </div>
+        </div>
+      </Section>
+
       {/* ================= 1. LANGUE ================= */}
       <Section icon={Globe} title={t("settings.language")} iconColor="text-blue-500 dark:text-blue-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -495,7 +624,7 @@ export default function Settings() {
               type="text"
               value={newModel}
               onChange={(e) => setNewModel(e.target.value)}
-              placeholder="Model name"
+              placeholder={t("settings.modelPlaceholder")}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
             />
           </div>
@@ -592,14 +721,14 @@ export default function Settings() {
               type="text"
               value={translateTarget}
               onChange={(e) => setTranslateTarget(e.target.value)}
-              placeholder="Language name (e.g. Spanish)"
+              placeholder={t("settings.languageNamePlaceholder")}
               className="flex-1 min-w-[160px] rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
             <input
               type="text"
               value={translateCode}
               onChange={(e) => setTranslateCode(e.target.value)}
-              placeholder="Code (e.g. es)"
+              placeholder={t("settings.codePlaceholder")}
               className="w-28 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
             />
           </div>
@@ -669,7 +798,7 @@ export default function Settings() {
                     {model.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {model.size_mb} MB
+                    {model.size_mb} {t("settings.mb")}
                   </p>
                 </div>
                 {model.downloaded ? (
@@ -746,7 +875,7 @@ export default function Settings() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {dict.provider}
                         {dict.word_count ? ` — ${dict.word_count.toLocaleString()} ${t("common.words").toLowerCase()}` : ""}
-                        {dict.size_mb ? ` — ${dict.size_mb} MB` : ""}
+                        {dict.size_mb ? ` — ${dict.size_mb} ${t("settings.mb")}` : ""}
                       </p>
                     </div>
                   </div>

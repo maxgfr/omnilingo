@@ -37,7 +37,7 @@ export default function Layout() {
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1 text-gray-600 dark:text-gray-400">
           {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
-        <h1 className="text-lg font-bold text-gray-900 dark:text-white">Omnilingo</h1>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t("app.name")}</h1>
         <div className="w-6" />
       </header>
 
@@ -49,7 +49,7 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} flex flex-col`}>
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Omnilingo</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{t("app.name")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : t("nav.languageLearning")}
           </p>

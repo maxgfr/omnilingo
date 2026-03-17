@@ -146,7 +146,10 @@
     "futureI": "Futur I",
     "subjunctiveII": "Subjonctif II",
     "imperative": "Impératif",
-    "empty": "(vide)"
+    "empty": "(vide)",
+    "separable": "séparable",
+    "correct": "correct",
+    "total": "total"
   },
   "dictionary": {
     "title": "Dictionnaire",
@@ -231,7 +234,25 @@
     "translateWithAi": "Traduire avec l'IA",
     "translating": "Traduction en cours...",
     "translationSaved": "Traduction sauvegardée !",
-    "translationError": "Erreur de traduction"
+    "translationError": "Erreur de traduction",
+    "modelPlaceholder": "Nom du modèle",
+    "languageNamePlaceholder": "Nom de la langue (ex : Espagnol)",
+    "codePlaceholder": "Code (ex : es)",
+    "category": "Catégorie",
+    "mb": "Mo",
+    "update": "Mise à jour",
+    "updateAvailable": "Mise à jour disponible",
+    "updateDescription": "La version {{version}} est disponible",
+    "updateNow": "Mettre à jour",
+    "upToDate": "À jour",
+    "checkingUpdate": "Vérification des mises à jour...",
+    "updateError": "Échec de la vérification",
+    "installing": "Installation de la mise à jour...",
+    "restartRequired": "Redémarrage nécessaire pour appliquer la mise à jour"
+  },
+  "app": {
+    "name": "Omnilingo",
+    "wordIndex": "Mot {{index}}"
   },
   "flashcard": {
     "clickToFlip": "Cliquer pour retourner"

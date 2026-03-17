@@ -251,7 +251,7 @@ export default function Learn() {
                     ? "w-2 h-2 bg-emerald-400"
                     : "w-2 h-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
               }`}
-              title={`Word ${i + 1}`}
+              title={t("app.wordIndex", { index: i + 1 })}
             />
           ))}
         </div>
