@@ -92,3 +92,6 @@ export const resetProgress = () => invoke<string>("reset_progress");
 
 // Ollama
 export const detectOllama = () => invoke<{ available: boolean; models: string[] }>("detect_ollama");
+
+// Model catalog
+export const fetchModelCatalog = () => invoke<Record<string, string[]>>("fetch_model_catalog");

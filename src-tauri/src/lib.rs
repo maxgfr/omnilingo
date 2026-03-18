@@ -100,6 +100,7 @@ pub fn run() {
             clear_cache,
             reset_progress,
             detect_ollama,
+            fetch_model_catalog,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -233,4 +234,40 @@ async fn detect_ollama() -> Result<serde_json::Value, String> {
             "models": [],
         })),
     }
+}
+
+/// Fetch model catalog from models.dev
+#[tauri::command]
+async fn fetch_model_catalog() -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client
+        .get("https://models.dev/api.json")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch model catalog: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Model catalog HTTP {}", resp.status()));
+    }
+
+    let catalog: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+
+    // Extract only the providers we support
+    let providers = ["anthropic", "openai", "mistral", "google-ai-studio"];
+    let mut result = serde_json::Map::new();
+
+    for provider in &providers {
+        if let Some(p) = catalog.get(*provider) {
+            if let Some(models) = p.get("models").and_then(|m| m.as_object()) {
+                let model_ids: Vec<String> = models.keys().cloned().collect();
+                result.insert(provider.to_string(), serde_json::json!(model_ids));
+            }
+        }
+    }
+
+    Ok(serde_json::Value::Object(result))
 }

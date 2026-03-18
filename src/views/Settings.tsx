@@ -177,6 +177,7 @@ export default function Settings() {
   const [translateCode, setTranslateCode] = useState("");
   const [translatingUi, setTranslatingUi] = useState(false);
   const [ollamaStatus, setOllamaStatus] = useState<{ available: boolean; models: string[] }>({ available: false, models: [] });
+  const [modelCatalog, setModelCatalog] = useState<Record<string, string[]>>({});
 
   // Load all data on mount
   useEffect(() => {
@@ -197,6 +198,8 @@ export default function Settings() {
         setWhisperModels(whisper);
         setDictSources(dicts);
         setOllamaStatus(ollama);
+        // Load model catalog from models.dev
+        bridge.fetchModelCatalog().then(setModelCatalog).catch(() => {});
       } catch {
         // silently fail
       } finally {
@@ -398,6 +401,16 @@ export default function Settings() {
       d.target_lang.toLowerCase().includes(q)
     );
   });
+
+  // Map provider to catalog key
+  const providerToCatalog: Record<string, string> = {
+    anthropic: "anthropic",
+    openai: "openai",
+    gemini: "google-ai-studio",
+    mistral: "mistral",
+  };
+  const catalogKey = providerToCatalog[newProvider];
+  const catalogModels = catalogKey ? (modelCatalog[catalogKey] || []) : [];
 
   if (loadingData) {
     return (
@@ -653,14 +666,23 @@ export default function Settings() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               {t("settings.model")}
+              {catalogModels.length > 0 && (
+                <span className="ml-2 text-xs text-gray-400 font-normal">({catalogModels.length} models available)</span>
+              )}
             </label>
             <input
               type="text"
+              list="model-suggestions"
               value={newModel}
               onChange={(e) => setNewModel(e.target.value)}
               placeholder={AI_PROVIDERS.find(p => p.value === newProvider)?.placeholder || "model-name"}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
             />
+            <datalist id="model-suggestions">
+              {catalogModels.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
           </div>
 
           {/* Save & Test buttons */}
