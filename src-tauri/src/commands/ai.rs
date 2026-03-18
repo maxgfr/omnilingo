@@ -13,13 +13,14 @@ pub struct AiSettings {
 /// Default models per provider
 fn default_model(provider: &str) -> &'static str {
     match provider {
-        "anthropic" => "claude-haiku-4-5-20251001",
+        "anthropic" => "claude-sonnet-4-6",
         "openai" => "gpt-4o-mini",
         "gemini" => "gemini-2.0-flash",
         "mistral" => "mistral-small-latest",
         "glm" => "glm-4-flash",
-        "claude-cli" => "claude-haiku-4-5-20251001",
+        "claude-cli" | "claude-code" => "claude-sonnet-4-6",
         "ollama" => "llama3.2",
+        "codex" => "codex-mini-latest",
         _ => "gpt-4o-mini",
     }
 }
@@ -79,7 +80,8 @@ pub async fn ask_ai(
     let cwd = base_dir.0.clone();
 
     match settings.provider.as_str() {
-        "claude-cli" => call_claude_cli(&prompt, &cwd).await,
+        "claude-cli" | "claude-code" => call_claude_cli(&settings.model, &prompt, &cwd).await,
+        "codex" => call_codex_cli(&prompt, &cwd).await,
         "anthropic" => call_anthropic(&settings, &prompt).await,
         "openai" => call_openai_compatible("https://api.openai.com/v1/chat/completions", &settings, &prompt).await,
         "gemini" => call_gemini(&settings, &prompt).await,
@@ -90,20 +92,42 @@ pub async fn ask_ai(
     }
 }
 
-/// Claude CLI fallback (no API key needed)
-async fn call_claude_cli(prompt: &str, cwd: &std::path::Path) -> Result<String, String> {
+/// Claude CLI / Claude Code (local subprocess, no API key needed)
+async fn call_claude_cli(model: &str, prompt: &str, cwd: &std::path::Path) -> Result<String, String> {
     let cwd = cwd.to_path_buf();
     let prompt = prompt.to_string();
+    let model = model.to_string();
     tauri::async_runtime::spawn_blocking(move || {
         let output = std::process::Command::new("claude")
-            .args(["-p", "--model", "claude-haiku-4-5-20251001"])
+            .args(["-p", "--model", &model])
             .arg(&prompt)
             .current_dir(&cwd)
             .output()
-            .map_err(|e| format!("Claude CLI not found: {}. Install it or use an API key.", e))?;
+            .map_err(|e| format!("Claude CLI not found: {}. Install it with: npm i -g @anthropic-ai/claude-code", e))?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(format!("Claude CLI error: {}", stderr));
+        }
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// OpenAI Codex CLI (local subprocess)
+async fn call_codex_cli(prompt: &str, cwd: &std::path::Path) -> Result<String, String> {
+    let cwd = cwd.to_path_buf();
+    let prompt = prompt.to_string();
+    tauri::async_runtime::spawn_blocking(move || {
+        let output = std::process::Command::new("codex")
+            .args(["--quiet", "--approval-mode", "full-auto"])
+            .arg(&prompt)
+            .current_dir(&cwd)
+            .output()
+            .map_err(|e| format!("Codex CLI not found: {}. Install it with: npm i -g @openai/codex", e))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Codex CLI error: {}", stderr));
         }
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     })

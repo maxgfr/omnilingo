@@ -106,21 +106,25 @@ function StatusToast({ message, onClose }: { message: string; onClose: () => voi
 // Provider list
 // ---------------------------------------------------------------------------
 const AI_PROVIDERS = [
-  { value: "anthropic", label: "Anthropic (Claude)", defaultModel: "claude-haiku-4-5-20251001", models: ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250514", "claude-opus-4-5-20250514"] },
-  { value: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini", models: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "o3-mini", "codex-mini-latest"] },
-  { value: "gemini", label: "Google Gemini", defaultModel: "gemini-2.0-flash", models: ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"] },
-  { value: "mistral", label: "Mistral AI", defaultModel: "mistral-small-latest", models: ["mistral-small-latest", "mistral-medium-latest", "mistral-large-latest", "codestral-latest"] },
-  { value: "glm", label: "GLM (Zhipu)", defaultModel: "glm-4-flash", models: ["glm-4-flash", "glm-4-plus", "glm-4"] },
-  { value: "claude-cli", label: "Claude CLI (local)", defaultModel: "claude-sonnet-4-5-20250514", models: ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250514", "claude-opus-4-5-20250514"], noKey: true },
-  { value: "ollama", label: "Ollama (local)", defaultModel: "llama3.2", models: ["llama3.2", "mistral", "gemma2", "phi3"], noKey: true },
+  // API providers
+  { value: "anthropic", label: "Anthropic (Claude API)", defaultModel: "claude-sonnet-4-6", placeholder: "claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-6", group: "api" },
+  { value: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini", placeholder: "gpt-4o-mini, gpt-4o, gpt-4.1, o3-mini", group: "api" },
+  { value: "gemini", label: "Google Gemini", defaultModel: "gemini-2.0-flash", placeholder: "gemini-2.0-flash, gemini-2.5-pro", group: "api" },
+  { value: "mistral", label: "Mistral AI", defaultModel: "mistral-small-latest", placeholder: "mistral-small-latest, mistral-large-latest, codestral-latest", group: "api" },
+  { value: "glm", label: "GLM (Zhipu)", defaultModel: "glm-4-flash", placeholder: "glm-4-flash, glm-4-plus, codegeex-4", group: "api" },
+  // Local CLI tools (no API key)
+  { value: "claude-code", label: "Claude Code (local CLI)", defaultModel: "claude-sonnet-4-6", placeholder: "claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-6", noKey: true, group: "local" },
+  { value: "codex", label: "Codex CLI (OpenAI)", defaultModel: "codex-mini-latest", placeholder: "codex-mini-latest", noKey: true, group: "local" },
+  { value: "ollama", label: "Ollama (local LLM)", defaultModel: "llama3.2", placeholder: "llama3.2, mistral, gemma2, phi3, qwen2.5", noKey: true, group: "local" },
 ];
 
 const AI_PRESETS = [
-  { label: "\u26A1 Fast", provider: "anthropic", model: "claude-haiku-4-5-20251001", description: "Quick responses, low cost" },
-  { label: "\u2696\uFE0F Balanced", provider: "anthropic", model: "claude-sonnet-4-5-20250514", description: "Good quality, moderate cost" },
-  { label: "\uD83E\uDDE0 Best", provider: "anthropic", model: "claude-opus-4-5-20250514", description: "Highest quality, higher cost" },
-  { label: "\uD83C\uDD93 Free", provider: "claude-cli", model: "claude-sonnet-4-5-20250514", description: "Local Claude CLI, no API key" },
-  { label: "\uD83C\uDFE0 Offline", provider: "ollama", model: "llama3.2", description: "Local Ollama, fully offline" },
+  { label: "\u26A1 Fast", provider: "anthropic", model: "claude-haiku-4-5", description: "Quick, low cost" },
+  { label: "\u2696\uFE0F Balanced", provider: "anthropic", model: "claude-sonnet-4-6", description: "Good quality" },
+  { label: "\uD83E\uDDE0 Best", provider: "anthropic", model: "claude-opus-4-6", description: "Highest quality" },
+  { label: "\uD83D\uDCBB Claude Code", provider: "claude-code", model: "claude-sonnet-4-6", description: "Local CLI, no key" },
+  { label: "\uD83D\uDE80 Codex", provider: "codex", model: "codex-mini-latest", description: "OpenAI Codex CLI" },
+  { label: "\uD83C\uDFE0 Offline", provider: "ollama", model: "llama3.2", description: "Local Ollama" },
 ];
 
 const LEVELS = ["A1", "A2", "B1", "B2"];
@@ -608,11 +612,16 @@ export default function Settings() {
                 onChange={(e) => handleProviderChange(e.target.value)}
                 className="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 pr-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
-                {AI_PROVIDERS.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
+                <optgroup label="API (requires key)">
+                  {AI_PROVIDERS.filter(p => p.group === "api").map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Local (no key needed)">
+                  {AI_PROVIDERS.filter(p => p.group === "local").map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </optgroup>
               </select>
               <ChevronDown
                 size={16}
@@ -645,18 +654,13 @@ export default function Settings() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               {t("settings.model")}
             </label>
-            <div className="relative">
-              <select
-                value={newModel}
-                onChange={(e) => setNewModel(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 pr-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
-              >
-                {(AI_PROVIDERS.find(p => p.value === newProvider)?.models || []).map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
+            <input
+              type="text"
+              value={newModel}
+              onChange={(e) => setNewModel(e.target.value)}
+              placeholder={AI_PROVIDERS.find(p => p.value === newProvider)?.placeholder || "model-name"}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
+            />
           </div>
 
           {/* Save & Test buttons */}
