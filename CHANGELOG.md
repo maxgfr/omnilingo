@@ -1,3 +1,10 @@
+## [2.7.1](https://github.com/maxgfr/omnilingo/compare/v2.7.0...v2.7.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* onboarding skipping AI/dictionary steps, add MCP bridge ([5b14f1c](https://github.com/maxgfr/omnilingo/commit/5b14f1c8d4a7b736ae6c35eae89aa503d9a7ebe5))
+
 # [2.7.0](https://github.com/maxgfr/omnilingo/compare/v2.6.3...v2.7.0) (2026-03-18)
 
 
