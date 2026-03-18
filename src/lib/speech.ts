@@ -50,10 +50,41 @@ export function getSourceLang(langCode: string): string {
   return map[langCode] || langCode;
 }
 
-// STT: Record audio from microphone and return PCM Float32 samples at 16kHz
+/**
+ * Resample audio data from sourceSampleRate to targetSampleRate using linear interpolation.
+ */
+function resample(data: Float32Array, sourceSampleRate: number, targetSampleRate: number): Float32Array {
+  if (sourceSampleRate === targetSampleRate) return data;
+  const ratio = sourceSampleRate / targetSampleRate;
+  const newLength = Math.round(data.length / ratio);
+  const result = new Float32Array(newLength);
+  for (let i = 0; i < newLength; i++) {
+    const srcIndex = i * ratio;
+    const low = Math.floor(srcIndex);
+    const high = Math.min(low + 1, data.length - 1);
+    const frac = srcIndex - low;
+    result[i] = data[low] * (1 - frac) + data[high] * frac;
+  }
+  return result;
+}
+
+/**
+ * Record audio from microphone and return PCM Float32 samples at 16kHz.
+ * Whisper expects 16kHz mono float32. The browser may give a different
+ * sample rate, so we resample if needed.
+ */
 export async function recordAudio(durationMs: number = 3000): Promise<Float32Array> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const audioContext = new AudioContext({ sampleRate: 16000 });
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      channelCount: 1,
+      sampleRate: { ideal: 16000 },
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
+
+  const audioContext = new AudioContext();
+  const actualSampleRate = audioContext.sampleRate;
   const source = audioContext.createMediaStreamSource(stream);
   const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
@@ -75,12 +106,15 @@ export async function recordAudio(durationMs: number = 3000): Promise<Float32Arr
 
       // Concatenate all chunks
       const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-      const result = new Float32Array(totalLength);
+      const raw = new Float32Array(totalLength);
       let offset = 0;
       for (const chunk of chunks) {
-        result.set(chunk, offset);
+        raw.set(chunk, offset);
         offset += chunk.length;
       }
+
+      // Resample to 16kHz if needed (Whisper requirement)
+      const result = resample(raw, actualSampleRate, 16000);
       resolve(result);
     }, durationMs);
   });

@@ -860,10 +860,24 @@ export default function Settings() {
                   </p>
                 </div>
                 {model.downloaded ? (
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    <Check size={14} />
-                    {t("common.installed")}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      <Check size={14} />
+                      {t("common.installed")}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        await bridge.deleteWhisperModel(model.name);
+                        const models = await bridge.getWhisperModels();
+                        setWhisperModels(models);
+                        showStatus(t("settings.modelDeleted", { name: model.name }));
+                      }}
+                      className="p-1 text-gray-400 hover:text-rose-500 transition-colors"
+                      title={t("common.delete")}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={() => handleDownloadWhisper(model.name)}

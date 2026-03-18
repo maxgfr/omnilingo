@@ -60,9 +60,24 @@ pub async fn download_whisper_model(
     if !response.status().is_success() {
         return Err(format!("Download failed: HTTP {}", response.status()));
     }
-    let bytes = response.bytes().await.map_err(|e| format!("Failed to read: {}", e))?;
-    std::fs::write(&path, &bytes).map_err(|e| format!("Failed to save: {}", e))?;
+    let bytes = response.bytes().await.map_err(|e| format!("Failed to read response: {}", e))?;
+    std::fs::write(&path, &bytes).map_err(|e| format!("Failed to save model: {}", e))?;
     Ok(format!("Downloaded {} ({} MB)", model_name, bytes.len() / 1_000_000))
+}
+
+/// Delete a downloaded Whisper model
+#[tauri::command]
+pub fn delete_whisper_model(
+    base_dir: State<'_, BaseDirState>,
+    model_name: String,
+) -> Result<String, String> {
+    let path = model_path(&base_dir.0, &model_name);
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| format!("Failed to delete model: {}", e))?;
+        Ok(format!("Deleted model {}", model_name))
+    } else {
+        Ok("Model not found".to_string())
+    }
 }
 
 /// Transcribe audio using Whisper (only available with `stt` feature)
@@ -81,7 +96,7 @@ pub async fn transcribe_audio(
             .iter()
             .map(|name| model_path(&base, name))
             .find(|p| p.exists())
-            .ok_or_else(|| "Aucun modèle Whisper téléchargé. Allez dans Paramètres.".to_string())?;
+            .ok_or_else(|| "No Whisper model downloaded. Go to Settings to download one.".to_string())?;
 
         tauri::async_runtime::spawn_blocking(move || {
             let ctx = whisper_rs::WhisperContext::new_with_params(
@@ -102,8 +117,11 @@ pub async fn transcribe_audio(
             let mut text = String::new();
             let n = state.full_n_segments();
             for i in 0..n {
-                let seg = state.full_get_segment_text(i).map_err(|e| format!("Segment error: {}", e))?;
-                text.push_str(&seg);
+                if let Some(seg) = state.get_segment(i) {
+                    if let Ok(s) = seg.to_str() {
+                        text.push_str(s);
+                    }
+                }
             }
             Ok(text.trim().to_string())
         })
@@ -114,6 +132,6 @@ pub async fn transcribe_audio(
     #[cfg(not(feature = "stt"))]
     {
         let _ = (base_dir, audio_data, language);
-        Err("STT non activé. Recompilez avec: cargo tauri dev --features stt".to_string())
+        Err("STT not enabled. Rebuild with: cargo tauri dev --features stt".to_string())
     }
 }

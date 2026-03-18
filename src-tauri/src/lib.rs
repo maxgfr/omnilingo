@@ -79,6 +79,7 @@ pub fn run() {
             commands::conjugation::log_conjugation_session,
             commands::speech::get_whisper_models,
             commands::speech::download_whisper_model,
+            commands::speech::delete_whisper_model,
             commands::speech::transcribe_audio,
             commands::download::get_available_dictionaries,
             commands::download::download_dictionary,

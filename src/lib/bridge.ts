@@ -55,6 +55,7 @@ export const importBuiltinData = (pairId: number) => invoke<string>("import_buil
 // Speech
 export const getWhisperModels = () => invoke<WhisperModelInfo[]>("get_whisper_models");
 export const downloadWhisperModel = (modelName: string) => invoke<string>("download_whisper_model", { modelName });
+export const deleteWhisperModel = (modelName: string) => invoke<string>("delete_whisper_model", { modelName });
 export const transcribeAudio = (audioData: number[], language?: string) =>
   invoke<string>("transcribe_audio", { audioData, language: language ?? null });
 

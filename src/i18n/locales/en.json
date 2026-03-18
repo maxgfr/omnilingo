@@ -252,6 +252,7 @@
     "translating": "Translating...",
     "translationSaved": "Translation saved!",
     "translationError": "Translation error",
+    "modelDeleted": "Model {{name}} deleted",
     "modelPlaceholder": "Model name",
     "languageNamePlaceholder": "Language name (e.g. Spanish)",
     "codePlaceholder": "Code (e.g. es)",
