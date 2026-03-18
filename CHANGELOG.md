@@ -1,3 +1,10 @@
+## [2.6.3](https://github.com/maxgfr/omnilingo/compare/v2.6.2...v2.6.3) (2026-03-18)
+
+
+### Bug Fixes
+
+* move useState hook before early returns (Rules of Hooks) ([5ae6af3](https://github.com/maxgfr/omnilingo/commit/5ae6af36ba8529789ddaad16e5f17ac817da6cad))
+
 ## [2.6.2](https://github.com/maxgfr/omnilingo/compare/v2.6.1...v2.6.2) (2026-03-18)
 
 
