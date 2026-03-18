@@ -172,15 +172,17 @@ export default function Settings() {
   const [translateTarget, setTranslateTarget] = useState("");
   const [translateCode, setTranslateCode] = useState("");
   const [translatingUi, setTranslatingUi] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState<{ available: boolean; models: string[] }>({ available: false, models: [] });
 
   // Load all data on mount
   useEffect(() => {
     const load = async () => {
       try {
-        const [ai, whisper, dicts] = await Promise.all([
+        const [ai, whisper, dicts, ollama] = await Promise.all([
           bridge.getAiSettings().catch(() => null),
           bridge.getWhisperModels().catch(() => []),
           bridge.getAvailableDictionaries().catch(() => []),
+          bridge.detectOllama().catch(() => ({ available: false, models: [] })),
         ]);
         if (ai) {
           setAiSettings(ai);
@@ -190,6 +192,7 @@ export default function Settings() {
         }
         setWhisperModels(whisper);
         setDictSources(dicts);
+        setOllamaStatus(ollama);
       } catch {
         // silently fail
       } finally {
@@ -579,6 +582,19 @@ export default function Settings() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Ollama status */}
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+            ollamaStatus.available
+              ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+              : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${ollamaStatus.available ? "bg-emerald-500" : "bg-gray-400"}`} />
+            {ollamaStatus.available
+              ? `Ollama: ${ollamaStatus.models.length} model${ollamaStatus.models.length !== 1 ? "s" : ""} (${ollamaStatus.models.slice(0, 3).join(", ")}${ollamaStatus.models.length > 3 ? "..." : ""})`
+              : "Ollama: not detected"
+            }
           </div>
 
           {/* Provider */}

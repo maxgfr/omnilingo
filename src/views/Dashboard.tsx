@@ -39,6 +39,15 @@ export default function Dashboard() {
         setStats(s);
         setTopics(t);
         setDueCount(d);
+        // Send notification if cards are due
+        if (d > 0) {
+          import("@tauri-apps/plugin-notification").then(({ sendNotification, isPermissionGranted, requestPermission }) => {
+            isPermissionGranted().then(async (granted) => {
+              if (!granted) { await requestPermission(); }
+              sendNotification({ title: "Omnilingo", body: `You have ${d} card${d !== 1 ? "s" : ""} to review!` });
+            });
+          }).catch(() => {});
+        }
       })
       .finally(() => setLoading(false));
     bridge.getDailyStats(activePair.id, 1).then(daily => {

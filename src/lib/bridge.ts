@@ -89,3 +89,6 @@ export const importProgress = (pairId: number, data: Record<string, unknown>) =>
 // Maintenance
 export const clearCache = () => invoke<string>("clear_cache");
 export const resetProgress = () => invoke<string>("reset_progress");
+
+// Ollama
+export const detectOllama = () => invoke<{ available: boolean; models: string[] }>("detect_ollama");

@@ -11,7 +11,8 @@ pub struct BaseDirState(pub PathBuf);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init());
 
     // Only load the updater in release builds (requires pubkey in config)
     if !cfg!(debug_assertions) {
@@ -98,6 +99,7 @@ pub fn run() {
             log_session,
             clear_cache,
             reset_progress,
+            detect_ollama,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -202,4 +204,33 @@ fn reset_progress(
     }
 
     Ok("Progress reset".to_string())
+}
+
+/// Detect if Ollama is running locally and list available models
+#[tauri::command]
+async fn detect_ollama() -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    match client.get("http://localhost:11434/api/tags").send().await {
+        Ok(resp) if resp.status().is_success() => {
+            let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            let models: Vec<String> = json["models"]
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
+                .collect();
+            Ok(serde_json::json!({
+                "available": true,
+                "models": models,
+            }))
+        }
+        _ => Ok(serde_json::json!({
+            "available": false,
+            "models": [],
+        })),
+    }
 }
