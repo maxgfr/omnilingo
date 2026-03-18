@@ -17,7 +17,7 @@ fn default_model(provider: &str) -> &'static str {
         "openai" => "gpt-4o-mini",
         "gemini" => "gemini-2.0-flash",
         "mistral" => "mistral-small-latest",
-        "glm" => "glm-4-flash",
+        "glm" => "glm-4.5",
         "claude-cli" | "claude-code" => "claude-sonnet-4-6",
         "ollama" => "llama3.2",
         "codex" => "codex-mini-latest",
@@ -86,7 +86,7 @@ pub async fn ask_ai(
         "openai" => call_openai_compatible("https://api.openai.com/v1/chat/completions", &settings, &prompt).await,
         "gemini" => call_gemini(&settings, &prompt).await,
         "mistral" => call_openai_compatible("https://api.mistral.ai/v1/chat/completions", &settings, &prompt).await,
-        "glm" => call_openai_compatible("https://open.bigmodel.cn/api/paas/v4/chat/completions", &settings, &prompt).await,
+        "glm" => call_openai_compatible("https://open.bigmodel.cn/api/coding/paas/v4/chat/completions", &settings, &prompt).await,
         "ollama" => call_openai_compatible("http://localhost:11434/v1/chat/completions", &settings, &prompt).await,
         other => Err(format!("Unknown AI provider: {}", other)),
     }

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Search, LayoutDashboard, Repeat,
+  Search, LayoutDashboard, BookOpen, Repeat, MessageSquare,
   MessageCircle, Settings,
 } from "lucide-react";
 
@@ -24,9 +24,11 @@ export default function CommandPalette() {
 
   const commands: CommandItem[] = [
     { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, action: () => navigate("/"), keywords: "home main" },
+    { id: "learn", label: t("nav.learn"), icon: BookOpen, action: () => navigate("/learn"), keywords: "study words new" },
     { id: "review", label: t("nav.review"), icon: Repeat, action: () => navigate("/review"), keywords: "srs flashcard practice" },
     { id: "dictionary", label: t("nav.dictionary"), icon: Search, action: () => navigate("/dictionary"), keywords: "words search find" },
-    { id: "chat", label: t("nav.chat"), icon: MessageCircle, action: () => navigate("/chat"), keywords: "ai tutor conversation" },
+    { id: "conversation", label: t("nav.conversation"), icon: MessageSquare, action: () => navigate("/conversation"), keywords: "roleplay scenario prompt" },
+    { id: "chat", label: t("nav.chat"), icon: MessageCircle, action: () => navigate("/chat"), keywords: "ai tutor" },
     { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config" },
   ];
 

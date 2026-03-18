@@ -225,8 +225,11 @@
     "keyConfigured": "Key configured",
     "noKey": "No key",
     "appearance": "Appearance",
-    "darkMode": "Dark mode",
+    "darkMode": "Theme",
     "darkModeDescription": "Dark theme interface",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
     "audio": "Audio",
     "audioDescription": "Pronunciation and sound effects",
     "whisperModels": "Whisper Models (STT)",
@@ -396,7 +399,12 @@
     "generateAiDescription": "Auto-generate 50 starter words using your AI provider",
     "skipForNow": "Skip for now — I'll add content later",
     "availableDicts": "Available dictionaries for your pair",
-    "dictDownloaded": "Dictionary downloaded! Language pair created."
+    "dictDownloaded": "Dictionary downloaded! Language pair created.",
+    "upperIntermediate": "Upper intermediate — I express myself fluently",
+    "aiSetup": "AI Provider",
+    "aiSetupDescription": "Choose your AI provider for vocabulary generation and chat",
+    "apiKey": "API Key",
+    "noKeyNeeded": "No API key needed"
   },
   "wordOfDay": {
     "title": "Word of the day",

@@ -31,6 +31,15 @@ const LEVELS = [
   { value: "A1", icon: BookOpen, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-700", hover: "hover:border-emerald-400" },
   { value: "A2", icon: GraduationCap, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-200 dark:border-blue-700", hover: "hover:border-blue-400" },
   { value: "B1", icon: Rocket, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20", border: "border-amber-200 dark:border-amber-700", hover: "hover:border-amber-400" },
+  { value: "B2", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20", border: "border-purple-200 dark:border-purple-700", hover: "hover:border-purple-400" },
+];
+
+const AI_PROVIDERS = [
+  { value: "claude-code", label: "Claude Code (local)", noKey: true },
+  { value: "anthropic", label: "Anthropic", noKey: false },
+  { value: "openai", label: "OpenAI", noKey: false },
+  { value: "gemini", label: "Google Gemini", noKey: false },
+  { value: "ollama", label: "Ollama (local)", noKey: true },
 ];
 
 export default function Onboarding({ children }: OnboardingProps) {
@@ -43,6 +52,8 @@ export default function Onboarding({ children }: OnboardingProps) {
   const [availableDicts, setAvailableDicts] = useState<DictionarySource[]>([]);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadDone, setDownloadDone] = useState(false);
+  const [aiProvider, setAiProvider] = useState("claude-code");
+  const [aiApiKey, setAiApiKey] = useState("");
 
   useEffect(() => {
     if (!activePair) {
@@ -67,6 +78,8 @@ export default function Onboarding({ children }: OnboardingProps) {
       await updateSetting("level", level);
       const pairs = await bridge.getLanguagePairs();
       const matchingPair = pairs.find(
+        (p) => p.source_lang === nativeLang && p.target_lang === targetLang
+      ) || pairs.find(
         (p) => p.source_lang === targetLang && p.target_lang === nativeLang
       ) || pairs[0];
       if (matchingPair) {
@@ -78,6 +91,14 @@ export default function Onboarding({ children }: OnboardingProps) {
       console.error("Onboarding failed:", err);
       setStep(4);
     }
+  };
+
+  const handleSaveAi = async () => {
+    try {
+      const provider = AI_PROVIDERS.find(p => p.value === aiProvider);
+      await bridge.setAiProvider(aiProvider, provider?.noKey ? "" : aiApiKey, "");
+    } catch { /* ignore */ }
+    setStep(5);
   };
 
   const handleImportFile = async () => {
@@ -151,7 +172,7 @@ Return ONLY valid JSON array, no markdown, no explanation.`;
   const handleSkip = () => setNeedsOnboarding(false);
   const handleFinish = () => setNeedsOnboarding(false);
 
-  const totalSteps = 5;
+  const totalSteps = 6;
   const targetOptions = LANGUAGES.filter((l) => l.code !== nativeLang);
 
   // Filter catalog for matching language pair (using 3-letter codes)
@@ -258,7 +279,7 @@ Return ONLY valid JSON array, no markdown, no explanation.`;
                     <div className="text-left">
                       <p className="font-bold text-gray-900 dark:text-white">{level.value}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {level.value === "A1" ? t("onboarding.beginner") : level.value === "A2" ? t("onboarding.elementary") : t("onboarding.intermediate")}
+                        {level.value === "A1" ? t("onboarding.beginner") : level.value === "A2" ? t("onboarding.elementary") : level.value === "B1" ? t("onboarding.intermediate") : t("onboarding.upperIntermediate")}
                       </p>
                     </div>
                   </button>
@@ -268,8 +289,49 @@ Return ONLY valid JSON array, no markdown, no explanation.`;
             </div>
           )}
 
-          {/* Step 4: Get content */}
+          {/* Step 4: AI setup */}
           {step === 4 && (
+            <div className="space-y-5">
+              <div className="text-center space-y-2">
+                <Wand2 size={32} className="mx-auto text-purple-500 mb-2" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("onboarding.aiSetup")}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t("onboarding.aiSetupDescription")}</p>
+              </div>
+              <div className="space-y-3">
+                {AI_PROVIDERS.map((provider) => (
+                  <button key={provider.value} onClick={() => setAiProvider(provider.value)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
+                      aiProvider === provider.value
+                        ? "border-purple-400 bg-purple-50 dark:bg-purple-900/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
+                    }`}>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{provider.label}</span>
+                    {provider.noKey && <span className="text-xs text-gray-400">{t("onboarding.noKeyNeeded")}</span>}
+                    {aiProvider === provider.value && <Check size={16} className="text-purple-500" />}
+                  </button>
+                ))}
+              </div>
+              {!AI_PROVIDERS.find(p => p.value === aiProvider)?.noKey && (
+                <input
+                  type="password"
+                  value={aiApiKey}
+                  onChange={(e) => setAiApiKey(e.target.value)}
+                  placeholder={t("onboarding.apiKey")}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setStep(3)} className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">← {t("common.back")}</button>
+                <button onClick={handleSaveAi} className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-semibold rounded-xl transition-all">
+                  {t("onboarding.getStarted")}
+                  <ChevronRight size={18} className="inline ml-1" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Get content */}
+          {step === 5 && (
             <div className="space-y-5">
               <div className="text-center space-y-2">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30">

@@ -225,8 +225,11 @@
     "keyConfigured": "Clé configurée",
     "noKey": "Aucune clé",
     "appearance": "Apparence",
-    "darkMode": "Mode sombre",
+    "darkMode": "Thème",
     "darkModeDescription": "Interface en thème sombre",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
     "audio": "Audio",
     "audioDescription": "Prononciation et effets sonores",
     "whisperModels": "Modèles Whisper (STT)",
@@ -396,7 +399,12 @@
     "generateAiDescription": "Générer automatiquement 50 mots de départ via votre fournisseur IA",
     "skipForNow": "Passer pour l'instant — J'ajouterai du contenu plus tard",
     "availableDicts": "Dictionnaires disponibles pour votre paire",
-    "dictDownloaded": "Dictionnaire téléchargé ! Paire de langues créée."
+    "dictDownloaded": "Dictionnaire téléchargé ! Paire de langues créée.",
+    "upperIntermediate": "Intermédiaire avancé — Je m'exprime avec aisance",
+    "aiSetup": "Fournisseur IA",
+    "aiSetupDescription": "Choisissez votre fournisseur IA pour la génération de vocabulaire et le chat",
+    "apiKey": "Clé API",
+    "noKeyNeeded": "Pas de clé API requise"
   },
   "wordOfDay": {
     "title": "Mot du jour",

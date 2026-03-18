@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Repeat, Search, MessageCircle,
+  LayoutDashboard, BookOpen, Repeat, Search, MessageSquare, MessageCircle,
   Settings as SettingsIcon, Menu, X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -15,8 +15,10 @@ export default function Layout() {
 
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/learn", icon: BookOpen, label: t("nav.learn") },
     { to: "/review", icon: Repeat, label: t("nav.review"), badge: true },
     { to: "/dictionary", icon: Search, label: t("nav.dictionary") },
+    { to: "/conversation", icon: MessageSquare, label: t("nav.conversation") },
     { to: "/chat", icon: MessageCircle, label: t("nav.chat") },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,7 +58,7 @@ export default function Layout() {
             >
               {languagePairs.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.source_flag} {p.source_name} → {p.target_flag} {p.target_name}
+                  {p.target_flag} {p.target_name} → {p.source_flag} {p.source_name}
                 </option>
               ))}
             </select>

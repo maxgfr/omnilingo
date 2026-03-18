@@ -300,8 +300,8 @@ export default function Settings() {
     showStatus(t("settings.wordsPerDayChanged", { value }));
   };
 
-  const handleToggleDarkMode = async (v: boolean) => {
-    await updateSetting("dark_mode", v ? "true" : "false");
+  const handleSetTheme = async (theme: string) => {
+    await updateSetting("dark_mode", theme);
   };
 
   const handleToggleAudio = async (v: boolean) => {
@@ -729,18 +729,27 @@ export default function Settings() {
       {/* ================= 4. APPARENCE ================= */}
       <Section icon={Palette} title={t("settings.appearance")} iconColor="text-pink-500 dark:text-pink-400">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div>
+            <div className="flex items-center gap-3 mb-3">
               <Moon size={18} className="text-gray-500 dark:text-gray-400" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{t("settings.darkMode")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t("settings.darkModeDescription")}</p>
-              </div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t("settings.darkMode")}</p>
             </div>
-            <Toggle
-              checked={settings?.dark_mode ?? false}
-              onChange={handleToggleDarkMode}
-            />
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              {[
+                { value: "light", label: t("settings.themeLight") },
+                { value: "system", label: t("settings.themeSystem") },
+                { value: "dark", label: t("settings.themeDark") },
+              ].map((opt) => {
+                const raw = settings?.dark_mode;
+                const current = raw === true ? "dark" : raw === false ? "light" : (typeof raw === "string" ? raw : "system");
+                return (
+                  <button key={opt.value} onClick={() => handleSetTheme(opt.value)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                      current === opt.value ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    }`}>{opt.label}</button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="border-t border-gray-100 dark:border-gray-700/50" />

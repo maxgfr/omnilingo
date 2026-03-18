@@ -79,7 +79,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("dashboard.welcome")}</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">
-          {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : t("dashboard.noActivePair")}
+          {activePair ? `${activePair.target_flag} ${activePair.target_name} → ${activePair.source_flag} ${activePair.source_name}` : t("dashboard.noActivePair")}
         </p>
       </div>
 

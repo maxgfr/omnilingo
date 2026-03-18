@@ -5,7 +5,7 @@ export interface Settings {
   streak: number;
   last_session_date: string | null;
   start_date: string | null;
-  dark_mode: boolean;
+  dark_mode: boolean | string;
   audio_enabled: boolean;
   ai_provider: string;
   ai_model: string;
