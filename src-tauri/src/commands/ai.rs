@@ -134,17 +134,31 @@ async fn call_codex_cli(prompt: &str, cwd: &std::path::Path) -> Result<String, S
     let cwd = cwd.to_path_buf();
     let prompt = prompt.to_string();
     tauri::async_runtime::spawn_blocking(move || {
-        let output = std::process::Command::new("codex")
-            .args(["--quiet", "--approval-mode", "full-auto"])
-            .arg(&prompt)
-            .current_dir(&cwd)
-            .output()
-            .map_err(|e| format!("Codex CLI not found: {}. Install it with: npm i -g @openai/codex", e))?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Codex CLI error: {}", stderr));
+        let candidates = [
+            "codex".to_string(),
+            "/opt/homebrew/bin/codex".to_string(),
+            "/usr/local/bin/codex".to_string(),
+            format!("{}/.npm-global/bin/codex", std::env::var("HOME").unwrap_or_default()),
+        ];
+        let mut last_err = String::new();
+        for bin in &candidates {
+            match std::process::Command::new(bin)
+                .args(["--quiet", "--approval-mode", "full-auto"])
+                .arg(&prompt)
+                .current_dir(&cwd)
+                .output()
+            {
+                Ok(output) => {
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        return Err(format!("Codex CLI error: {}", stderr));
+                    }
+                    return Ok(String::from_utf8_lossy(&output.stdout).trim().to_string());
+                }
+                Err(e) => { last_err = e.to_string(); }
+            }
         }
-        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+        Err(format!("Codex CLI not found ({}). Install with: npm i -g @openai/codex", last_err))
     })
     .await
     .map_err(|e| e.to_string())?
