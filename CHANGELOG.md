@@ -1,3 +1,10 @@
+## [2.6.2](https://github.com/maxgfr/omnilingo/compare/v2.6.1...v2.6.2) (2026-03-18)
+
+
+### Bug Fixes
+
+* white screen caused by dark_mode type mismatch ([da062c7](https://github.com/maxgfr/omnilingo/commit/da062c7e0041cd5890e8682989096cb3e4b71450))
+
 ## [2.6.1](https://github.com/maxgfr/omnilingo/compare/v2.6.0...v2.6.1) (2026-03-18)
 
 
