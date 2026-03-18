@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/maxgfr/omnilingo/compare/v2.3.0...v2.3.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* Codex CLI path detection for brew/npm installs ([f01c743](https://github.com/maxgfr/omnilingo/commit/f01c7439f4ef773fc26832fdac2bdd029b4c275a))
+
 # [2.3.0](https://github.com/maxgfr/omnilingo/compare/v2.2.1...v2.3.0) (2026-03-18)
 
 
