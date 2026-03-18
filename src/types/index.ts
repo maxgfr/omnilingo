@@ -1,162 +1,182 @@
-export interface Settings {
-  active_language_pair_id: number | null;
-  level: string;
-  words_per_day: number;
-  streak: number;
-  last_session_date: string | null;
-  start_date: string | null;
-  dark_mode: string;
-  audio_enabled: boolean;
-  ai_provider: string;
-  ai_model: string;
-}
+import { z } from "zod";
 
-export interface LanguagePair {
-  id: number;
-  source_lang: string;
-  target_lang: string;
-  source_name: string;
-  target_name: string;
-  source_flag: string;
-  target_flag: string;
-  is_active: boolean;
-}
+// ── Schemas ──────────────────────────────────────────────────────────
 
-export interface Word {
-  id: number;
-  language_pair_id: number;
-  source_word: string;
-  target_word: string;
-  gender: string | null;
-  plural: string | null;
-  level: string | null;
-  category: string | null;
-  tags: string | null;
-  example_source: string | null;
-  example_target: string | null;
-}
+export const SettingsSchema = z.object({
+  active_language_pair_id: z.number().nullable(),
+  level: z.string().default("A1"),
+  words_per_day: z.coerce.number().default(10),
+  streak: z.coerce.number().default(0),
+  last_session_date: z.string().nullable(),
+  start_date: z.string().nullable(),
+  dark_mode: z.string().default("system"),
+  audio_enabled: z.preprocess((v) => v === true || v === 1 || v === "true" || v === "1", z.boolean()).default(true),
+  ai_provider: z.string().default("claude-code"),
+  ai_model: z.string().default(""),
+});
 
-export interface SrsCard {
-  id: number;
-  word_id: number;
-  source_word: string;
-  target_word: string;
-  gender: string | null;
-  plural: string | null;
-  level: string | null;
-  category: string | null;
-  example_source: string | null;
-  example_target: string | null;
-  repetitions: number;
-  ease_factor: number;
-  interval_days: number;
-  next_review: string;
-  last_score: number | null;
-}
+export const LanguagePairSchema = z.object({
+  id: z.number(),
+  source_lang: z.string(),
+  target_lang: z.string(),
+  source_name: z.string(),
+  target_name: z.string(),
+  source_flag: z.string(),
+  target_flag: z.string(),
+  is_active: z.preprocess((v) => v === true || v === 1, z.boolean()),
+});
 
-export interface SrsStats {
-  total_cards: number;
-  due_count: number;
-  average_accuracy: number;
-}
+export const WordSchema = z.object({
+  id: z.number(),
+  language_pair_id: z.number(),
+  source_word: z.string(),
+  target_word: z.string(),
+  gender: z.string().nullable(),
+  plural: z.string().nullable(),
+  level: z.string().nullable(),
+  category: z.string().nullable(),
+  tags: z.string().nullable(),
+  example_source: z.string().nullable(),
+  example_target: z.string().nullable(),
+});
 
-export interface GrammarTopic {
-  id: string;
-  language_pair_id: number;
-  level: string;
-  display_order: number;
-  title: string;
-  title_source: string | null;
-  explanation: string;
-  key_points: string[] | null;
-  examples: Array<{ source: string; target: string; highlight?: string }> | null;
-  exercises: Array<Exercise> | null;
-  completed: boolean;
-  score_correct: number;
-  score_total: number;
-}
+export const SrsCardSchema = z.object({
+  id: z.number(),
+  word_id: z.number(),
+  source_word: z.string(),
+  target_word: z.string(),
+  gender: z.string().nullable(),
+  plural: z.string().nullable(),
+  level: z.string().nullable(),
+  category: z.string().nullable(),
+  example_source: z.string().nullable(),
+  example_target: z.string().nullable(),
+  repetitions: z.number(),
+  ease_factor: z.number(),
+  interval_days: z.number(),
+  next_review: z.string(),
+  last_score: z.number().nullable(),
+});
 
-export interface Exercise {
-  type: 'qcm' | 'fill' | 'trueFalse' | 'conjugation';
-  question?: string;
-  options?: string[];
-  correctIndex?: number;
-  sentence?: string;
-  answer?: string;
-  hint?: string;
-  statement?: string;
-  isTrue?: boolean;
-  explanation?: string;
-}
+export const SrsStatsSchema = z.object({
+  total_cards: z.number(),
+  due_count: z.number(),
+  average_accuracy: z.number(),
+});
 
-export interface Verb {
-  id: number;
-  language_pair_id: number;
-  infinitive: string;
-  translation: string;
-  level: string | null;
-  verb_type: string | null;
-  auxiliary: string | null;
-  is_separable: boolean;
-  conjugations: Record<string, Record<string, string>>;
-  examples: Array<{ de: string; fr: string }> | null;
-}
+export const GrammarTopicSchema = z.object({
+  id: z.string(),
+  language_pair_id: z.number(),
+  level: z.string(),
+  display_order: z.number(),
+  title: z.string(),
+  title_source: z.string().nullable(),
+  explanation: z.string(),
+  key_points: z.array(z.string()).nullable(),
+  examples: z.array(z.object({ source: z.string(), target: z.string(), highlight: z.string().optional() })).nullable(),
+  exercises: z.array(z.any()).nullable(),
+  completed: z.boolean(),
+  score_correct: z.number(),
+  score_total: z.number(),
+});
 
-export interface AiSettings {
-  provider: string;
-  api_key: string;
-  model: string;
-}
+export const ExerciseSchema = z.object({
+  type: z.enum(["qcm", "fill", "trueFalse", "conjugation"]),
+  question: z.string().optional(),
+  options: z.array(z.string()).optional(),
+  correctIndex: z.number().optional(),
+  sentence: z.string().optional(),
+  answer: z.string().optional(),
+  hint: z.string().optional(),
+  statement: z.string().optional(),
+  isTrue: z.boolean().optional(),
+  explanation: z.string().optional(),
+});
 
-export interface WhisperModelInfo {
-  name: string;
-  size_mb: number;
-  url: string;
-  downloaded: boolean;
-}
+export const VerbSchema = z.object({
+  id: z.number(),
+  language_pair_id: z.number(),
+  infinitive: z.string(),
+  translation: z.string(),
+  level: z.string().nullable(),
+  verb_type: z.string().nullable(),
+  auxiliary: z.string().nullable(),
+  is_separable: z.boolean(),
+  conjugations: z.record(z.string(), z.record(z.string(), z.string())),
+  examples: z.array(z.object({ de: z.string(), fr: z.string() })).nullable(),
+});
 
-export interface DictionarySource {
-  source_lang: string;
-  target_lang: string;
-  source_name: string;
-  target_name: string;
-  source_flag: string;
-  target_flag: string;
-  provider: string;
-  url: string;
-  format: string;
-  word_count: number | null;
-  size_mb: number | null;
-}
+export const AiSettingsSchema = z.object({
+  provider: z.string(),
+  api_key: z.string(),
+  model: z.string(),
+});
 
-export interface FavoriteWord {
-  id: number;
-  word_id: number;
-  source_word: string;
-  target_word: string;
-  gender: string | null;
-  level: string | null;
-  category: string | null;
-}
+export const WhisperModelInfoSchema = z.object({
+  name: z.string(),
+  size_mb: z.number(),
+  url: z.string(),
+  downloaded: z.boolean(),
+});
 
-export interface DailyStatRow {
-  date: string;
-  words_learned: number;
-  words_reviewed: number;
-  correct_count: number;
-  total_count: number;
-}
+export const DictionarySourceSchema = z.object({
+  source_lang: z.string(),
+  target_lang: z.string(),
+  source_name: z.string(),
+  target_name: z.string(),
+  source_flag: z.string(),
+  target_flag: z.string(),
+  provider: z.string(),
+  url: z.string(),
+  format: z.string(),
+  word_count: z.number().nullable(),
+  size_mb: z.number().nullable(),
+});
 
-export interface OverviewStats {
-  total_words: number;
-  total_learned: number;
-  total_reviews: number;
-  total_grammar_completed: number;
-  total_grammar: number;
-  streak: number;
-  accuracy: number;
-  study_days: number;
-  favorite_count: number;
-}
+export const FavoriteWordSchema = z.object({
+  id: z.number(),
+  word_id: z.number(),
+  source_word: z.string(),
+  target_word: z.string(),
+  gender: z.string().nullable(),
+  level: z.string().nullable(),
+  category: z.string().nullable(),
+});
 
-export type ViewName = 'dashboard' | 'learn' | 'review' | 'grammar' | 'conjugation' | 'dictionary' | 'chat' | 'settings' | 'stats' | 'quiz' | 'flashcards' | 'conversation';
+export const DailyStatRowSchema = z.object({
+  date: z.string(),
+  words_learned: z.number(),
+  words_reviewed: z.number(),
+  correct_count: z.number(),
+  total_count: z.number(),
+});
+
+export const OverviewStatsSchema = z.object({
+  total_words: z.number(),
+  total_learned: z.number(),
+  total_reviews: z.number(),
+  total_grammar_completed: z.number(),
+  total_grammar: z.number(),
+  streak: z.number(),
+  accuracy: z.number(),
+  study_days: z.number(),
+  favorite_count: z.number(),
+});
+
+// ── Inferred types ───────────────────────────────────────────────────
+
+export type Settings = z.infer<typeof SettingsSchema>;
+export type LanguagePair = z.infer<typeof LanguagePairSchema>;
+export type Word = z.infer<typeof WordSchema>;
+export type SrsCard = z.infer<typeof SrsCardSchema>;
+export type SrsStats = z.infer<typeof SrsStatsSchema>;
+export type GrammarTopic = z.infer<typeof GrammarTopicSchema>;
+export type Exercise = z.infer<typeof ExerciseSchema>;
+export type Verb = z.infer<typeof VerbSchema>;
+export type AiSettings = z.infer<typeof AiSettingsSchema>;
+export type WhisperModelInfo = z.infer<typeof WhisperModelInfoSchema>;
+export type DictionarySource = z.infer<typeof DictionarySourceSchema>;
+export type FavoriteWord = z.infer<typeof FavoriteWordSchema>;
+export type DailyStatRow = z.infer<typeof DailyStatRowSchema>;
+export type OverviewStats = z.infer<typeof OverviewStatsSchema>;
+export type ViewName = "dashboard" | "learn" | "review" | "grammar" | "conjugation" | "dictionary" | "chat" | "settings" | "stats" | "quiz" | "flashcards" | "conversation";

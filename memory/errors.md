@@ -1,9 +1,5 @@
-# Erreurs fréquentes
+# Frequent Errors
 
-## Vocabulaire
-| Date | Mot | Erreur | Correction |
-|---|---|---|---|
-
-## Grammaire
-| Date | Sujet | Erreur | Correction |
+## Vocabulary
+| Date | Word | Error | Correction |
 |---|---|---|---|

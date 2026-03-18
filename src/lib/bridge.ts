@@ -1,29 +1,48 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Settings, LanguagePair, Word, SrsCard, SrsStats, GrammarTopic, Verb, AiSettings, WhisperModelInfo, DictionarySource, FavoriteWord, DailyStatRow, OverviewStats } from "../types";
+import {
+  SettingsSchema, LanguagePairSchema, WordSchema, SrsCardSchema,
+  SrsStatsSchema, AiSettingsSchema, DictionarySourceSchema,
+  FavoriteWordSchema, DailyStatRowSchema, OverviewStatsSchema,
+} from "../types";
+import type {
+  Word, GrammarTopic, Verb, WhisperModelInfo,
+} from "../types";
+import { z } from "zod";
+
+// Helper: invoke + parse with Zod schema
+async function invokeAndParse<T>(cmd: string, schema: z.ZodType<T>, args?: Record<string, unknown>): Promise<T> {
+  const raw = await invoke(cmd, args);
+  return schema.parse(raw);
+}
+
+async function invokeAndParseArray<T>(cmd: string, schema: z.ZodType<T>, args?: Record<string, unknown>): Promise<T[]> {
+  const raw = await invoke<unknown[]>(cmd, args);
+  return z.array(schema).parse(raw);
+}
 
 // Settings
-export const getSettings = () => invoke<Settings>("get_settings");
+export const getSettings = () => invokeAndParse("get_settings", SettingsSchema);
 export const updateSetting = (key: string, value: string) => invoke<void>("update_setting", { key, value });
-export const getLanguagePairs = () => invoke<LanguagePair[]>("get_language_pairs");
+export const getLanguagePairs = () => invokeAndParseArray("get_language_pairs", LanguagePairSchema);
 export const setActiveLanguagePair = (pairId: number) => invoke<void>("set_active_language_pair", { pairId });
-export const updateStreak = () => invoke<Settings>("update_streak");
+export const updateStreak = () => invokeAndParse("update_streak", SettingsSchema);
 
 // Dictionary
 export const getWords = (pairId: number, level?: string, limit?: number, offset?: number) =>
-  invoke<Word[]>("get_words", { pairId, level: level ?? null, limit: limit ?? null, offset: offset ?? null });
+  invokeAndParseArray("get_words", WordSchema, { pairId, level: level ?? null, limit: limit ?? null, offset: offset ?? null });
 export const searchWords = (pairId: number, query: string, level?: string, category?: string) =>
-  invoke<Word[]>("search_words", { pairId, query, level: level ?? null, category: category ?? null });
+  invokeAndParseArray("search_words", WordSchema, { pairId, query, level: level ?? null, category: category ?? null });
 export const getUnlearnedWords = (pairId: number, level?: string, limit?: number) =>
-  invoke<Word[]>("get_unlearned_words", { pairId, level: level ?? null, limit: limit ?? null });
+  invokeAndParseArray("get_unlearned_words", WordSchema, { pairId, level: level ?? null, limit: limit ?? null });
 export const getWordCount = (pairId: number) => invoke<number>("get_word_count", { pairId });
 export const getCategories = (pairId: number) => invoke<string[]>("get_categories", { pairId });
 
 // SRS
-export const addWordToSrs = (wordId: number) => invoke<SrsCard>("add_word_to_srs", { wordId });
-export const getDueCards = (pairId: number) => invoke<SrsCard[]>("get_due_cards", { pairId });
+export const addWordToSrs = (wordId: number) => invokeAndParse("add_word_to_srs", SrsCardSchema, { wordId });
+export const getDueCards = (pairId: number) => invokeAndParseArray("get_due_cards", SrsCardSchema, { pairId });
 export const getDueCount = (pairId: number) => invoke<number>("get_due_count", { pairId });
-export const reviewCard = (cardId: number, quality: number) => invoke<SrsCard>("review_card", { cardId, quality });
-export const getSrsStats = (pairId: number) => invoke<SrsStats>("get_srs_stats", { pairId });
+export const reviewCard = (cardId: number, quality: number) => invokeAndParse("review_card", SrsCardSchema, { cardId, quality });
+export const getSrsStats = (pairId: number) => invokeAndParse("get_srs_stats", SrsStatsSchema, { pairId });
 
 // Grammar
 export const getGrammarTopics = (pairId: number) => invoke<GrammarTopic[]>("get_grammar_topics", { pairId });
@@ -41,7 +60,7 @@ export const writeMemoryFile = (path: string, content: string) => invoke<void>("
 
 // AI
 export const askAi = (prompt: string) => invoke<string>("ask_ai", { prompt });
-export const getAiSettings = () => invoke<AiSettings>("get_ai_settings_cmd");
+export const getAiSettings = () => invokeAndParse("get_ai_settings_cmd", AiSettingsSchema);
 export const setAiProvider = (provider: string, apiKey: string, model: string) =>
   invoke<void>("set_ai_provider", { provider, apiKey, model });
 
@@ -62,18 +81,18 @@ export const transcribeAudio = (audioData: number[], language?: string) =>
   invoke<string>("transcribe_audio", { audioData, language: language ?? null });
 
 // Download
-export const getAvailableDictionaries = () => invoke<DictionarySource[]>("get_available_dictionaries");
+export const getAvailableDictionaries = () => invokeAndParseArray("get_available_dictionaries", DictionarySourceSchema);
 export const downloadDictionary = (sourceLang: string, targetLang: string, url: string, sourceName: string, targetName: string) =>
   invoke<string>("download_dictionary", { sourceLang, targetLang, url, sourceName, targetName });
 
 // Favorites
 export const toggleFavorite = (wordId: number) => invoke<boolean>("toggle_favorite", { wordId });
-export const getFavorites = (pairId: number) => invoke<FavoriteWord[]>("get_favorites", { pairId });
+export const getFavorites = (pairId: number) => invokeAndParseArray("get_favorites", FavoriteWordSchema, { pairId });
 export const isFavorite = (wordId: number) => invoke<boolean>("is_favorite", { wordId });
 
 // Stats
-export const getDailyStats = (pairId: number, days: number) => invoke<DailyStatRow[]>("get_daily_stats", { pairId, days });
-export const getOverviewStats = (pairId: number) => invoke<OverviewStats>("get_overview_stats", { pairId });
+export const getDailyStats = (pairId: number, days: number) => invokeAndParseArray("get_daily_stats", DailyStatRowSchema, { pairId, days });
+export const getOverviewStats = (pairId: number) => invokeAndParse("get_overview_stats", OverviewStatsSchema, { pairId });
 export const logError = (pairId: number, errorType: string, wordOrTopic: string, userAnswer: string, correctAnswer: string) =>
   invoke<void>("log_error", { pairId, errorType, wordOrTopic, userAnswer, correctAnswer });
 export const getFrequentErrors = (pairId: number, limit?: number) =>
