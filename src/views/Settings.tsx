@@ -165,7 +165,6 @@ export default function Settings() {
   const [newProvider, setNewProvider] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [importing, setImporting] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
@@ -352,28 +351,6 @@ export default function Settings() {
       showStatus(`${t("common.error")}: ${err}`);
     } finally {
       setDownloading(null);
-    }
-  };
-
-  const handleImport = async () => {
-    if (!activePair) return;
-    setImporting(true);
-    try {
-      const result = await bridge.importBuiltinData(activePair.id);
-      showStatus(result);
-      // Refresh counts
-      const [wc, topics, verbs] = await Promise.all([
-        bridge.getWordCount(activePair.id),
-        bridge.getGrammarTopics(activePair.id),
-        bridge.getVerbs(activePair.id),
-      ]);
-      setWordCount(wc);
-      setGrammarCount(topics.length);
-      setVerbCount(verbs.length);
-    } catch (err) {
-      showStatus(`${t("common.error")}: ${err}`);
-    } finally {
-      setImporting(false);
     }
   };
 
@@ -1095,22 +1072,64 @@ export default function Settings() {
             </div>
           </button>
 
-          {/* Import built-in */}
+          {/* Delete all words */}
           <button
-            onClick={handleImport}
-            disabled={importing || !activePair}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={async () => {
+              if (!activePair) return;
+              if (!confirm(t("settings.deleteWordsWarning"))) return;
+              try {
+                await bridge.clearCache();
+                await bridge.resetProgress();
+                showStatus(t("settings.wordsDeleted"));
+                const wc = await bridge.getWordCount(activePair.id);
+                setWordCount(wc);
+                await reloadSettings();
+              } catch (err) {
+                showStatus(`${t("common.error")}: ${err}`);
+              }
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-sm font-medium text-orange-700 dark:text-orange-400 transition-colors"
           >
-            {importing ? (
-              <Loader2 size={18} className="animate-spin text-amber-500" />
-            ) : (
-              <RefreshCw size={18} className="text-amber-500" />
-            )}
+            <Trash2 size={18} />
             <div className="text-left">
-              <p>{t("settings.importBuiltinData")}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                {t("settings.importDescription")}
-              </p>
+              <p>{t("settings.deleteWords")}</p>
+              <p className="text-xs text-orange-500 dark:text-orange-400/70 font-normal">{t("settings.deleteWordsDescription")}</p>
+            </div>
+          </button>
+
+          {/* Delete all Whisper models */}
+          {whisperModels.some(m => m.downloaded) && (
+            <button
+              onClick={async () => {
+                for (const m of whisperModels.filter(m => m.downloaded)) {
+                  await bridge.deleteWhisperModel(m.name);
+                }
+                const models = await bridge.getWhisperModels();
+                setWhisperModels(models);
+                showStatus(t("settings.allModelsDeleted"));
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
+            >
+              <Trash2 size={18} className="text-orange-500" />
+              <div className="text-left">
+                <p>{t("settings.deleteAllModels")}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.deleteAllModelsDescription")}</p>
+              </div>
+            </button>
+          )}
+
+          {/* Clear custom translations */}
+          <button
+            onClick={() => {
+              localStorage.removeItem("omnilingo-custom-translations");
+              showStatus(t("settings.translationsCleared"));
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
+          >
+            <Trash2 size={18} className="text-gray-500" />
+            <div className="text-left">
+              <p>{t("settings.clearTranslations")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.clearTranslationsDescription")}</p>
             </div>
           </button>
 
