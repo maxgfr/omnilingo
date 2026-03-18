@@ -122,7 +122,7 @@ fn log_session(
     let time = chrono::Local::now().format("%H:%M").to_string();
     let session_file = base_dir.0.join(format!("memory/sessions/{}.md", today));
     let mut content = std::fs::read_to_string(&session_file)
-        .unwrap_or_else(|_| format!("# Session du {}\n\n", today));
+        .unwrap_or_else(|_| format!("# Session {}\n\n", today));
     content.push_str(&format!("\n## {} — {}\n", time, session_type));
     if let Some(obj) = session_data.as_object() {
         for (key, val) in obj {
@@ -160,7 +160,7 @@ fn clear_cache(base_dir: tauri::State<'_, BaseDirState>) -> Result<String, Strin
         let _ = std::fs::remove_dir_all(&downloads_dir);
     }
 
-    Ok(format!("{:.1} MB libérés", freed as f64 / 1_000_000.0))
+    Ok(format!("{:.1} MB freed", freed as f64 / 1_000_000.0))
 }
 
 /// Reset all learning progress (keeps dictionaries)
@@ -188,11 +188,11 @@ fn reset_progress(
 
     // Reset memory files
     let memory_dir = base_dir.0.join("memory");
-    let _ = std::fs::write(memory_dir.join("progress.md"), "# Progression Omnilingo\n\n## Vue d'ensemble\n- **Mots appris :** 0\n");
-    let _ = std::fs::write(memory_dir.join("vocabulary.md"), "# Vocabulaire appris\n\n| Mot | Traduction | Genre | Niveau | EF | Intervalle | Prochaine révision | Score |\n|---|---|---|---|---|---|---|---|\n");
-    let _ = std::fs::write(memory_dir.join("grammar-log.md"), "# Journal de grammaire\n\n");
-    let _ = std::fs::write(memory_dir.join("conjugation-log.md"), "# Journal de conjugaison\n\n");
-    let _ = std::fs::write(memory_dir.join("errors.md"), "# Erreurs fréquentes\n\n## Vocabulaire\n| Date | Mot | Erreur | Correction |\n|---|---|---|---|\n");
+    let _ = std::fs::write(memory_dir.join("progress.md"), "# Omnilingo Progress\n\n## Overview\n- **Words learned:** 0\n");
+    let _ = std::fs::write(memory_dir.join("vocabulary.md"), "# Learned Vocabulary\n\n| Source | Target | Gender | Level | EF | Interval | Next Review | Score |\n|---|---|---|---|---|---|---|---|\n");
+    let _ = std::fs::write(memory_dir.join("grammar-log.md"), "# Grammar Log\n\n");
+    let _ = std::fs::write(memory_dir.join("conjugation-log.md"), "# Conjugation Log\n\n");
+    let _ = std::fs::write(memory_dir.join("errors.md"), "# Frequent Errors\n\n## Vocabulary\n| Date | Word | Error | Correction |\n|---|---|---|---|\n");
 
     // Clear session files
     let sessions_dir = memory_dir.join("sessions");
@@ -201,5 +201,5 @@ fn reset_progress(
         let _ = std::fs::create_dir_all(&sessions_dir);
     }
 
-    Ok("Progression réinitialisée".to_string())
+    Ok("Progress reset".to_string())
 }

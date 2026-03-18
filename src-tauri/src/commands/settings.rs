@@ -230,17 +230,17 @@ fn persist_progress(state: &State<'_, DbState>, base_dir: &State<'_, BaseDirStat
     let accuracy = crate::commands::srs::compute_accuracy(&db, pair_id);
 
     let md = format!(
-        "# Progression Omnilingo\n\n\
-         ## Vue d'ensemble\n\
-         - **Niveau actuel :** {}\n\
-         - **Début :** {}\n\
-         - **Mots appris :** {}\n\
-         - **Mots à réviser :** {}\n\
-         - **Grammaire complétée :** {}/{}\n\
-         - **Série :** {} jours\n\
-         - **Dernière session :** {}\n\
-         - **Mots par jour :** {}\n\
-         - **Précision moyenne :** {}%\n",
+        "# Omnilingo Progress\n\n\
+         ## Overview\n\
+         - **Current level:** {}\n\
+         - **Started:** {}\n\
+         - **Words learned:** {}\n\
+         - **Words due:** {}\n\
+         - **Grammar completed:** {}/{}\n\
+         - **Streak:** {} days\n\
+         - **Last session:** {}\n\
+         - **Words per day:** {}\n\
+         - **Average accuracy:** {}%\n",
         settings.level,
         settings.start_date.as_deref().unwrap_or("—"),
         total_learned,
@@ -248,7 +248,7 @@ fn persist_progress(state: &State<'_, DbState>, base_dir: &State<'_, BaseDirStat
         grammar_completed,
         grammar_total,
         settings.streak,
-        settings.last_session_date.as_deref().unwrap_or("jamais"),
+        settings.last_session_date.as_deref().unwrap_or("never"),
         settings.words_per_day,
         accuracy,
     );

@@ -43,12 +43,13 @@ export default function Chat() {
   const { t } = useTranslation();
   const { settings, activePair } = useApp();
 
+  const sourceName = activePair?.source_name || "the target language";
   const QUICK_ACTIONS = [
-    { label: t("chat.correctSentence"), prompt: "Corrige cette phrase et explique les erreurs : " },
-    { label: t("chat.explainGrammar"), prompt: "Explique-moi cette regle de grammaire : " },
-    { label: t("chat.freeConversation"), prompt: "Parlons dans la langue cible ! Commence une conversation simple sur " },
-    { label: t("chat.exercises"), prompt: "Donne-moi 5 exercices de niveau " },
-    { label: t("chat.translate"), prompt: "Traduis dans la langue cible : " },
+    { label: t("chat.correctSentence"), prompt: `Correct this ${sourceName} sentence and explain the errors: ` },
+    { label: t("chat.explainGrammar"), prompt: `Explain this ${sourceName} grammar rule: ` },
+    { label: t("chat.freeConversation"), prompt: `Let's have a conversation in ${sourceName}! Start a simple conversation about ` },
+    { label: t("chat.exercises"), prompt: `Give me 5 exercises at level ` },
+    { label: t("chat.translate"), prompt: `Translate into ${sourceName}: ` },
   ];
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -82,21 +83,21 @@ export default function Chat() {
     async (userMessage: string) => {
       const errors = await bridge.readMemoryFile("errors.md").catch(() => null);
       const level = settings?.level || "A2";
-      const sourceName = activePair?.source_name || "Allemand";
-      const targetName = activePair?.target_name || "Francais";
+      const srcName = activePair?.source_name || "the target language";
+      const tgtName = activePair?.target_name || "the native language";
 
       const history = messages
         .slice(-6)
-        .map((m) => `${m.role === "user" ? "Eleve" : "Tuteur"}: ${m.content}`)
+        .map((m) => `${m.role === "user" ? "Student" : "Tutor"}: ${m.content}`)
         .join("\n");
 
-      const context = `Tu es un tuteur de langues expert, patient et encourageant. L'eleve apprend le ${sourceName} (langue cible) depuis le ${targetName} (langue maternelle).
-Son niveau CECRL est ${level}. Adapte tes reponses a ce niveau : vocabulaire simple pour A1-A2, plus complexe pour B1+.
-Reponds toujours en ${targetName}, sauf quand tu donnes des exemples dans la langue cible.
-Utilise des exemples concrets et corrige les erreurs avec bienveillance.
-${errors ? `\nErreurs recentes de l'eleve (a cibler dans tes reponses):\n${errors.slice(0, 500)}` : ""}
-${history ? `\nHistorique recent de la conversation:\n${history}` : ""}
-\nMessage de l'eleve: ${userMessage}`;
+      const context = `You are an expert, patient and encouraging language tutor. The student is learning ${srcName} (target language) from ${tgtName} (native language).
+Their CEFR level is ${level}. Adapt your responses to this level: simple vocabulary for A1-A2, more complex for B1+.
+Always respond in ${tgtName}, except when giving examples in the target language.
+Use concrete examples and correct errors with kindness.
+${errors ? `\nRecent student errors (target these in your responses):\n${errors.slice(0, 500)}` : ""}
+${history ? `\nRecent conversation history:\n${history}` : ""}
+\nStudent message: ${userMessage}`;
       return context;
     },
     [settings, activePair, messages],

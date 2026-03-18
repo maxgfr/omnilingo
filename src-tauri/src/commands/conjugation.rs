@@ -101,16 +101,16 @@ pub fn log_conjugation_session(
 
     let memory_dir = base_dir.0.join("memory");
     let log_path = memory_dir.join("conjugation-log.md");
-    let mut content = std::fs::read_to_string(&log_path).unwrap_or_else(|_| "# Journal de conjugaison\n\n".to_string());
+    let mut content = std::fs::read_to_string(&log_path).unwrap_or_else(|_| "# Conjugation Log\n\n".to_string());
     let date = chrono::Local::now().format("%Y-%m-%d").to_string();
     let time = chrono::Local::now().format("%H:%M").to_string();
-    let status = if correct { "Correct" } else { "Erreurs" };
+    let status = if correct { "Correct" } else { "Errors" };
     content.push_str(&format!(
-        "\n## {} {} — {} ({})\n- Statut : {}\n",
+        "\n## {} {} — {} ({})\n- Status: {}\n",
         date, time, verb, tense, status
     ));
     if !errors.is_empty() {
-        content.push_str(&format!("- Erreurs : {}\n", errors.join(", ")));
+        content.push_str(&format!("- Errors: {}\n", errors.join(", ")));
     }
     let _ = std::fs::write(&log_path, content);
 

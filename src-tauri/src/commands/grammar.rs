@@ -104,10 +104,10 @@ pub fn mark_grammar_completed(
 
     let memory_dir = base_dir.0.join("memory");
     let log_path = memory_dir.join("grammar-log.md");
-    let mut content = std::fs::read_to_string(&log_path).unwrap_or_else(|_| "# Journal de grammaire\n\n".to_string());
+    let mut content = std::fs::read_to_string(&log_path).unwrap_or_else(|_| "# Grammar Log\n\n".to_string());
     let date = chrono::Local::now().format("%Y-%m-%d").to_string();
     content.push_str(&format!(
-        "\n## {} — {}\n- Niveau : {}\n- Résultat : {}/{}\n- Statut : ✓ Complété\n",
+        "\n## {} — {}\n- Level: {}\n- Score: {}/{}\n- Status: ✓ Completed\n",
         date, title, level, correct, total
     ));
     let _ = std::fs::write(&log_path, content);

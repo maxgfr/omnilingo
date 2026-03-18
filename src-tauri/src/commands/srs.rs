@@ -263,8 +263,8 @@ fn sync_vocabulary_markdown(db: &Connection, pair_id: i64, base_dir: &std::path:
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
-    let mut md = String::from("# Vocabulaire appris\n\n");
-    md.push_str("| Allemand | Français | Genre | Niveau | EF | Intervalle | Prochaine révision | Dernier score |\n");
+    let mut md = String::from("# Learned Vocabulary\n\n");
+    md.push_str("| Source | Target | Gender | Level | EF | Interval | Next Review | Last Score |\n");
     md.push_str("|---|---|---|---|---|---|---|---|\n");
 
     for (src, tgt, gender, level, ef, interval, next, score) in &rows {
@@ -272,7 +272,7 @@ fn sync_vocabulary_markdown(db: &Connection, pair_id: i64, base_dir: &std::path:
         let l = level.as_deref().unwrap_or("-");
         let s = score.map(|s| s.to_string()).unwrap_or_else(|| "-".to_string());
         md.push_str(&format!(
-            "| {} | {} | {} | {} | {:.1} | {}j | {} | {} |\n",
+            "| {} | {} | {} | {} | {:.1} | {}d | {} | {} |\n",
             src, tgt, g, l, ef, interval, next, s
         ));
     }

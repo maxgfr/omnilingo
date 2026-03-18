@@ -7,7 +7,7 @@ use crate::{DbState, BaseDirState};
 pub fn ensure_default_pair(conn: &Connection) -> Result<i64, String> {
     conn.execute(
         "INSERT OR IGNORE INTO language_pairs (source_lang, target_lang, source_name, target_name, source_flag, target_flag, is_active)
-         VALUES ('de', 'fr', 'Allemand', 'Français', '🇩🇪', '🇫🇷', 1)",
+         VALUES ('de', 'fr', 'German', 'French', '🇩🇪', '🇫🇷', 1)",
         [],
     )
     .map_err(|e| e.to_string())?;

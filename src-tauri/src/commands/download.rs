@@ -146,7 +146,7 @@ pub async fn download_dictionary(
     // The archive is saved for future processing.
 
     Ok(format!(
-        "Dictionnaire {}-{} téléchargé ({:.1} MB). Paire de langues créée.",
+        "Dictionary {}-{} downloaded ({:.1} MB). Language pair created.",
         source_lang,
         target_lang,
         bytes.len() as f64 / 1_000_000.0

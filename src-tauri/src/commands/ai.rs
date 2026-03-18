@@ -114,7 +114,7 @@ async fn call_claude_cli(prompt: &str, cwd: &std::path::Path) -> Result<String, 
 /// Anthropic Messages API
 async fn call_anthropic(settings: &AiSettings, prompt: &str) -> Result<String, String> {
     if settings.api_key.is_empty() {
-        return Err("Clé API Anthropic non configurée. Allez dans Paramètres.".into());
+        return Err("Anthropic API key not configured. Go to Settings.".into());
     }
     let client = reqwest::Client::new();
     let body = serde_json::json!({
@@ -131,7 +131,7 @@ async fn call_anthropic(settings: &AiSettings, prompt: &str) -> Result<String, S
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Erreur réseau Anthropic: {}", e))?;
+        .map_err(|e| format!("Anthropic network error: {}", e))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -143,13 +143,13 @@ async fn call_anthropic(settings: &AiSettings, prompt: &str) -> Result<String, S
     json["content"][0]["text"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| "Réponse Anthropic invalide".to_string())
+        .ok_or_else(|| "Invalid Anthropic response".to_string())
 }
 
 /// OpenAI-compatible API (works for OpenAI, Mistral, GLM, Ollama)
 async fn call_openai_compatible(url: &str, settings: &AiSettings, prompt: &str) -> Result<String, String> {
     if settings.api_key.is_empty() && !url.contains("localhost") {
-        return Err("Clé API non configurée. Allez dans Paramètres.".into());
+        return Err("API key not configured. Go to Settings.".into());
     }
     let client = reqwest::Client::new();
     let body = serde_json::json!({
@@ -168,7 +168,7 @@ async fn call_openai_compatible(url: &str, settings: &AiSettings, prompt: &str) 
     let resp = req
         .send()
         .await
-        .map_err(|e| format!("Erreur réseau: {}", e))?;
+        .map_err(|e| format!("Network error: {}", e))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -180,13 +180,13 @@ async fn call_openai_compatible(url: &str, settings: &AiSettings, prompt: &str) 
     json["choices"][0]["message"]["content"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| "Réponse API invalide".to_string())
+        .ok_or_else(|| "Invalid API response".to_string())
 }
 
 /// Google Gemini API
 async fn call_gemini(settings: &AiSettings, prompt: &str) -> Result<String, String> {
     if settings.api_key.is_empty() {
-        return Err("Clé API Gemini non configurée. Allez dans Paramètres.".into());
+        return Err("Gemini API key not configured. Go to Settings.".into());
     }
     let client = reqwest::Client::new();
     let url = format!(
@@ -203,7 +203,7 @@ async fn call_gemini(settings: &AiSettings, prompt: &str) -> Result<String, Stri
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Erreur réseau Gemini: {}", e))?;
+        .map_err(|e| format!("Gemini network error: {}", e))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -215,5 +215,5 @@ async fn call_gemini(settings: &AiSettings, prompt: &str) -> Result<String, Stri
     json["candidates"][0]["content"]["parts"][0]["text"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| "Réponse Gemini invalide".to_string())
+        .ok_or_else(|| "Invalid Gemini response".to_string())
 }
