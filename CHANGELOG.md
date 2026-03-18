@@ -1,3 +1,10 @@
+## [2.10.1](https://github.com/maxgfr/omnilingo/compare/v2.10.0...v2.10.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* remove mcp-bridge permission from default capabilities ([fd670e3](https://github.com/maxgfr/omnilingo/commit/fd670e368e311203334810337e24d832c9e02a00))
+
 # [2.10.0](https://github.com/maxgfr/omnilingo/compare/v2.9.0...v2.10.0) (2026-03-18)
 
 
