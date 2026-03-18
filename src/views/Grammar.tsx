@@ -236,16 +236,32 @@ Return ONLY valid JSON, no markdown fences.`;
   }
 
   // Empty state
-  if (topics.length === 0) {
+  if (topics.length === 0 && !aiLesson) {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-20">
-        <BookOpen size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          {t("grammar.noTopics")}
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
-          {t("grammar.noTopics")}
-        </p>
+      <div className="max-w-lg mx-auto flex flex-col items-center justify-center py-20 space-y-6">
+        <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("grammar.noTopics")}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t("grammar.emptyDescription")}</p>
+        </div>
+        {/* AI Generate inline */}
+        <div className="w-full space-y-3">
+          <input
+            type="text"
+            value={aiTopic}
+            onChange={(e) => setAiTopic(e.target.value)}
+            placeholder={t("grammar.topicPlaceholder")}
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder:text-gray-400"
+          />
+          <button
+            onClick={handleGenerateLesson}
+            disabled={generatingLesson || !aiTopic.trim()}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl font-medium text-sm transition-all disabled:opacity-50"
+          >
+            {generatingLesson ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+            {generatingLesson ? t("grammar.generating") : t("grammar.generateLesson")}
+          </button>
+        </div>
       </div>
     );
   }

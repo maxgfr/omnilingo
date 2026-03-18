@@ -227,12 +227,20 @@ export default function Conjugation() {
 
   if (verbs.length === 0) {
     return (
-      <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-        <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
-        <p className="text-lg font-medium">{t("conjugation.noVerbsAvailable")}</p>
-        <p className="text-sm mt-1">
-          {t("conjugation.importData")}
-        </p>
+      <div className="max-w-lg mx-auto flex flex-col items-center justify-center py-20 space-y-6">
+        <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("conjugation.noVerbsAvailable")}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t("conjugation.emptyDescription")}</p>
+        </div>
+        <div className="flex gap-3">
+          <a href="#/dictionary" className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium text-sm transition-all">
+            {t("dashboard.importDict")}
+          </a>
+          <a href="#/settings" className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
+            {t("dashboard.downloadDict")}
+          </a>
+        </div>
       </div>
     );
   }

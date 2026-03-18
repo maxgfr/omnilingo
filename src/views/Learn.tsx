@@ -118,6 +118,16 @@ export default function Learn() {
               ? t("learn.noWordsAvailable")
               : t("learn.youReviewed", { count: words.length })}
           </p>
+          {words.length === 0 && (
+            <div className="flex gap-3 mt-2">
+              <a href="#/dictionary" className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
+                {t("dashboard.importDict")}
+              </a>
+              <a href="#/settings" className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                {t("dashboard.downloadDict")}
+              </a>
+            </div>
+          )}
         </div>
 
         {addedCount > 0 && (
