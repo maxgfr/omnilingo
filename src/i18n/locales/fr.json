@@ -72,7 +72,9 @@
     "cefrLevel": "Niveau CECR",
     "quickActions": "Actions rapides",
     "grammarProgress": "Progression grammaire",
-    "seeAll": "Voir tout"
+    "seeAll": "Voir tout",
+    "dailyGoal": "Objectif du jour",
+    "goalReached": "Objectif atteint !"
   },
   "learn": {
     "title": "Apprendre de nouveaux mots",
@@ -165,7 +167,13 @@
     "noWordsFound": "Aucun mot trouvé.",
     "addToSrs": "Ajouter au SRS",
     "alreadyAdded": "Déjà ajouté",
-    "loadMore": "Charger plus de mots"
+    "loadMore": "Charger plus de mots",
+    "sourceWord": "Mot source",
+    "targetWord": "Mot cible",
+    "gender": "Genre",
+    "addWord": "Ajouter un mot",
+    "wordAdded": "Mot ajouté !",
+    "favoritesOnly": "Favoris uniquement"
   },
   "chat": {
     "title": "Chat IA",
@@ -232,6 +240,11 @@
     "modelDownloaded": "Modèle {{name}} téléchargé",
     "downloadError": "Erreur de téléchargement",
     "dictDownloaded": "Dictionnaire {{name}} téléchargé",
+    "exportProgress": "Exporter la progression",
+    "exportDescription": "Télécharger vos données d'apprentissage en JSON",
+    "exportSuccess": "Progression exportée !",
+    "importProgress": "Importer la progression",
+    "importDescription": "Charger les mots, verbes et grammaire pour la paire active",
     "progressReset": "Progression réinitialisée",
     "uiLanguage": "Langue de l'interface",
     "uiLanguageDescription": "Choisissez votre langue préférée pour l'interface",
@@ -239,6 +252,7 @@
     "translating": "Traduction en cours...",
     "translationSaved": "Traduction sauvegardée !",
     "translationError": "Erreur de traduction",
+    "modelDeleted": "Modèle {{name}} supprimé",
     "modelPlaceholder": "Nom du modèle",
     "languageNamePlaceholder": "Nom de la langue (ex : Espagnol)",
     "codePlaceholder": "Code (ex : es)",
@@ -252,7 +266,12 @@
     "checkingUpdate": "Vérification des mises à jour...",
     "updateError": "Échec de la vérification",
     "installing": "Installation de la mise à jour...",
-    "restartRequired": "Redémarrage nécessaire pour appliquer la mise à jour"
+    "restartRequired": "Redémarrage nécessaire pour appliquer la mise à jour",
+    "presets": "Préréglages rapides",
+    "testConnection": "Tester la connexion",
+    "testingConnection": "Test en cours...",
+    "connectionSuccess": "Connexion réussie !",
+    "connectionFailed": "Connexion échouée"
   },
   "app": {
     "name": "Omnilingo",
@@ -263,5 +282,95 @@
   },
   "mic": {
     "record": "Enregistrer la prononciation"
+  },
+  "stats": {
+    "title": "Statistiques",
+    "subtitle": "Suivez votre progression d'apprentissage",
+    "overview": "Vue d'ensemble",
+    "totalWords": "Total des mots",
+    "wordsLearned": "Mots appris",
+    "totalReviews": "Révisions effectuées",
+    "reviewsDone": "Révisions effectuées",
+    "grammarCompleted": "Grammaire complétée",
+    "studyDays": "Jours d'étude",
+    "favorites": "Favoris",
+    "overallAccuracy": "Précision globale",
+    "activity": "Activité (30 derniers jours)",
+    "activityChart": "Graphique d'activité",
+    "noActivity": "Aucune donnée d'activité",
+    "learned": "Appris",
+    "reviewed": "Révisés",
+    "noData": "Aucune donnée d'activité. Commencez à apprendre !",
+    "frequentErrors": "Erreurs fréquentes",
+    "noErrors": "Aucune erreur enregistrée.",
+    "times": "{{count}} fois"
+  },
+  "quiz": {
+    "title": "Quiz",
+    "subtitle": "Testez vos connaissances dans tous les domaines",
+    "start": "Commencer le quiz",
+    "question": "Question {{current}} / {{total}}",
+    "questionCount": "questions",
+    "questions": "Questions",
+    "vocabulary": "Vocabulaire",
+    "grammarQ": "Grammaire",
+    "conjugationQ": "Conjugaison",
+    "complete": "Quiz terminé !",
+    "completed": "Quiz terminé !",
+    "score": "Score : {{correct}} / {{total}}",
+    "correct": "Correct",
+    "total": "Total",
+    "excellent": "Excellent !",
+    "good": "Bon travail !",
+    "keepGoing": "Continuez à pratiquer !",
+    "keepPracticing": "Continuez à pratiquer !",
+    "tryAgain": "Réessayer",
+    "chooseTranslation": "Quelle est la traduction de :",
+    "chooseWord": "Quel est le mot pour :",
+    "translateWord": "Traduisez ce mot :",
+    "whatIsTheWord": "Quel est le mot pour :",
+    "typeAnswer": "Tapez votre réponse...",
+    "conjugate": "Conjuguez \"{{verb}}\" ({{tense}}, {{person}}) :",
+    "correctAnswer": "Bonne réponse",
+    "correctFeedback": "Correct !",
+    "incorrectFeedback": "Incorrect",
+    "pressEnter": "Appuyez sur Entrée pour continuer",
+    "seeResults": "Voir les résultats"
+  },
+  "favorites": {
+    "title": "Favoris",
+    "empty": "Aucun favori. Ajoutez des mots depuis le dictionnaire !",
+    "remove": "Retirer des favoris"
+  },
+  "onboarding": {
+    "welcome": "Bienvenue sur Omnilingo !",
+    "subtitle": "Votre compagnon d'apprentissage des langues",
+    "selectNative": "Quelle est votre langue maternelle ?",
+    "selectTarget": "Quelle langue voulez-vous apprendre ?",
+    "selectLevel": "Quel est votre niveau actuel ?",
+    "getStarted": "Commencer",
+    "beginner": "Débutant — Je commence tout juste",
+    "elementary": "Élémentaire — Je connais les bases",
+    "intermediate": "Intermédiaire — Je peux tenir une conversation"
+  },
+  "wordOfDay": {
+    "title": "Mot du jour",
+    "addToReviews": "Ajouter aux révisions"
+  },
+  "achievements": {
+    "title": "Succès",
+    "firstWord": "Premier mot",
+    "tenWords": "10 mots",
+    "fiftyWords": "50 mots",
+    "hundredWords": "100 mots",
+    "streak7": "7 jours de suite",
+    "streak30": "30 jours de suite",
+    "accuracy90": "90% de précision",
+    "grammarHalf": "Grammaire 50%"
+  },
+  "commandPalette": {
+    "placeholder": "Rechercher ou naviguer...",
+    "select": "sélectionner",
+    "close": "fermer"
   }
 }
