@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/maxgfr/omnilingo/compare/v2.4.0...v2.5.0) (2026-03-18)
+
+
+### Features
+
+* B2 level, AI onboarding, theme selector, GLM coding plan ([9ec7adf](https://github.com/maxgfr/omnilingo/commit/9ec7adf13535a8ce927acada5f4855b3c8387c12))
+
 # [2.4.0](https://github.com/maxgfr/omnilingo/compare/v2.3.1...v2.4.0) (2026-03-18)
 
 
