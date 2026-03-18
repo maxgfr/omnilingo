@@ -514,11 +514,11 @@ export default function Settings() {
                   : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500"
               }`}
             >
-              <span className="text-lg">{pair.source_flag}</span>
-              <span>{pair.source_name}</span>
-              <span className="text-gray-400 dark:text-gray-500">→</span>
               <span className="text-lg">{pair.target_flag}</span>
               <span>{pair.target_name}</span>
+              <span className="text-gray-400 dark:text-gray-500">→</span>
+              <span className="text-lg">{pair.source_flag}</span>
+              <span>{pair.source_name}</span>
               {activePair?.id === pair.id && <Check size={16} className="ml-1 text-amber-500" />}
             </button>
           ))}
