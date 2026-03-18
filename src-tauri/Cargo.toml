@@ -1,6 +1,6 @@
 [package]
 name = "omnilingo"
-version = "2.0.0" # x-release-please-version
+version = "2.1.0" # x-release-please-version
 description = "Omnilingo — Language learning desktop app"
 edition = "2021"
 rust-version = "1.77.2"
