@@ -54,6 +54,8 @@ export default function Onboarding({ children }: OnboardingProps) {
   const [downloadDone, setDownloadDone] = useState(false);
   const [aiProvider, setAiProvider] = useState("claude-code");
   const [aiApiKey, setAiApiKey] = useState("");
+  const [aiTestStatus, setAiTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [aiTestError, setAiTestError] = useState("");
 
   useEffect(() => {
     if (!activePair) {
@@ -90,6 +92,20 @@ export default function Onboarding({ children }: OnboardingProps) {
     } catch (err) {
       console.error("Onboarding failed:", err);
       setStep(4);
+    }
+  };
+
+  const handleTestAi = async () => {
+    setAiTestStatus("testing");
+    setAiTestError("");
+    try {
+      const provider = AI_PROVIDERS.find(p => p.value === aiProvider);
+      await bridge.setAiProvider(aiProvider, provider?.noKey ? "" : aiApiKey, "");
+      await bridge.askAi("Reply with only the word OK");
+      setAiTestStatus("ok");
+    } catch (err) {
+      setAiTestStatus("error");
+      setAiTestError(String(err));
     }
   };
 
@@ -299,7 +315,7 @@ Return ONLY valid JSON array, no markdown, no explanation.`;
               </div>
               <div className="space-y-3">
                 {AI_PROVIDERS.map((provider) => (
-                  <button key={provider.value} onClick={() => setAiProvider(provider.value)}
+                  <button key={provider.value} onClick={() => { setAiProvider(provider.value); setAiTestStatus("idle"); }}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
                       aiProvider === provider.value
                         ? "border-purple-400 bg-purple-50 dark:bg-purple-900/20"
@@ -320,6 +336,13 @@ Return ONLY valid JSON array, no markdown, no explanation.`;
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               )}
+              <button onClick={handleTestAi} disabled={aiTestStatus === "testing" || (!AI_PROVIDERS.find(p => p.value === aiProvider)?.noKey && !aiApiKey.trim())}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-purple-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {aiTestStatus === "testing" ? <><Loader2 size={16} className="animate-spin" /> Testing...</> :
+                 aiTestStatus === "ok" ? <><Check size={16} className="text-emerald-500" /> Connection OK</> :
+                 aiTestStatus === "error" ? <span className="text-red-500 text-xs truncate max-w-full">{aiTestError}</span> :
+                 "Test connection"}
+              </button>
               <div className="flex gap-3">
                 <button onClick={() => setStep(3)} className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">← {t("common.back")}</button>
                 <button onClick={handleSaveAi} className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-semibold rounded-xl transition-all">

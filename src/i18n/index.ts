@@ -1,7 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
-import fr from "./locales/fr.json";
 
 const STORAGE_KEY = "omnilingo-ui-lang";
 const CUSTOM_TRANSLATIONS_KEY = "omnilingo-custom-translations";
@@ -20,7 +19,6 @@ const customTranslations = loadCustomTranslations();
 
 const resources: Record<string, { translation: Record<string, unknown> }> = {
   en: { translation: en },
-  fr: { translation: fr },
 };
 
 // Add any custom translations from localStorage
@@ -28,12 +26,10 @@ for (const [lang, translation] of Object.entries(customTranslations)) {
   resources[lang] = { translation: translation as Record<string, unknown> };
 }
 
-// Detect saved language or use browser locale
+// Detect saved language or default to English
 function detectLanguage(): string {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved && resources[saved]) return saved;
-  const browserLang = navigator.language.split("-")[0];
-  if (resources[browserLang]) return browserLang;
   return "en";
 }
 
