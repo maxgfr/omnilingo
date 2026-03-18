@@ -25,6 +25,7 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 hound = "3.5"
+tauri-plugin-mcp-bridge = { version = "0.10", optional = true }
 
 # STT: heavy C++ dep, optional feature flag
 whisper-rs = { version = "0.16", optional = true }
@@ -32,3 +33,4 @@ whisper-rs = { version = "0.16", optional = true }
 [features]
 default = []
 stt = ["whisper-rs"]
+mcp = ["tauri-plugin-mcp-bridge"]

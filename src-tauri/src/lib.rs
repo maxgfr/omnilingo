@@ -19,6 +19,12 @@ pub fn run() {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
+    // MCP Bridge for E2E testing (debug builds only, requires --features mcp)
+    #[cfg(feature = "mcp")]
+    {
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+    }
+
     builder
         .setup(|app| {
             if cfg!(debug_assertions) {

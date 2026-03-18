@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BookOpen, Sparkles, GraduationCap, Rocket, Globe, ChevronRight, Check, FileUp, Wand2, Download, Loader2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
@@ -57,15 +57,22 @@ export default function Onboarding({ children }: OnboardingProps) {
   const [aiTestStatus, setAiTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [aiTestError, setAiTestError] = useState("");
   const [dictSearch, setDictSearch] = useState("");
+  const onboardingStarted = useRef(false);
 
+  // Only check on initial mount — once user starts onboarding, don't auto-exit
   useEffect(() => {
+    if (onboardingStarted.current) return;
     if (!activePair) {
       setNeedsOnboarding(true);
       return;
     }
     bridge.getWordCount(activePair.id).then((count) => {
-      setNeedsOnboarding(count === 0);
-    }).catch(() => setNeedsOnboarding(true));
+      if (!onboardingStarted.current) {
+        setNeedsOnboarding(count === 0);
+      }
+    }).catch(() => {
+      if (!onboardingStarted.current) setNeedsOnboarding(true);
+    });
   }, [activePair]);
 
   // Load dictionary catalog
@@ -213,7 +220,7 @@ export default function Onboarding({ children }: OnboardingProps) {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("onboarding.welcome")}</h1>
                 <p className="text-gray-500 dark:text-gray-400 text-lg">{t("onboarding.subtitle")}</p>
               </div>
-              <button onClick={() => setStep(1)} className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-xl shadow-md transition-all hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2">
+              <button onClick={() => { onboardingStarted.current = true; setStep(1); }} className="w-full py-3.5 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-xl shadow-md transition-all hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2">
                 {t("onboarding.getStarted")}
                 <ChevronRight size={18} />
               </button>
