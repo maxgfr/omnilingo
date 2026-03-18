@@ -11,7 +11,7 @@ import * as bridge from "../lib/bridge";
 
 export default function Layout() {
   const { t } = useTranslation();
-  const { settings, activePair, loading } = useApp();
+  const { settings, activePair, languagePairs, switchPair, loading } = useApp();
   const location = useLocation();
 
   const navItems = [
@@ -56,9 +56,23 @@ export default function Layout() {
       <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} flex flex-col`}>
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{t("app.name")}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : t("nav.languageLearning")}
-          </p>
+          {languagePairs.length > 1 ? (
+            <select
+              value={activePair?.id || ""}
+              onChange={(e) => switchPair(Number(e.target.value))}
+              className="mt-1 w-full text-sm bg-transparent text-gray-500 dark:text-gray-400 border-none outline-none cursor-pointer p-0"
+            >
+              {languagePairs.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.source_flag} {p.source_name} → {p.target_flag} {p.target_name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : t("nav.languageLearning")}
+            </p>
+          )}
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">

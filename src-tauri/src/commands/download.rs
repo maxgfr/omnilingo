@@ -36,8 +36,16 @@ pub fn get_available_dictionaries(
 
     let mut sources = Vec::new();
 
-    // Extract FreeDict entries
-    if let Some(entries) = manifest["dictionaries"]["freedict"].as_array() {
+    // Extract dictionary entries (object with numeric keys or array)
+    if let Some(dicts) = manifest.get("dictionaries") {
+        let entries: Vec<&serde_json::Value> = if let Some(arr) = dicts.as_array() {
+            arr.iter().collect()
+        } else if let Some(obj) = dicts.as_object() {
+            obj.values().collect()
+        } else {
+            vec![]
+        };
+
         for entry in entries {
             if let (Some(src), Some(tgt)) = (
                 entry["source_lang"].as_str(),
@@ -48,20 +56,13 @@ pub fn get_available_dictionaries(
                     target_lang: tgt.to_string(),
                     source_name: entry["source_name"].as_str().unwrap_or(src).to_string(),
                     target_name: entry["target_name"].as_str().unwrap_or(tgt).to_string(),
-                    source_flag: lang_to_flag(src),
-                    target_flag: lang_to_flag(tgt),
-                    provider: "freedict".to_string(),
-                    url: entry["stardict_url"]
-                        .as_str()
-                        .or_else(|| entry["url"].as_str())
-                        .unwrap_or("")
-                        .to_string(),
-                    format: "stardict".to_string(),
-                    word_count: entry["headwords"].as_i64().or_else(|| entry["word_count"].as_i64()),
-                    size_mb: entry["stardict_size"]
-                        .as_f64()
-                        .or_else(|| entry["size_mb"].as_f64())
-                        .map(|s| if s > 1000.0 { s / 1_000_000.0 } else { s }),
+                    source_flag: entry["source_flag"].as_str().map(|s| s.to_string()).unwrap_or_else(|| lang_to_flag(src)),
+                    target_flag: entry["target_flag"].as_str().map(|s| s.to_string()).unwrap_or_else(|| lang_to_flag(tgt)),
+                    provider: entry["source"].as_str().unwrap_or("freedict").to_string(),
+                    url: entry["url"].as_str().unwrap_or("").to_string(),
+                    format: entry["format"].as_str().unwrap_or("stardict").to_string(),
+                    word_count: entry["word_count"].as_i64(),
+                    size_mb: entry["size_mb"].as_f64(),
                 });
             }
         }

@@ -204,8 +204,36 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Empty state: no words imported yet */}
+      {totalCards === 0 && stats?.total_cards === 0 && (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10 p-8 text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30">
+            <BookOpen size={32} className="text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("dashboard.emptyTitle")}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">{t("dashboard.emptyDescription")}</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              to="/dictionary"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm"
+            >
+              <BookOpen size={16} />
+              {t("dashboard.importDict")}
+            </Link>
+            <Link
+              to="/settings"
+              className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+            >
+              {t("dashboard.downloadDict")}
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Word of the day */}
-      <WordOfDay />
+      {totalCards > 0 && <WordOfDay />}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

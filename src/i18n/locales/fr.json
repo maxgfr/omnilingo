@@ -77,7 +77,11 @@
     "seeAll": "Voir tout",
     "dailyGoal": "Objectif du jour",
     "goalReached": "Objectif atteint !",
-    "streakCalendar": "Activité"
+    "streakCalendar": "Activité",
+    "emptyTitle": "Aucun mot",
+    "emptyDescription": "Importez un fichier dictionnaire ou téléchargez-en un depuis les Paramètres pour commencer.",
+    "importDict": "Importer un dictionnaire",
+    "downloadDict": "Parcourir les dictionnaires"
   },
   "learn": {
     "title": "Apprendre de nouveaux mots",
