@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/maxgfr/omnilingo/compare/v2.6.3...v2.7.0) (2026-03-18)
+
+
+### Features
+
+* add Zod validation for all backend data ([cc9dff2](https://github.com/maxgfr/omnilingo/commit/cc9dff2b0b3e314000e38657a611819a70f92b42))
+
 ## [2.6.3](https://github.com/maxgfr/omnilingo/compare/v2.6.2...v2.6.3) (2026-03-18)
 
 
