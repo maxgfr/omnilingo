@@ -2,8 +2,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Search, LayoutDashboard, BookOpen, Repeat, BookText, Languages,
-  MessageCircle, BarChart3, Zap, Settings,
+  Search, LayoutDashboard, Repeat,
+  MessageCircle, Settings,
 } from "lucide-react";
 
 interface CommandItem {
@@ -24,14 +24,9 @@ export default function CommandPalette() {
 
   const commands: CommandItem[] = [
     { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, action: () => navigate("/"), keywords: "home main" },
-    { id: "learn", label: t("nav.learn"), icon: BookOpen, action: () => navigate("/learn"), keywords: "study words new" },
     { id: "review", label: t("nav.review"), icon: Repeat, action: () => navigate("/review"), keywords: "srs flashcard practice" },
-    { id: "grammar", label: t("nav.grammar"), icon: BookText, action: () => navigate("/grammar"), keywords: "rules lessons" },
-    { id: "conjugation", label: t("nav.conjugation"), icon: Languages, action: () => navigate("/conjugation"), keywords: "verbs tenses" },
     { id: "dictionary", label: t("nav.dictionary"), icon: Search, action: () => navigate("/dictionary"), keywords: "words search find" },
-    { id: "quiz", label: t("quiz.title"), icon: Zap, action: () => navigate("/quiz"), keywords: "test exam" },
     { id: "chat", label: t("nav.chat"), icon: MessageCircle, action: () => navigate("/chat"), keywords: "ai tutor conversation" },
-    { id: "stats", label: t("stats.title"), icon: BarChart3, action: () => navigate("/stats"), keywords: "progress statistics" },
     { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config" },
   ];
 
@@ -42,7 +37,6 @@ export default function CommandPalette() {
       })
     : commands;
 
-  // Open on Cmd+K / Ctrl+K
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -59,14 +53,12 @@ export default function CommandPalette() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
-  // Focus input when opened
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
 
-  // Arrow key navigation
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -81,7 +73,6 @@ export default function CommandPalette() {
     }
   }, [filtered, selectedIndex]);
 
-  // Reset selection when query changes
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
@@ -90,12 +81,8 @@ export default function CommandPalette() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
-
-      {/* Palette */}
       <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Search input */}
         <div className="flex items-center gap-3 px-4 border-b border-gray-200 dark:border-gray-700">
           <Search size={18} className="text-gray-400 flex-shrink-0" />
           <input
@@ -109,8 +96,6 @@ export default function CommandPalette() {
           />
           <kbd className="hidden sm:inline px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-400 font-mono">ESC</kbd>
         </div>
-
-        {/* Results */}
         <div className="max-h-72 overflow-y-auto py-2">
           {filtered.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-gray-400">{t("common.noResults")}</p>
@@ -135,8 +120,6 @@ export default function CommandPalette() {
             ))
           )}
         </div>
-
-        {/* Footer hint */}
         <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center justify-between text-[10px] text-gray-400">
           <span>{"\u2191\u2193"} {t("common.navigate")} {"\u00B7"} {"\u21B5"} {t("commandPalette.select")} {"\u00B7"} ESC {t("commandPalette.close")}</span>
           <span>{"\u2318"}K</span>

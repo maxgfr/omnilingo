@@ -98,17 +98,32 @@ async fn call_claude_cli(model: &str, prompt: &str, cwd: &std::path::Path) -> Re
     let prompt = prompt.to_string();
     let model = model.to_string();
     tauri::async_runtime::spawn_blocking(move || {
-        let output = std::process::Command::new("claude")
-            .args(["-p", "--model", &model])
-            .arg(&prompt)
-            .current_dir(&cwd)
-            .output()
-            .map_err(|e| format!("Claude CLI not found: {}. Install it with: npm i -g @anthropic-ai/claude-code", e))?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Claude CLI error: {}", stderr));
+        // Try common paths where claude CLI might be installed (npm, brew, etc.)
+        let candidates = [
+            "claude".to_string(),
+            "/opt/homebrew/bin/claude".to_string(),
+            "/usr/local/bin/claude".to_string(),
+            format!("{}/.npm-global/bin/claude", std::env::var("HOME").unwrap_or_default()),
+        ];
+        let mut last_err = String::new();
+        for bin in &candidates {
+            match std::process::Command::new(bin)
+                .args(["-p", "--model", &model])
+                .arg(&prompt)
+                .current_dir(&cwd)
+                .output()
+            {
+                Ok(output) => {
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        return Err(format!("Claude CLI error: {}", stderr));
+                    }
+                    return Ok(String::from_utf8_lossy(&output.stdout).trim().to_string());
+                }
+                Err(e) => { last_err = e.to_string(); }
+            }
         }
-        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+        Err(format!("Claude CLI not found ({}). Install with: brew install claude-code  or  npm i -g @anthropic-ai/claude-code", last_err))
     })
     .await
     .map_err(|e| e.to_string())?

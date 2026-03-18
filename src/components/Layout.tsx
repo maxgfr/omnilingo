@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, BookOpen, Repeat, BookText, Languages,
-  Search, MessageCircle, Settings as SettingsIcon, Menu, X,
-  BarChart3, Zap, Layers, MessageSquare,
+  LayoutDashboard, Repeat, Search, MessageCircle,
+  Settings as SettingsIcon, Menu, X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../store/AppContext";
@@ -16,16 +15,9 @@ export default function Layout() {
 
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
-    { to: "/learn", icon: BookOpen, label: t("nav.learn") },
     { to: "/review", icon: Repeat, label: t("nav.review"), badge: true },
-    { to: "/grammar", icon: BookText, label: t("nav.grammar") },
-    { to: "/conjugation", icon: Languages, label: t("nav.conjugation") },
     { to: "/dictionary", icon: Search, label: t("nav.dictionary") },
-    { to: "/quiz", icon: Zap, label: t("quiz.title") },
-    { to: "/flashcards", icon: Layers, label: t("nav.flashcards") },
-    { to: "/conversation", icon: MessageSquare, label: t("nav.conversation") },
     { to: "/chat", icon: MessageCircle, label: t("nav.chat") },
-    { to: "/stats", icon: BarChart3, label: t("stats.title") },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
@@ -56,7 +48,7 @@ export default function Layout() {
       <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-200 lg:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} flex flex-col`}>
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{t("app.name")}</h1>
-          {languagePairs.length > 1 ? (
+          {languagePairs.length > 0 && (
             <select
               value={activePair?.id || ""}
               onChange={(e) => switchPair(Number(e.target.value))}
@@ -68,10 +60,6 @@ export default function Layout() {
                 </option>
               ))}
             </select>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {activePair ? `${activePair.source_flag} ${activePair.source_name} → ${activePair.target_flag} ${activePair.target_name}` : t("nav.languageLearning")}
-            </p>
           )}
         </div>
 
@@ -122,9 +110,6 @@ export default function Layout() {
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>{t("sidebar.level")} <strong className="text-amber-600 dark:text-amber-400">{settings?.level || "A2"}</strong></span>
             <span>{t("sidebar.streak")} <strong className="text-emerald-600 dark:text-emerald-400">{settings?.streak || 0}</strong> {t("sidebar.streakUnit")}</span>
-          </div>
-          <div className="text-[10px] text-gray-400 dark:text-gray-600 mt-1.5 text-center">
-            {"\u2318"}K {t("commandPalette.placeholder")}
           </div>
         </div>
       </aside>
