@@ -1,3 +1,10 @@
+# [2.9.0](https://github.com/maxgfr/omnilingo/compare/v2.8.0...v2.9.0) (2026-03-18)
+
+
+### Features
+
+* restore all 12 views, add 272 tests across all user journeys ([0c497c6](https://github.com/maxgfr/omnilingo/commit/0c497c6781abdc486e350690842f27305eddee8a))
+
 # [2.8.0](https://github.com/maxgfr/omnilingo/compare/v2.7.1...v2.8.0) (2026-03-18)
 
 
