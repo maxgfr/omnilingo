@@ -7,7 +7,6 @@
     "core:default",
     "updater:default",
     "process:default",
-    "notification:default",
-    "mcp-bridge:default"
+    "notification:default"
   ]
 }
