@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/maxgfr/omnilingo/compare/v2.1.1...v2.1.2) (2026-03-18)
+
+
+### Bug Fixes
+
+* switch to semantic-release, fix macOS notarization error ([a323253](https://github.com/maxgfr/omnilingo/commit/a323253efd222aef2e2f4982f69f30bb311de077))
+
 # Changelog
 
 ## [2.1.1](https://github.com/maxgfr/omnilingo/compare/v2.1.0...v2.1.1) (2026-03-18)
