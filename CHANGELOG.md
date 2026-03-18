@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.1](https://github.com/maxgfr/omnilingo/compare/v2.1.0...v2.1.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* merge release build into release-please workflow ([eef5ecb](https://github.com/maxgfr/omnilingo/commit/eef5ecbb720b0901fb8636d5413e03e30a371710))
+* trigger release build on release published event ([072e75c](https://github.com/maxgfr/omnilingo/commit/072e75c254b775fe9ca8512c728c75274875c78c))
+
 ## [2.1.0](https://github.com/maxgfr/omnilingo/compare/v2.0.0...v2.1.0) (2026-03-18)
 
 
