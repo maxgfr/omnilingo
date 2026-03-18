@@ -740,8 +740,7 @@ export default function Settings() {
                 { value: "system", label: t("settings.themeSystem") },
                 { value: "dark", label: t("settings.themeDark") },
               ].map((opt) => {
-                const raw = settings?.dark_mode;
-                const current = raw === true ? "dark" : raw === false ? "light" : (typeof raw === "string" ? raw : "system");
+                const current = settings?.dark_mode || "system";
                 return (
                   <button key={opt.value} onClick={() => handleSetTheme(opt.value)}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${

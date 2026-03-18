@@ -11,7 +11,7 @@ pub struct Settings {
     pub streak: i64,
     pub last_session_date: Option<String>,
     pub start_date: Option<String>,
-    pub dark_mode: bool,
+    pub dark_mode: String,
     pub audio_enabled: bool,
     pub ai_provider: String,
     pub ai_model: String,
@@ -47,7 +47,15 @@ pub fn get_settings(state: State<'_, DbState>) -> Result<Settings, String> {
                     streak: row.get(3)?,
                     last_session_date: row.get(4)?,
                     start_date: row.get(5)?,
-                    dark_mode: row.get::<_, i64>(6)? != 0,
+                    dark_mode: {
+                        // Support both legacy integer (0/1) and string ("light"/"dark"/"system")
+                        let raw: rusqlite::types::Value = row.get(6)?;
+                        match raw {
+                            rusqlite::types::Value::Text(s) => s,
+                            rusqlite::types::Value::Integer(i) => if i != 0 { "dark".to_string() } else { "light".to_string() },
+                            _ => "system".to_string(),
+                        }
+                    },
                     audio_enabled: row.get::<_, i64>(7)? != 0,
                     ai_provider: row.get(8)?,
                     ai_model: row.get(9)?,
@@ -185,7 +193,15 @@ fn persist_progress(state: &State<'_, DbState>, base_dir: &State<'_, BaseDirStat
                     streak: row.get(3)?,
                     last_session_date: row.get(4)?,
                     start_date: row.get(5)?,
-                    dark_mode: row.get::<_, i64>(6)? != 0,
+                    dark_mode: {
+                        // Support both legacy integer (0/1) and string ("light"/"dark"/"system")
+                        let raw: rusqlite::types::Value = row.get(6)?;
+                        match raw {
+                            rusqlite::types::Value::Text(s) => s,
+                            rusqlite::types::Value::Integer(i) => if i != 0 { "dark".to_string() } else { "light".to_string() },
+                            _ => "system".to_string(),
+                        }
+                    },
                     audio_enabled: row.get::<_, i64>(7)? != 0,
                     ai_provider: row.get(8)?,
                     ai_model: row.get(9)?,

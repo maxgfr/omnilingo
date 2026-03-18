@@ -55,10 +55,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     reloadSettings().then(() => setLoading(false));
   }, [reloadSettings]);
 
-  // Apply theme (dark_mode can be boolean true/false or string "light"/"dark"/"system")
+  // Apply theme
   useEffect(() => {
-    const raw = settings?.dark_mode;
-    const theme = raw === true ? "dark" : raw === false ? "light" : (typeof raw === "string" ? raw : "system");
+    const theme = settings?.dark_mode || "system";
     const applyDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     if (applyDark) {
       document.documentElement.classList.add("dark");
