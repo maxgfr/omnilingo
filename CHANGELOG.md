@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/maxgfr/omnilingo/compare/v2.5.0...v2.6.0) (2026-03-18)
+
+
+### Features
+
+* remove French locale, default to English, add AI test button ([1dd6707](https://github.com/maxgfr/omnilingo/commit/1dd670721a448af532b473c1473bf28d3a6b2485))
+
 # [2.5.0](https://github.com/maxgfr/omnilingo/compare/v2.4.0...v2.5.0) (2026-03-18)
 
 
