@@ -49,6 +49,9 @@ jobs:
       - name: TypeScript typecheck
         run: ./node_modules/.bin/tsc --noEmit
 
+      - name: Unit tests
+        run: bun vitest run
+
       - name: Vite build
         run: bun run build
 
