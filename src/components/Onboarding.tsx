@@ -144,30 +144,6 @@ export default function Onboarding({ children }: OnboardingProps) {
     input.click();
   };
 
-  const handleGenerateAi = async () => {
-    try {
-      const pairs = await bridge.getLanguagePairs();
-      const pair = pairs[0];
-      if (!pair) return;
-      const sourceName = LANGUAGES.find(l => l.code === targetLang)?.name || targetLang;
-      const targetName = LANGUAGES.find(l => l.code === nativeLang)?.name || nativeLang;
-      const prompt = `Generate a JSON array of 50 common words for a ${sourceName} to ${targetName} language learner at A1-A2 level.
-Each word should be an object with: "source_word" (in ${sourceName}), "target_word" (in ${targetName}), "level" (A1 or A2), "category" (food, animals, colors, numbers, greetings, family, body, travel, etc).
-Return ONLY valid JSON array, no markdown, no explanation.`;
-      const response = await bridge.askAi(prompt);
-      let jsonStr = response.trim();
-      if (jsonStr.startsWith("```")) {
-        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-      }
-      await bridge.importFromFile(pair.id, jsonStr, "json");
-      await reloadSettings();
-      setNeedsOnboarding(false);
-    } catch (err) {
-      console.error("AI generation failed:", err);
-      setNeedsOnboarding(false);
-    }
-  };
-
   const handleDownloadDict = async (dict: DictionarySource) => {
     const key = `${dict.source_lang}-${dict.target_lang}`;
     setDownloading(key);
@@ -191,14 +167,25 @@ Return ONLY valid JSON array, no markdown, no explanation.`;
   const totalSteps = 6;
   const targetOptions = LANGUAGES.filter((l) => l.code !== nativeLang);
 
-  // Filter catalog for matching language pair (using 3-letter codes)
+  const [dictSearch, setDictSearch] = useState("");
+
+  // Sort dictionaries: exact pair match first, then partial, then rest
   const nativeLang3 = LANGUAGES.find(l => l.code === nativeLang)?.code3 || "";
   const targetLang3 = LANGUAGES.find(l => l.code === targetLang)?.code3 || "";
-  const matchingDicts = availableDicts.filter(d =>
-    (d.source_lang === targetLang3 && d.target_lang === nativeLang3) ||
-    (d.source_lang === nativeLang3 && d.target_lang === targetLang3) ||
-    d.source_lang === targetLang3 || d.target_lang === targetLang3
-  ).slice(0, 10);
+  const filteredDicts = availableDicts
+    .filter(d => {
+      if (!dictSearch.trim()) return true;
+      const q = dictSearch.toLowerCase();
+      return d.source_name.toLowerCase().includes(q) || d.target_name.toLowerCase().includes(q) ||
+        d.source_lang.toLowerCase().includes(q) || d.target_lang.toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      const scoreA = (a.source_lang === targetLang3 && a.target_lang === nativeLang3) || (a.source_lang === nativeLang3 && a.target_lang === targetLang3) ? 0 :
+        (a.source_lang === targetLang3 || a.target_lang === targetLang3 || a.source_lang === nativeLang3 || a.target_lang === nativeLang3) ? 1 : 2;
+      const scoreB = (b.source_lang === targetLang3 && b.target_lang === nativeLang3) || (b.source_lang === nativeLang3 && b.target_lang === targetLang3) ? 0 :
+        (b.source_lang === targetLang3 || b.target_lang === targetLang3 || b.source_lang === nativeLang3 || b.target_lang === nativeLang3) ? 1 : 2;
+      return scoreA - scoreB;
+    });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
@@ -358,79 +345,75 @@ Return ONLY valid JSON array, no markdown, no explanation.`;
             <div className="space-y-5">
               <div className="text-center space-y-2">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30">
-                  <Check size={32} className="text-emerald-500" />
+                  <Download size={32} className="text-emerald-500" />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("onboarding.addContent")}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{t("onboarding.addContentDescription")}</p>
               </div>
 
-              {/* Available dictionaries for this pair */}
-              {matchingDicts.length > 0 && !downloadDone && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t("onboarding.availableDicts")}</p>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {matchingDicts.map((dict) => {
-                      const key = `${dict.source_lang}-${dict.target_lang}`;
-                      return (
-                        <button key={key} onClick={() => handleDownloadDict(dict)} disabled={downloading !== null}
-                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-400 transition-all text-left disabled:opacity-50">
-                          <div className="flex items-center gap-2">
-                            <span>{dict.source_flag}</span>
-                            <span className="text-xs text-gray-400">→</span>
-                            <span>{dict.target_flag}</span>
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">{dict.source_name} → {dict.target_name}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {dict.word_count && <span className="text-xs text-gray-400">{dict.word_count.toLocaleString()}</span>}
-                            {downloading === key ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <Download size={14} className="text-blue-500" />}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {downloadDone && (
+              {downloadDone ? (
                 <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 p-4 text-center">
                   <Check size={24} className="text-emerald-500 mx-auto mb-2" />
                   <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{t("onboarding.dictDownloaded")}</p>
                 </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={dictSearch}
+                    onChange={(e) => setDictSearch(e.target.value)}
+                    placeholder="Search dictionaries..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {filteredDicts.length === 0 ? (
+                      <p className="text-center text-sm text-gray-400 py-4">No dictionaries found</p>
+                    ) : (
+                      filteredDicts.map((dict) => {
+                        const key = `${dict.source_lang}-${dict.target_lang}`;
+                        return (
+                          <button key={key} onClick={() => handleDownloadDict(dict)} disabled={downloading !== null}
+                            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-400 transition-all text-left disabled:opacity-50">
+                            <div className="flex items-center gap-2">
+                              <span>{dict.source_flag}</span>
+                              <span className="text-xs text-gray-400">→</span>
+                              <span>{dict.target_flag}</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{dict.source_name} → {dict.target_name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {dict.word_count && <span className="text-xs text-gray-400">{dict.word_count.toLocaleString()}</span>}
+                              {downloading === key ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <Download size={14} className="text-blue-500" />}
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
               )}
 
-              <div className="space-y-3">
-                <button onClick={handleImportFile}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 hover:border-indigo-400 transition-all hover:shadow-md active:scale-[0.99]">
-                  <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow-sm text-indigo-500">
-                    <FileUp size={20} />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm">{t("onboarding.importDict")}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{t("onboarding.importDictDescription")}</p>
-                  </div>
-                </button>
-
-                <button onClick={handleGenerateAi}
-                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:border-purple-400 transition-all hover:shadow-md active:scale-[0.99]">
-                  <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow-sm text-purple-500">
-                    <Wand2 size={20} />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm">{t("onboarding.generateAi")}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{t("onboarding.generateAiDescription")}</p>
-                  </div>
-                </button>
-              </div>
+              <button onClick={handleImportFile}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 hover:border-indigo-400 transition-all hover:shadow-md active:scale-[0.99]">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow-sm text-indigo-500">
+                  <FileUp size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 dark:text-white text-sm">{t("onboarding.importDict")}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t("onboarding.importDictDescription")}</p>
+                </div>
+              </button>
 
               <div className="flex gap-3">
-                {downloadDone && (
+                <button onClick={() => setStep(4)} className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">← {t("common.back")}</button>
+                {downloadDone ? (
                   <button onClick={handleFinish} className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium text-sm transition-all">
                     {t("onboarding.getStarted")}
                   </button>
+                ) : (
+                  <button onClick={handleSkip} className="flex-1 text-center text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-2.5">
+                    {t("onboarding.skipForNow")}
+                  </button>
                 )}
-                <button onClick={handleSkip} className={`${downloadDone ? "flex-1" : "w-full"} text-center text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-2.5`}>
-                  {t("onboarding.skipForNow")}
-                </button>
               </div>
             </div>
           )}
