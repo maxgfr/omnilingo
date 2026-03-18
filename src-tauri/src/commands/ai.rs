@@ -19,6 +19,7 @@ fn default_model(provider: &str) -> &'static str {
         "mistral" => "mistral-small-latest",
         "glm" => "glm-4-flash",
         "claude-cli" => "claude-haiku-4-5-20251001",
+        "ollama" => "llama3.2",
         _ => "gpt-4o-mini",
     }
 }
@@ -84,6 +85,7 @@ pub async fn ask_ai(
         "gemini" => call_gemini(&settings, &prompt).await,
         "mistral" => call_openai_compatible("https://api.mistral.ai/v1/chat/completions", &settings, &prompt).await,
         "glm" => call_openai_compatible("https://open.bigmodel.cn/api/paas/v4/chat/completions", &settings, &prompt).await,
+        "ollama" => call_openai_compatible("http://localhost:11434/v1/chat/completions", &settings, &prompt).await,
         other => Err(format!("Unknown AI provider: {}", other)),
     }
 }
@@ -144,9 +146,9 @@ async fn call_anthropic(settings: &AiSettings, prompt: &str) -> Result<String, S
         .ok_or_else(|| "Réponse Anthropic invalide".to_string())
 }
 
-/// OpenAI-compatible API (works for OpenAI, Mistral, GLM)
+/// OpenAI-compatible API (works for OpenAI, Mistral, GLM, Ollama)
 async fn call_openai_compatible(url: &str, settings: &AiSettings, prompt: &str) -> Result<String, String> {
-    if settings.api_key.is_empty() {
+    if settings.api_key.is_empty() && !url.contains("localhost") {
         return Err("Clé API non configurée. Allez dans Paramètres.".into());
     }
     let client = reqwest::Client::new();
@@ -156,11 +158,14 @@ async fn call_openai_compatible(url: &str, settings: &AiSettings, prompt: &str) 
         "max_tokens": 2048
     });
 
-    let resp = client
+    let mut req = client
         .post(url)
-        .header("Authorization", format!("Bearer {}", settings.api_key))
         .header("content-type", "application/json")
-        .json(&body)
+        .json(&body);
+    if !settings.api_key.is_empty() {
+        req = req.header("Authorization", format!("Bearer {}", settings.api_key));
+    }
+    let resp = req
         .send()
         .await
         .map_err(|e| format!("Erreur réseau: {}", e))?;

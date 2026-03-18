@@ -79,6 +79,10 @@ export const addCustomWord = (pairId: number, sourceWord: string, targetWord: st
   invoke<number>("add_custom_word", { pairId, sourceWord, targetWord, gender: gender ?? null, level: level ?? null, category: category ?? null });
 export const getRandomWord = (pairId: number) => invoke<Word | null>("get_random_word", { pairId });
 
+// Export/Import
+export const exportProgress = (pairId: number) => invoke<Record<string, unknown>>("export_progress", { pairId });
+export const importProgress = (pairId: number, data: Record<string, unknown>) => invoke<string>("import_progress", { pairId, data });
+
 // Maintenance
 export const clearCache = () => invoke<string>("clear_cache");
 export const resetProgress = () => invoke<string>("reset_progress");

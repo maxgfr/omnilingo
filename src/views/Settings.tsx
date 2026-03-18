@@ -8,6 +8,7 @@ import {
   Database,
   Trash2,
   Download,
+  Upload,
   RefreshCw,
   AlertTriangle,
   Check,
@@ -105,12 +106,21 @@ function StatusToast({ message, onClose }: { message: string; onClose: () => voi
 // Provider list
 // ---------------------------------------------------------------------------
 const AI_PROVIDERS = [
-  { value: "anthropic", label: "Anthropic (Claude)", defaultModel: "claude-haiku-4-5-20251001" },
-  { value: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini" },
-  { value: "gemini", label: "Google Gemini", defaultModel: "gemini-2.0-flash" },
-  { value: "mistral", label: "Mistral AI", defaultModel: "mistral-small-latest" },
-  { value: "glm", label: "GLM (Zhipu)", defaultModel: "glm-4-flash" },
-  { value: "claude-cli", label: "Claude CLI (local)", defaultModel: "claude-haiku-4-5-20251001" },
+  { value: "anthropic", label: "Anthropic (Claude)", defaultModel: "claude-haiku-4-5-20251001", models: ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250514", "claude-opus-4-5-20250514"] },
+  { value: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini", models: ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "o3-mini", "codex-mini-latest"] },
+  { value: "gemini", label: "Google Gemini", defaultModel: "gemini-2.0-flash", models: ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"] },
+  { value: "mistral", label: "Mistral AI", defaultModel: "mistral-small-latest", models: ["mistral-small-latest", "mistral-medium-latest", "mistral-large-latest", "codestral-latest"] },
+  { value: "glm", label: "GLM (Zhipu)", defaultModel: "glm-4-flash", models: ["glm-4-flash", "glm-4-plus", "glm-4"] },
+  { value: "claude-cli", label: "Claude CLI (local)", defaultModel: "claude-sonnet-4-5-20250514", models: ["claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250514", "claude-opus-4-5-20250514"], noKey: true },
+  { value: "ollama", label: "Ollama (local)", defaultModel: "llama3.2", models: ["llama3.2", "mistral", "gemma2", "phi3"], noKey: true },
+];
+
+const AI_PRESETS = [
+  { label: "\u26A1 Fast", provider: "anthropic", model: "claude-haiku-4-5-20251001", description: "Quick responses, low cost" },
+  { label: "\u2696\uFE0F Balanced", provider: "anthropic", model: "claude-sonnet-4-5-20250514", description: "Good quality, moderate cost" },
+  { label: "\uD83E\uDDE0 Best", provider: "anthropic", model: "claude-opus-4-5-20250514", description: "Highest quality, higher cost" },
+  { label: "\uD83C\uDD93 Free", provider: "claude-cli", model: "claude-sonnet-4-5-20250514", description: "Local Claude CLI, no API key" },
+  { label: "\uD83C\uDFE0 Offline", provider: "ollama", model: "llama3.2", description: "Local Ollama, fully offline" },
 ];
 
 const LEVELS = ["A1", "A2", "B1", "B2"];
@@ -572,6 +582,28 @@ export default function Settings() {
       {/* ================= 3. INTELLIGENCE ARTIFICIELLE ================= */}
       <Section icon={Zap} title={t("settings.ai")} iconColor="text-purple-500 dark:text-purple-400">
         <div className="space-y-4">
+          {/* Presets */}
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              {t("settings.presets")}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {AI_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  onClick={() => {
+                    setNewProvider(preset.provider);
+                    setNewModel(preset.model);
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
+                  title={preset.description}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Provider */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -597,7 +629,7 @@ export default function Settings() {
           </div>
 
           {/* API Key */}
-          {newProvider !== "claude-cli" && (
+          {!AI_PROVIDERS.find(p => p.value === newProvider)?.noKey && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
@@ -620,24 +652,50 @@ export default function Settings() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               {t("settings.model")}
             </label>
-            <input
-              type="text"
-              value={newModel}
-              onChange={(e) => setNewModel(e.target.value)}
-              placeholder={t("settings.modelPlaceholder")}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
-            />
+            <div className="relative">
+              <select
+                value={newModel}
+                onChange={(e) => setNewModel(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 pr-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
+              >
+                {(AI_PROVIDERS.find(p => p.value === newProvider)?.models || []).map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
-          {/* Save button */}
-          <button
-            onClick={handleSaveAi}
-            disabled={savingAi}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {savingAi ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-            {t("common.save")}
-          </button>
+          {/* Save & Test buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleSaveAi}
+              disabled={savingAi}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingAi ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+              {t("common.save")}
+            </button>
+            <button
+              onClick={async () => {
+                showStatus(t("settings.testingConnection"));
+                try {
+                  const response = await bridge.askAi("Reply with exactly: OK");
+                  if (response.includes("OK")) {
+                    showStatus(t("settings.connectionSuccess"));
+                  } else {
+                    showStatus(t("settings.connectionSuccess"));
+                  }
+                } catch (err) {
+                  showStatus(`${t("settings.connectionFailed")}: ${err}`);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Zap size={16} />
+              {t("settings.testConnection")}
+            </button>
+          </div>
 
           {/* Current config info */}
           {aiSettings && (
@@ -928,7 +986,65 @@ export default function Settings() {
 
         {/* Action buttons */}
         <div className="space-y-3">
-          {/* Import */}
+          {/* Export progress */}
+          <button
+            onClick={async () => {
+              if (!activePair) return;
+              try {
+                const data = await bridge.exportProgress(activePair.id);
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `omnilingo-progress-${new Date().toISOString().split("T")[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showStatus(t("settings.exportSuccess"));
+              } catch (err) {
+                showStatus(`${t("common.error")}: ${err}`);
+              }
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
+          >
+            <Download size={18} className="text-blue-500" />
+            <div className="text-left">
+              <p>{t("settings.exportProgress")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.exportDescription")}</p>
+            </div>
+          </button>
+
+          {/* Import progress */}
+          <button
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = ".json";
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (!file || !activePair) return;
+                try {
+                  const text = await file.text();
+                  const data = JSON.parse(text);
+                  const result = await bridge.importProgress(activePair.id, data);
+                  showStatus(result);
+                  await reloadSettings();
+                } catch (err) {
+                  showStatus(`${t("common.error")}: ${err}`);
+                }
+              };
+              input.click();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
+          >
+            <Upload size={18} className="text-emerald-500" />
+            <div className="text-left">
+              <p>{t("settings.importProgress")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.importDescription")}</p>
+            </div>
+          </button>
+
+          {/* Import built-in */}
           <button
             onClick={handleImport}
             disabled={importing || !activePair}

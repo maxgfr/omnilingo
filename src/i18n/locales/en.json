@@ -240,6 +240,11 @@
     "modelDownloaded": "Model {{name}} downloaded",
     "downloadError": "Download error",
     "dictDownloaded": "Dictionary {{name}} downloaded",
+    "exportProgress": "Export progress",
+    "exportDescription": "Download your learning data as JSON",
+    "exportSuccess": "Progress exported!",
+    "importProgress": "Import progress",
+    "importDescription": "Load learning data from a JSON file",
     "progressReset": "Progress reset",
     "uiLanguage": "Interface Language",
     "uiLanguageDescription": "Choose your preferred language for the interface",
@@ -260,7 +265,12 @@
     "checkingUpdate": "Checking for updates...",
     "updateError": "Update check failed",
     "installing": "Installing update...",
-    "restartRequired": "Restart required to apply the update"
+    "restartRequired": "Restart required to apply the update",
+    "presets": "Quick presets",
+    "testConnection": "Test connection",
+    "testingConnection": "Testing...",
+    "connectionSuccess": "Connection successful!",
+    "connectionFailed": "Connection failed"
   },
   "app": {
     "name": "Omnilingo",

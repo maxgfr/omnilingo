@@ -91,6 +91,8 @@ pub fn run() {
             commands::stats::get_frequent_errors,
             commands::stats::add_custom_word,
             commands::stats::get_random_word,
+            commands::stats::export_progress,
+            commands::stats::import_progress,
             log_session,
             clear_cache,
             reset_progress,
