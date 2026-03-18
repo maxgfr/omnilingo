@@ -165,8 +165,8 @@ export default function Settings() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadingWhisper, setDownloadingWhisper] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState("");
-  const [newModel, setNewModel] = useState("");
-  const [newProvider, setNewProvider] = useState("");
+  const [newModel, setNewModel] = useState("claude-sonnet-4-6");
+  const [newProvider, setNewProvider] = useState("claude-code");
   const [status, setStatus] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [clearingCache, setClearingCache] = useState(false);

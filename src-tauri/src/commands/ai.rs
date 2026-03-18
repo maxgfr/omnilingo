@@ -30,7 +30,7 @@ fn get_ai_settings(db: &rusqlite::Connection) -> Result<AiSettings, String> {
         "SELECT ai_provider, ai_api_key, ai_model FROM settings WHERE id = 1",
         [],
         |row| {
-            let provider: String = row.get::<_, String>(0).unwrap_or_else(|_| "anthropic".into());
+            let provider: String = row.get::<_, String>(0).unwrap_or_else(|_| "claude-code".into());
             let api_key: String = row.get::<_, String>(1).unwrap_or_default();
             let model: String = row.get::<_, String>(2).unwrap_or_default();
             Ok(AiSettings {
