@@ -56,6 +56,7 @@ export default function Onboarding({ children }: OnboardingProps) {
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiTestStatus, setAiTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [aiTestError, setAiTestError] = useState("");
+  const [dictSearch, setDictSearch] = useState("");
 
   useEffect(() => {
     if (!activePair) {
@@ -166,8 +167,6 @@ export default function Onboarding({ children }: OnboardingProps) {
 
   const totalSteps = 6;
   const targetOptions = LANGUAGES.filter((l) => l.code !== nativeLang);
-
-  const [dictSearch, setDictSearch] = useState("");
 
   // Sort dictionaries: exact pair match first, then partial, then rest
   const nativeLang3 = LANGUAGES.find(l => l.code === nativeLang)?.code3 || "";
