@@ -1058,6 +1058,43 @@ export default function Settings() {
             </div>
           </button>
 
+          {/* Import dictionary file */}
+          <button
+            onClick={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = ".csv,.tsv,.json,.txt,.tab,.df";
+              input.onchange = async (ev) => {
+                const file = (ev.target as HTMLInputElement).files?.[0];
+                if (!file || !activePair) return;
+                try {
+                  const text = await file.text();
+                  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+                  let fmt = "tsv";
+                  if (ext === "csv") fmt = "csv";
+                  else if (ext === "json") fmt = "json";
+                  else if (["tsv", "tab", "txt", "df"].includes(ext)) fmt = "tsv";
+                  const result = await bridge.importFromFile(activePair.id, text, fmt);
+                  showStatus(result);
+                  const wc = await bridge.getWordCount(activePair.id);
+                  setWordCount(wc);
+                } catch (err) {
+                  showStatus(`${t("common.error")}: ${err}`);
+                }
+              };
+              input.click();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-sm font-medium text-gray-900 dark:text-white transition-colors"
+          >
+            <BookOpen size={18} className="text-indigo-500" />
+            <div className="text-left">
+              <p>{t("settings.importFile")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                {t("settings.importFileDescription")}
+              </p>
+            </div>
+          </button>
+
           {/* Import built-in */}
           <button
             onClick={handleImport}

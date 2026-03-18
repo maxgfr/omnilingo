@@ -51,6 +51,8 @@ export const logSession = (pairId: number, sessionType: string, sessionData: Rec
 
 // Import
 export const importBuiltinData = (pairId: number) => invoke<string>("import_builtin_data", { pairId });
+export const importFromFile = (pairId: number, content: string, format: string) =>
+  invoke<string>("import_from_file", { pairId, content, format });
 
 // Speech
 export const getWhisperModels = () => invoke<WhisperModelInfo[]>("get_whisper_models");

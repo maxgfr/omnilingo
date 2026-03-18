@@ -63,6 +63,7 @@ pub fn run() {
             commands::ai::get_ai_settings_cmd,
             commands::ai::set_ai_provider,
             commands::import::import_builtin_data,
+            commands::import::import_from_file,
             commands::dictionary::get_words,
             commands::dictionary::search_words,
             commands::dictionary::get_unlearned_words,
