@@ -45,6 +45,8 @@
     "chat": "AI Chat",
     "flashcards": "Flashcards",
     "conversation": "Conversation",
+    "quiz": "Quiz",
+    "stats": "Statistics",
     "settings": "Settings",
     "languageLearning": "Language learning"
   },

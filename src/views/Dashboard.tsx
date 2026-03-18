@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Flame, Clock, BookOpen, Target, Repeat,
-  MessageCircle, ArrowRight, Search,
+  MessageCircle, ArrowRight, Search, BookText,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -64,11 +64,13 @@ export default function Dashboard() {
   ];
 
   const quickActions = [
+    { icon: BookOpen, title: t("dashboard.learn"), description: t("dashboard.discoverWords"), to: "/learn", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-200 dark:border-blue-800" },
     ...(dueCount > 0 ? [{
       icon: Repeat, title: t("dashboard.review"),
       description: t("dashboard.cardsDueCount", { count: dueCount }),
       to: "/review", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20", border: "border-amber-200 dark:border-amber-800",
     }] : []),
+    { icon: BookText, title: t("dashboard.grammar"), description: t("dashboard.exploreRules"), to: "/grammar", color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-900/20", border: "border-teal-200 dark:border-teal-800" },
     { icon: Search, title: t("nav.dictionary"), description: `${totalWords} ${t("common.words").toLowerCase()}`, to: "/dictionary", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-800" },
     { icon: MessageCircle, title: t("dashboard.aiChat"), description: t("dashboard.practiceAi"), to: "/chat", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20", border: "border-purple-200 dark:border-purple-800" },
   ];

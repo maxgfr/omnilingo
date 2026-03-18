@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, BookOpen, Repeat, Search, MessageSquare, MessageCircle,
+  LayoutDashboard, BookOpen, Repeat, BookText, Languages, Search,
+  Zap, Layers, MessageSquare, MessageCircle, BarChart3,
   Settings as SettingsIcon, Menu, X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,9 +18,14 @@ export default function Layout() {
     { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/learn", icon: BookOpen, label: t("nav.learn") },
     { to: "/review", icon: Repeat, label: t("nav.review"), badge: true },
+    { to: "/grammar", icon: BookText, label: t("nav.grammar") },
+    { to: "/conjugation", icon: Languages, label: t("nav.conjugation") },
     { to: "/dictionary", icon: Search, label: t("nav.dictionary") },
+    { to: "/quiz", icon: Zap, label: t("nav.quiz") },
+    { to: "/flashcards", icon: Layers, label: t("nav.flashcards") },
     { to: "/conversation", icon: MessageSquare, label: t("nav.conversation") },
     { to: "/chat", icon: MessageCircle, label: t("nav.chat") },
+    { to: "/stats", icon: BarChart3, label: t("nav.stats") },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);

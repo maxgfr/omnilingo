@@ -2,8 +2,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Search, LayoutDashboard, BookOpen, Repeat, MessageSquare,
-  MessageCircle, Settings,
+  Search, LayoutDashboard, BookOpen, Repeat, BookText, Languages,
+  Zap, Layers, MessageSquare, MessageCircle, BarChart3, Settings,
 } from "lucide-react";
 
 interface CommandItem {
@@ -26,9 +26,14 @@ export default function CommandPalette() {
     { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, action: () => navigate("/"), keywords: "home main" },
     { id: "learn", label: t("nav.learn"), icon: BookOpen, action: () => navigate("/learn"), keywords: "study words new" },
     { id: "review", label: t("nav.review"), icon: Repeat, action: () => navigate("/review"), keywords: "srs flashcard practice" },
+    { id: "grammar", label: t("nav.grammar"), icon: BookText, action: () => navigate("/grammar"), keywords: "rules syntax" },
+    { id: "conjugation", label: t("nav.conjugation"), icon: Languages, action: () => navigate("/conjugation"), keywords: "verbs tenses" },
     { id: "dictionary", label: t("nav.dictionary"), icon: Search, action: () => navigate("/dictionary"), keywords: "words search find" },
+    { id: "quiz", label: t("nav.quiz"), icon: Zap, action: () => navigate("/quiz"), keywords: "test knowledge" },
+    { id: "flashcards", label: t("nav.flashcards"), icon: Layers, action: () => navigate("/flashcards"), keywords: "cards memorize" },
     { id: "conversation", label: t("nav.conversation"), icon: MessageSquare, action: () => navigate("/conversation"), keywords: "roleplay scenario prompt" },
     { id: "chat", label: t("nav.chat"), icon: MessageCircle, action: () => navigate("/chat"), keywords: "ai tutor" },
+    { id: "stats", label: t("nav.stats"), icon: BarChart3, action: () => navigate("/stats"), keywords: "statistics progress" },
     { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config" },
   ];
 
