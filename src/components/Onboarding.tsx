@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Loader2, Sparkles, GraduationCap, Rocket, Globe, ChevronRight, Check } from "lucide-react";
+import { BookOpen, Sparkles, GraduationCap, Rocket, Globe, ChevronRight, Check, FileUp, Wand2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 
@@ -36,11 +36,9 @@ export default function Onboarding({ children }: OnboardingProps) {
   const { t } = useTranslation();
   const { activePair, reloadSettings, updateSetting } = useApp();
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
-  const [step, setStep] = useState(0); // 0=welcome, 1=native lang, 2=target lang, 3=level, 4=importing
+  const [step, setStep] = useState(0);
   const [nativeLang, setNativeLang] = useState<string | null>(null);
   const [targetLang, setTargetLang] = useState<string | null>(null);
-  const [, setImporting] = useState(false);
-  const [importDone, setImportDone] = useState(false);
 
   useEffect(() => {
     if (!activePair) {
@@ -56,30 +54,80 @@ export default function Onboarding({ children }: OnboardingProps) {
   if (!needsOnboarding) return <>{children}</>;
 
   const handleSelectLevel = async (level: string) => {
-    setStep(4);
-    setImporting(true);
     try {
       await updateSetting("level", level);
-      // If a pair was created via download or if the default DE-FR pair exists, import data
       const pairs = await bridge.getLanguagePairs();
       const matchingPair = pairs.find(
         (p) => p.source_lang === targetLang && p.target_lang === nativeLang
       ) || pairs[0];
-
       if (matchingPair) {
         await bridge.setActiveLanguagePair(matchingPair.id);
-        await bridge.importBuiltinData(matchingPair.id).catch(() => {});
       }
       await reloadSettings();
-      setImportDone(true);
-      await new Promise((r) => setTimeout(r, 1000));
-      setNeedsOnboarding(false);
+      setStep(4);
     } catch (err) {
       console.error("Onboarding failed:", err);
-      setNeedsOnboarding(false);
-    } finally {
-      setImporting(false);
+      setStep(4);
     }
+  };
+
+  const handleImportFile = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,.tsv,.json,.txt,.tab,.df";
+    input.onchange = async (ev) => {
+      const file = (ev.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        let fmt = "tsv";
+        if (ext === "csv") fmt = "csv";
+        else if (ext === "json") fmt = "json";
+        const pairs = await bridge.getLanguagePairs();
+        const pair = pairs[0];
+        if (pair) {
+          await bridge.importFromFile(pair.id, text, fmt);
+        }
+        await reloadSettings();
+        setNeedsOnboarding(false);
+      } catch (err) {
+        console.error("Import failed:", err);
+      }
+    };
+    input.click();
+  };
+
+  const handleGenerateAi = async () => {
+    try {
+      const pairs = await bridge.getLanguagePairs();
+      const pair = pairs[0];
+      if (!pair) return;
+
+      const sourceName = LANGUAGES.find(l => l.code === targetLang)?.name || targetLang;
+      const targetName = LANGUAGES.find(l => l.code === nativeLang)?.name || nativeLang;
+
+      const prompt = `Generate a JSON array of 50 common words for a ${sourceName} to ${targetName} language learner at A1-A2 level.
+Each word should be an object with: "source_word" (in ${sourceName}), "target_word" (in ${targetName}), "level" (A1 or A2), "category" (food, animals, colors, numbers, greetings, family, body, travel, etc).
+Return ONLY valid JSON array, no markdown, no explanation.`;
+
+      const response = await bridge.askAi(prompt);
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+      }
+      await bridge.importFromFile(pair.id, jsonStr, "json");
+      await reloadSettings();
+      setNeedsOnboarding(false);
+    } catch (err) {
+      console.error("AI generation failed:", err);
+      // Let user continue anyway
+      setNeedsOnboarding(false);
+    }
+  };
+
+  const handleSkip = () => {
+    setNeedsOnboarding(false);
   };
 
   const totalSteps = 5;
@@ -87,14 +135,12 @@ export default function Onboarding({ children }: OnboardingProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-      {/* Decorative */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden">
-        {/* Progress dots */}
         <div className="flex justify-center gap-2 pt-6">
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div
@@ -139,11 +185,7 @@ export default function Onboarding({ children }: OnboardingProps) {
                   <button
                     key={lang.code}
                     onClick={() => { setNativeLang(lang.code); setStep(2); }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
-                      nativeLang === lang.code
-                        ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
-                        : "border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600"
-                    }`}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600"
                   >
                     <span className="text-2xl">{lang.flag}</span>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{lang.name}</span>
@@ -160,32 +202,20 @@ export default function Onboarding({ children }: OnboardingProps) {
                 <BookOpen size={32} className="mx-auto text-blue-500 mb-2" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("onboarding.selectTarget")}</h2>
                 <p className="text-sm text-gray-400">
-                  {LANGUAGES.find((l) => l.code === nativeLang)?.flag} {LANGUAGES.find((l) => l.code === nativeLang)?.name} →  ?
+                  {LANGUAGES.find((l) => l.code === nativeLang)?.flag} {LANGUAGES.find((l) => l.code === nativeLang)?.name} → ?
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
-                {targetOptions.map((lang) => {
-                  const isBuiltin = (lang.code === "de" && nativeLang === "fr") || (lang.code === "fr" && nativeLang === "de");
-                  return (
-                    <button
-                      key={lang.code}
-                      onClick={() => { setTargetLang(lang.code); setStep(3); }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] relative ${
-                        targetLang === lang.code
-                          ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
-                      }`}
-                    >
-                      <span className="text-2xl">{lang.flag}</span>
-                      <div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white block">{lang.name}</span>
-                        {isBuiltin && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">500+ words built-in</span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                {targetOptions.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => { setTargetLang(lang.code); setStep(3); }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600"
+                  >
+                    <span className="text-2xl">{lang.flag}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{lang.name}</span>
+                  </button>
+                ))}
               </div>
               <button onClick={() => setStep(1)} className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 ← {t("common.back")}
@@ -227,33 +257,51 @@ export default function Onboarding({ children }: OnboardingProps) {
             </div>
           )}
 
-          {/* Step 4: Importing */}
+          {/* Step 4: Import content */}
           {step === 4 && (
-            <div className="text-center space-y-6 py-8">
-              {!importDone ? (
-                <>
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-50 dark:bg-amber-900/30">
-                    <Loader2 size={40} className="text-amber-500 animate-spin" />
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30">
+                  <Check size={32} className="text-emerald-500" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("onboarding.addContent")}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t("onboarding.addContentDescription")}</p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Import dictionary file */}
+                <button
+                  onClick={handleImportFile}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 hover:border-indigo-400 transition-all hover:shadow-md active:scale-[0.99]"
+                >
+                  <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-gray-800 shadow-sm text-indigo-500">
+                    <FileUp size={24} />
                   </div>
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("settings.importBuiltinData")}</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("common.loading")}</p>
+                  <div className="text-left">
+                    <p className="font-bold text-gray-900 dark:text-white">{t("onboarding.importDict")}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("onboarding.importDictDescription")}</p>
                   </div>
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden max-w-xs mx-auto">
-                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full animate-pulse w-3/4" />
+                </button>
+
+                {/* Generate with AI */}
+                <button
+                  onClick={handleGenerateAi}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:border-purple-400 transition-all hover:shadow-md active:scale-[0.99]"
+                >
+                  <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-gray-800 shadow-sm text-purple-500">
+                    <Wand2 size={24} />
                   </div>
-                </>
-              ) : (
-                <>
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-900/30">
-                    <Check size={40} className="text-emerald-500" />
+                  <div className="text-left">
+                    <p className="font-bold text-gray-900 dark:text-white">{t("onboarding.generateAi")}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("onboarding.generateAiDescription")}</p>
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    {LANGUAGES.find((l) => l.code === nativeLang)?.flag} → {LANGUAGES.find((l) => l.code === targetLang)?.flag}
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("onboarding.getStarted")}!</p>
-                </>
-              )}
+                </button>
+              </div>
+
+              {/* Skip */}
+              <button onClick={handleSkip} className="w-full text-center text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors py-2">
+                {t("onboarding.skipForNow")}
+              </button>
             </div>
           )}
         </div>

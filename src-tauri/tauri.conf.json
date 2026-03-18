@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Omnilingo — Apprendre les langues",
+        "title": "Omnilingo — Language Learning",
         "width": 1200,
         "height": 800,
         "center": true,

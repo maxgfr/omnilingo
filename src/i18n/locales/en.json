@@ -361,7 +361,14 @@
     "getStarted": "Get started",
     "beginner": "Beginner — I'm just starting",
     "elementary": "Elementary — I know the basics",
-    "intermediate": "Intermediate — I can hold a conversation"
+    "intermediate": "Intermediate — I can hold a conversation",
+    "addContent": "Add your dictionary",
+    "addContentDescription": "Import a dictionary file or generate starter vocabulary with AI",
+    "importDict": "Import a dictionary file",
+    "importDictDescription": "CSV, TSV or JSON from Wiktionary, FreeDict, etc.",
+    "generateAi": "Generate with AI",
+    "generateAiDescription": "Auto-generate 50 starter words using your AI provider",
+    "skipForNow": "Skip for now — I'll add content later"
   },
   "wordOfDay": {
     "title": "Word of the day",

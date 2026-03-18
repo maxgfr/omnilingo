@@ -43,8 +43,8 @@ pub fn run() {
             let _ = std::fs::create_dir_all(base_dir.join("exercises"));
 
             let conn = db::init_database(&base_dir).expect("Failed to init DB");
-            commands::import::auto_import_builtin(&conn, &base_dir)
-                .expect("Failed to import builtin data");
+            // Ensure default language pair exists (no data import — users import their own)
+            commands::import::ensure_default_pair(&conn).ok();
 
             app.manage(DbState(Mutex::new(conn)));
             app.manage(BaseDirState(base_dir));

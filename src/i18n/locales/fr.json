@@ -361,7 +361,14 @@
     "getStarted": "Commencer",
     "beginner": "Débutant — Je commence tout juste",
     "elementary": "Élémentaire — Je connais les bases",
-    "intermediate": "Intermédiaire — Je peux tenir une conversation"
+    "intermediate": "Intermédiaire — Je peux tenir une conversation",
+    "addContent": "Ajoutez votre dictionnaire",
+    "addContentDescription": "Importez un fichier dictionnaire ou générez du vocabulaire avec l'IA",
+    "importDict": "Importer un fichier dictionnaire",
+    "importDictDescription": "CSV, TSV ou JSON depuis Wiktionary, FreeDict, etc.",
+    "generateAi": "Générer avec l'IA",
+    "generateAiDescription": "Générer automatiquement 50 mots de départ via votre fournisseur IA",
+    "skipForNow": "Passer pour l'instant — J'ajouterai du contenu plus tard"
   },
   "wordOfDay": {
     "title": "Mot du jour",
