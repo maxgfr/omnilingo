@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/maxgfr/omnilingo/compare/v2.7.1...v2.8.0) (2026-03-18)
+
+
+### Features
+
+* refactor onboarding with Zod, add 71 tests ([d58831b](https://github.com/maxgfr/omnilingo/commit/d58831b3ad24c0a0bd8056b23aa1f150539ff9e8))
+
 ## [2.7.1](https://github.com/maxgfr/omnilingo/compare/v2.7.0...v2.7.1) (2026-03-18)
 
 
