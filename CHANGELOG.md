@@ -1,3 +1,10 @@
+# [2.10.0](https://github.com/maxgfr/omnilingo/compare/v2.9.0...v2.10.0) (2026-03-18)
+
+
+### Features
+
+* 52 E2E tests passing, fix Settings pair display order ([14408b0](https://github.com/maxgfr/omnilingo/commit/14408b0ba1d5881d53346f981f5a2b27e540f5a2))
+
 # [2.9.0](https://github.com/maxgfr/omnilingo/compare/v2.8.0...v2.9.0) (2026-03-18)
 
 
