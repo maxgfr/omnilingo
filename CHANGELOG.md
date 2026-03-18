@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/maxgfr/omnilingo/compare/v2.1.2...v2.2.0) (2026-03-18)
+
+
+### Features
+
+* add Linux builds, commitlint for conventional commits ([a4768d5](https://github.com/maxgfr/omnilingo/commit/a4768d5b73831f7703eb26daff40439f1fc542c2))
+
 ## [2.1.2](https://github.com/maxgfr/omnilingo/compare/v2.1.1...v2.1.2) (2026-03-18)
 
 
