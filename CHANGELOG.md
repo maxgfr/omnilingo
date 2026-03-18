@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/maxgfr/omnilingo/compare/v2.2.0...v2.2.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* restore ad-hoc macOS signing to fix "damaged app" error ([c3613a1](https://github.com/maxgfr/omnilingo/commit/c3613a1d9c0e81ca0f15fe49b39d19b882b964a6))
+
 # [2.2.0](https://github.com/maxgfr/omnilingo/compare/v2.1.2...v2.2.0) (2026-03-18)
 
 
