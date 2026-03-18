@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/maxgfr/omnilingo/compare/v2.6.0...v2.6.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* show full dictionary catalog with search, remove AI generator ([783939d](https://github.com/maxgfr/omnilingo/commit/783939dd527ded9a2e6700bfee8ba05b7686ce0d))
+
 # [2.6.0](https://github.com/maxgfr/omnilingo/compare/v2.5.0...v2.6.0) (2026-03-18)
 
 
