@@ -15,6 +15,7 @@ import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import { CEFRBar } from "../components/ProgressBar";
 import WordOfDay from "../components/WordOfDay";
+import StreakCalendar from "../components/StreakCalendar";
 import type { SrsStats, GrammarTopic } from "../types";
 
 export default function Dashboard() {
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const [topics, setTopics] = useState<GrammarTopic[]>([]);
   const [dueCount, setDueCount] = useState(0);
   const [todayLearned, setTodayLearned] = useState(0);
+  const [calendarData, setCalendarData] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +43,11 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
     bridge.getDailyStats(activePair.id, 1).then(daily => {
       if (daily.length > 0) setTodayLearned(daily[0].words_learned);
+    });
+    bridge.getDailyStats(activePair.id, 365).then(stats => {
+      const map: Record<string, number> = {};
+      stats.forEach(s => { map[s.date] = s.words_learned + s.words_reviewed; });
+      setCalendarData(map);
     });
   }, [activePair]);
 
@@ -237,6 +244,14 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {/* Streak Calendar */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          {t("dashboard.streakCalendar")}
+        </h2>
+        <StreakCalendar data={calendarData} />
+      </div>
 
       {/* CEFR Level */}
       {settings?.level && (

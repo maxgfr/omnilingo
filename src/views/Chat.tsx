@@ -24,19 +24,36 @@ function escapeHtml(text: string): string {
 }
 
 function formatMessage(text: string): string {
-  let escaped = escapeHtml(text);
-  // Bold: **text**
-  escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  // Italic: *text*
-  escaped = escaped.replace(/\*(.+?)\*/g, "<em>$1</em>");
-  // Inline code: `text`
-  escaped = escaped.replace(
-    /`([^`]+)`/g,
-    '<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">$1</code>',
-  );
-  // Line breaks
-  escaped = escaped.replace(/\n/g, "<br />");
-  return escaped;
+  let html = escapeHtml(text);
+
+  // Code blocks (must be before inline code)
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g,
+    '<pre class="bg-gray-800 text-gray-100 dark:bg-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2"><code>$2</code></pre>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g,
+    '<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-bold text-base mt-3 mb-1">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-lg mt-3 mb-1">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-3 mb-1">$1</h1>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Unordered lists
+  html = html.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>');
+  html = html.replace(/(<li class="ml-4 list-disc">.*<\/li>\n?)+/g, '<ul class="my-1">$&</ul>');
+
+  // Ordered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>');
+
+  // Line breaks (but not inside pre/code blocks)
+  html = html.replace(/\n/g, '<br />');
+
+  return html;
 }
 
 export default function Chat() {

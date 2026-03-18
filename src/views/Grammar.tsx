@@ -9,6 +9,8 @@ import {
   Trophy,
   BookOpen,
   Search,
+  Wand2,
+  Loader2,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -70,6 +72,12 @@ export default function Grammar() {
   const [exerciseResults, setExerciseResults] = useState<boolean[]>([]);
   const [exercisesDone, setExercisesDone] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // AI lesson generator
+  const [showAiLesson, setShowAiLesson] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiLesson, setAiLesson] = useState<GrammarTopic | null>(null);
+  const [generatingLesson, setGeneratingLesson] = useState(false);
 
   // Load topics
   useEffect(() => {
@@ -162,6 +170,54 @@ export default function Grammar() {
     [exerciseResults, selectedTopic, activePair],
   );
 
+  // Generate grammar lesson with AI
+  const handleGenerateLesson = useCallback(async () => {
+    if (!activePair || !aiTopic.trim() || generatingLesson) return;
+    setGeneratingLesson(true);
+    try {
+      const sourceName = activePair.source_name;
+      const targetName = activePair.target_name;
+      const prompt = `Generate a grammar lesson about "${aiTopic.trim()}" for a ${sourceName}-${targetName} learner.
+Return a JSON object with this exact structure:
+{
+  "id": "ai-generated",
+  "language_pair_id": ${activePair.id},
+  "level": "A2",
+  "display_order": 0,
+  "title": "lesson title in ${targetName}",
+  "title_source": "lesson title in ${sourceName}",
+  "explanation": "detailed explanation in ${targetName} with **bold** for important terms",
+  "key_points": ["key point 1", "key point 2", "key point 3"],
+  "examples": [{"source": "example in ${sourceName}", "target": "translation in ${targetName}", "highlight": "key word to highlight"}],
+  "exercises": [
+    {"type": "qcm", "question": "question text", "options": ["option1", "option2", "option3", "option4"], "correctIndex": 0},
+    {"type": "fill", "sentence": "sentence with ___ blank", "answer": "correct answer", "hint": "hint"},
+    {"type": "trueFalse", "statement": "a statement", "isTrue": true, "explanation": "why"}
+  ],
+  "completed": false,
+  "score_correct": 0,
+  "score_total": 0
+}
+Return ONLY valid JSON, no markdown fences.`;
+      const response = await bridge.askAi(prompt);
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/^```\w*\n?/, "").replace(/```\s*$/, "").trim();
+      }
+      const parsed = JSON.parse(jsonStr) as GrammarTopic;
+      setAiLesson(parsed);
+      setSelectedTopic(parsed);
+      setExerciseResults([]);
+      setExercisesDone(false);
+      setShowAiLesson(false);
+      setAiTopic("");
+    } catch (err) {
+      console.error("Failed to generate AI lesson:", err);
+    } finally {
+      setGeneratingLesson(false);
+    }
+  }, [activePair, aiTopic, generatingLesson]);
+
   const askClaude = useCallback(() => {
     if (!selectedTopic) return;
     const question = encodeURIComponent(
@@ -194,7 +250,7 @@ export default function Grammar() {
     );
   }
 
-  // Topic detail view
+  // Topic detail view (including AI-generated lessons)
   if (selectedTopic) {
     const exercises = selectedTopic.exercises || [];
     const correctCount = exerciseResults.filter((r) => r === true).length;
@@ -207,7 +263,12 @@ export default function Grammar() {
       <div className="max-w-2xl mx-auto py-6 px-4">
         {/* Back button and title */}
         <button
-          onClick={goBackToList}
+          onClick={() => {
+            if (aiLesson && selectedTopic?.id === "ai-generated") {
+              setAiLesson(null);
+            }
+            goBackToList();
+          }}
           className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 mb-4 transition-colors"
         >
           <ChevronLeft size={16} />
@@ -423,6 +484,51 @@ export default function Grammar() {
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })}
         </p>
+      </div>
+
+      {/* AI Lesson Generator */}
+      <div className="mb-4 space-y-3">
+        <button
+          onClick={() => setShowAiLesson(!showAiLesson)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+            showAiLesson
+              ? "bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400"
+              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+          }`}
+        >
+          <Wand2 size={16} />
+          {t("grammar.generateLesson")}
+        </button>
+
+        {showAiLesson && (
+          <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10 p-4 space-y-3">
+            <div className="flex gap-3">
+              <input
+                placeholder={t("grammar.topicPlaceholder")}
+                value={aiTopic}
+                onChange={(e) => setAiTopic(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all placeholder:text-gray-400"
+              />
+            </div>
+            <button
+              onClick={handleGenerateLesson}
+              disabled={!aiTopic.trim() || generatingLesson}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingLesson ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t("grammar.generating")}
+                </>
+              ) : (
+                <>
+                  <Wand2 size={16} />
+                  {t("grammar.generateLesson")}
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="relative mb-4">

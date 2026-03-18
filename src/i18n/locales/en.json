@@ -43,6 +43,8 @@
     "conjugation": "Conjugation",
     "dictionary": "Dictionary",
     "chat": "AI Chat",
+    "flashcards": "Flashcards",
+    "conversation": "Conversation",
     "settings": "Settings",
     "languageLearning": "Language learning"
   },
@@ -74,7 +76,8 @@
     "grammarProgress": "Grammar progress",
     "seeAll": "See all",
     "dailyGoal": "Daily goal",
-    "goalReached": "Goal reached!"
+    "goalReached": "Goal reached!",
+    "streakCalendar": "Activity"
   },
   "learn": {
     "title": "Learn new words",
@@ -131,7 +134,10 @@
     "levelProficient": "Proficient",
     "levelMastery": "Mastery",
     "other": "Other",
-    "searchTopics": "Search topics..."
+    "searchTopics": "Search topics...",
+    "generateLesson": "Generate lesson with AI",
+    "topicPlaceholder": "e.g. Past tense, Articles...",
+    "generating": "Generating lesson..."
   },
   "conjugation": {
     "title": "Conjugation",
@@ -173,7 +179,11 @@
     "gender": "Gender",
     "addWord": "Add word",
     "wordAdded": "Word added!",
-    "favoritesOnly": "Favorites only"
+    "favoritesOnly": "Favorites only",
+    "generateAi": "Generate with AI",
+    "theme": "Theme (e.g. travel, food, work...)",
+    "generating": "Generating...",
+    "wordsGenerated": "{{count}} words generated!"
   },
   "chat": {
     "title": "AI Chat",
@@ -399,5 +409,43 @@
     "placeholder": "Search or navigate...",
     "select": "select",
     "close": "close"
+  },
+  "flashcards": {
+    "title": "Flashcards",
+    "allCards": "All Cards",
+    "custom": "Custom",
+    "new": "New",
+    "learning": "Learning",
+    "mastered": "Mastered",
+    "front": "Front (question)",
+    "back": "Back (answer)",
+    "create": "Create flashcard",
+    "export": "Export flashcards",
+    "noCards": "No flashcards yet. Learn or create some!",
+    "created": "Flashcard created!"
+  },
+  "conversation": {
+    "title": "Conversation Practice",
+    "subtitle": "Practice speaking with AI role-play",
+    "chooseScenario": "Choose a scenario",
+    "restaurant": "At the Restaurant",
+    "restaurantDesc": "Order food and drinks",
+    "office": "At the Office",
+    "officeDesc": "Chat with a colleague",
+    "doctor": "At the Doctor",
+    "doctorDesc": "Describe symptoms",
+    "shopping": "Shopping",
+    "shoppingDesc": "Buy items at a store",
+    "travel": "Traveling",
+    "travelDesc": "Ask for directions",
+    "start": "Start conversation",
+    "evaluation": "Evaluation",
+    "fluency": "Fluency",
+    "grammarScore": "Grammar",
+    "vocabularyScore": "Vocabulary",
+    "corrections": "Key corrections",
+    "summary": "Summary",
+    "tryAgain": "Try another scenario",
+    "endConversation": "End & evaluate"
   }
 }

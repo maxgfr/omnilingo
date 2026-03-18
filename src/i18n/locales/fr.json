@@ -43,6 +43,8 @@
     "conjugation": "Conjugaison",
     "dictionary": "Dictionnaire",
     "chat": "Chat IA",
+    "flashcards": "Flashcards",
+    "conversation": "Conversation",
     "settings": "Paramètres",
     "languageLearning": "Apprendre les langues"
   },
@@ -74,7 +76,8 @@
     "grammarProgress": "Progression grammaire",
     "seeAll": "Voir tout",
     "dailyGoal": "Objectif du jour",
-    "goalReached": "Objectif atteint !"
+    "goalReached": "Objectif atteint !",
+    "streakCalendar": "Activité"
   },
   "learn": {
     "title": "Apprendre de nouveaux mots",
@@ -131,7 +134,10 @@
     "levelProficient": "Compétent",
     "levelMastery": "Maîtrise",
     "other": "Autre",
-    "searchTopics": "Rechercher des sujets..."
+    "searchTopics": "Rechercher des sujets...",
+    "generateLesson": "Générer une leçon avec l'IA",
+    "topicPlaceholder": "ex : Passé composé, Articles...",
+    "generating": "Génération de la leçon..."
   },
   "conjugation": {
     "title": "Conjugaison",
@@ -173,7 +179,11 @@
     "gender": "Genre",
     "addWord": "Ajouter un mot",
     "wordAdded": "Mot ajouté !",
-    "favoritesOnly": "Favoris uniquement"
+    "favoritesOnly": "Favoris uniquement",
+    "generateAi": "Générer avec l'IA",
+    "theme": "Thème (ex : voyage, nourriture, travail...)",
+    "generating": "Génération...",
+    "wordsGenerated": "{{count}} mots générés !"
   },
   "chat": {
     "title": "Chat IA",
@@ -399,5 +409,43 @@
     "placeholder": "Rechercher ou naviguer...",
     "select": "sélectionner",
     "close": "fermer"
+  },
+  "flashcards": {
+    "title": "Flashcards",
+    "allCards": "Toutes les cartes",
+    "custom": "Personnalisées",
+    "new": "Nouvelles",
+    "learning": "En apprentissage",
+    "mastered": "Maîtrisées",
+    "front": "Recto (question)",
+    "back": "Verso (réponse)",
+    "create": "Créer une flashcard",
+    "export": "Exporter les flashcards",
+    "noCards": "Aucune flashcard. Apprenez ou créez-en !",
+    "created": "Flashcard créée !"
+  },
+  "conversation": {
+    "title": "Pratique de conversation",
+    "subtitle": "Pratiquez la conversation avec un jeu de rôle IA",
+    "chooseScenario": "Choisissez un scénario",
+    "restaurant": "Au restaurant",
+    "restaurantDesc": "Commander à manger et à boire",
+    "office": "Au bureau",
+    "officeDesc": "Discuter avec un collègue",
+    "doctor": "Chez le médecin",
+    "doctorDesc": "Décrire des symptômes",
+    "shopping": "Shopping",
+    "shoppingDesc": "Acheter dans un magasin",
+    "travel": "En voyage",
+    "travelDesc": "Demander son chemin",
+    "start": "Commencer la conversation",
+    "evaluation": "Évaluation",
+    "fluency": "Fluidité",
+    "grammarScore": "Grammaire",
+    "vocabularyScore": "Vocabulaire",
+    "corrections": "Corrections principales",
+    "summary": "Résumé",
+    "tryAgain": "Essayer un autre scénario",
+    "endConversation": "Terminer et évaluer"
   }
 }

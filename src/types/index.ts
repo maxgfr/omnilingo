@@ -159,4 +159,4 @@ export interface OverviewStats {
   favorite_count: number;
 }
 
-export type ViewName = 'dashboard' | 'learn' | 'review' | 'grammar' | 'conjugation' | 'dictionary' | 'chat' | 'settings' | 'stats' | 'quiz';
+export type ViewName = 'dashboard' | 'learn' | 'review' | 'grammar' | 'conjugation' | 'dictionary' | 'chat' | 'settings' | 'stats' | 'quiz' | 'flashcards' | 'conversation';

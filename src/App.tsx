@@ -13,6 +13,8 @@ import Chat from "./views/Chat";
 import Settings from "./views/Settings";
 import Stats from "./views/Stats";
 import Quiz from "./views/Quiz";
+import Flashcards from "./views/Flashcards";
+import Conversation from "./views/Conversation";
 
 export default function App() {
   return (
@@ -31,6 +33,8 @@ export default function App() {
               <Route path="/chat" element={<Chat />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/quiz" element={<Quiz />} />
+              <Route path="/flashcards" element={<Flashcards />} />
+              <Route path="/conversation" element={<Conversation />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Routes>

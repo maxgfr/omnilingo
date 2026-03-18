@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Loader2,
   Heart,
+  Wand2,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -61,6 +62,13 @@ export default function Dictionary() {
   const [newGender, setNewGender] = useState("");
   const [newLevel, setNewLevel] = useState("");
   const [newCategory, setNewCategory] = useState("");
+
+  // AI vocabulary generator
+  const [showAiGen, setShowAiGen] = useState(false);
+  const [aiTheme, setAiTheme] = useState("");
+  const [aiCount, setAiCount] = useState(25);
+  const [generating, setGenerating] = useState(false);
+  const [aiStatus, setAiStatus] = useState("");
 
   // SRS tracking
   const [addedToSrs, setAddedToSrs] = useState<Set<number>>(new Set());
@@ -209,6 +217,47 @@ export default function Dictionary() {
     setHasMore(w.length >= PAGE_SIZE);
   }
 
+  // Generate vocabulary with AI
+  async function handleGenerateAi() {
+    if (!activePair || !aiTheme.trim() || generating) return;
+    setGenerating(true);
+    setAiStatus("");
+    try {
+      const sourceName = activePair.source_name;
+      const targetName = activePair.target_name;
+      const level = "A2";
+      const prompt = `Generate a JSON array of ${aiCount} ${sourceName} words about "${aiTheme.trim()}" for a ${sourceName}-${targetName} learner at ${level} level.
+Each object: {"source_word": "...", "target_word": "...", "gender": "m/f/n or null", "level": "${level}", "category": "${aiTheme.trim()}"}
+Return ONLY valid JSON array, no markdown.`;
+      const response = await bridge.askAi(prompt);
+      // Strip markdown fences if present
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/^```\w*\n?/, "").replace(/```\s*$/, "").trim();
+      }
+      // Validate JSON
+      const parsed = JSON.parse(jsonStr);
+      const count = Array.isArray(parsed) ? parsed.length : 0;
+      // Import via bridge
+      await bridge.importFromFile(activePair.id, JSON.stringify(parsed), "json");
+      // Refresh word list and count
+      const [w, newCount] = await Promise.all([
+        bridge.getWords(activePair.id, undefined, PAGE_SIZE, 0),
+        bridge.getWordCount(activePair.id),
+      ]);
+      setWords(w);
+      setTotalCount(newCount);
+      setOffset(PAGE_SIZE);
+      setHasMore(w.length >= PAGE_SIZE);
+      setAiStatus(t("dictionary.wordsGenerated", { count }));
+      setAiTheme("");
+    } catch (err) {
+      setAiStatus(`${t("common.error")}: ${err}`);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   const sourceLang = getSourceLang(activePair?.source_lang || "de");
 
   if (loading && words.length === 0) {
@@ -231,19 +280,80 @@ export default function Dictionary() {
             {t("dictionary.wordsAvailable", { count: totalCount })}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-            showAddForm
-              ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
-              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
-          }`}
-          title={t("dictionary.addWord")}
-        >
-          <Plus size={16} />
-          {t("dictionary.addWord")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setShowAiGen(!showAiGen); setShowAddForm(false); }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+              showAiGen
+                ? "bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+            }`}
+            title={t("dictionary.generateAi")}
+          >
+            <Wand2 size={16} />
+            {t("dictionary.generateAi")}
+          </button>
+          <button
+            onClick={() => { setShowAddForm(!showAddForm); setShowAiGen(false); }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+              showAddForm
+                ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
+            }`}
+            title={t("dictionary.addWord")}
+          >
+            <Plus size={16} />
+            {t("dictionary.addWord")}
+          </button>
+        </div>
       </div>
+
+      {/* AI vocabulary generator form */}
+      {showAiGen && (
+        <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10 p-4 space-y-3">
+          <div className="flex gap-3">
+            <input
+              placeholder={t("dictionary.theme")}
+              value={aiTheme}
+              onChange={(e) => setAiTheme(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all placeholder:text-gray-400"
+            />
+            <select
+              value={aiCount}
+              onChange={(e) => setAiCount(Number(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGenerateAi}
+              disabled={!aiTheme.trim() || generating}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generating ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t("dictionary.generating")}
+                </>
+              ) : (
+                <>
+                  <Wand2 size={16} />
+                  {t("dictionary.generateAi")}
+                </>
+              )}
+            </button>
+            {aiStatus && (
+              <span className={`text-sm ${aiStatus.startsWith(t("common.error")) ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"}`}>
+                {aiStatus}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Add custom word form */}
       {showAddForm && (

@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Repeat, BookText, Languages,
   Search, MessageCircle, Settings as SettingsIcon, Menu, X,
-  BarChart3, Zap,
+  BarChart3, Zap, Layers, MessageSquare,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../store/AppContext";
@@ -22,6 +22,8 @@ export default function Layout() {
     { to: "/conjugation", icon: Languages, label: t("nav.conjugation") },
     { to: "/dictionary", icon: Search, label: t("nav.dictionary") },
     { to: "/quiz", icon: Zap, label: t("quiz.title") },
+    { to: "/flashcards", icon: Layers, label: t("nav.flashcards") },
+    { to: "/conversation", icon: MessageSquare, label: t("nav.conversation") },
     { to: "/chat", icon: MessageCircle, label: t("nav.chat") },
     { to: "/stats", icon: BarChart3, label: t("stats.title") },
   ];
