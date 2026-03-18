@@ -394,7 +394,9 @@
     "importDictDescription": "CSV, TSV or JSON from Wiktionary, FreeDict, etc.",
     "generateAi": "Generate with AI",
     "generateAiDescription": "Auto-generate 50 starter words using your AI provider",
-    "skipForNow": "Skip for now — I'll add content later"
+    "skipForNow": "Skip for now — I'll add content later",
+    "availableDicts": "Available dictionaries for your pair",
+    "dictDownloaded": "Dictionary downloaded! Language pair created."
   },
   "wordOfDay": {
     "title": "Word of the day",

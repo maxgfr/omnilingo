@@ -394,7 +394,9 @@
     "importDictDescription": "CSV, TSV ou JSON depuis Wiktionary, FreeDict, etc.",
     "generateAi": "Générer avec l'IA",
     "generateAiDescription": "Générer automatiquement 50 mots de départ via votre fournisseur IA",
-    "skipForNow": "Passer pour l'instant — J'ajouterai du contenu plus tard"
+    "skipForNow": "Passer pour l'instant — J'ajouterai du contenu plus tard",
+    "availableDicts": "Dictionnaires disponibles pour votre paire",
+    "dictDownloaded": "Dictionnaire téléchargé ! Paire de langues créée."
   },
   "wordOfDay": {
     "title": "Mot du jour",
