@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/maxgfr/omnilingo/compare/v2.3.1...v2.4.0) (2026-03-18)
+
+
+### Features
+
+* fix language pair display, add B2 level, AI setup in onboarding ([2515cbd](https://github.com/maxgfr/omnilingo/commit/2515cbd3046d39e7cf4f6c8d6a796b354ac720d4))
+
 ## [2.3.1](https://github.com/maxgfr/omnilingo/compare/v2.3.0...v2.3.1) (2026-03-18)
 
 
