@@ -26,6 +26,7 @@ import { setUILanguage, getUILanguage, getAvailableLanguages, saveCustomTranslat
 import en from "../i18n/locales/en.json";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
+import { isMobile } from "../lib/platform";
 import type { AiSettings, WhisperModelInfo, DictionarySource } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -149,6 +150,11 @@ const LANG_NAMES: Record<string, string> = {
 export default function Settings() {
   const { t } = useTranslation();
   const { settings, activePair, languagePairs, switchPair, updateSetting, reloadSettings } = useApp();
+  const mobile = isMobile();
+
+  // Filter out local providers on mobile (CLI/Ollama not available)
+  const availableProviders = mobile ? AI_PROVIDERS.filter(p => p.group === "api") : AI_PROVIDERS;
+  const availablePresets = mobile ? AI_PRESETS.filter(p => !["claude-code", "codex", "ollama"].includes(p.provider)) : AI_PRESETS;
 
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'upToDate' | 'error'>('idle');
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
@@ -191,8 +197,15 @@ export default function Settings() {
         ]);
         if (ai) {
           setAiSettings(ai);
-          setNewProvider(ai.provider);
-          setNewModel(ai.model);
+          // On mobile, if the stored provider is local-only, default to Anthropic API
+          const isLocalProvider = ["claude-code", "claude-cli", "codex", "ollama"].includes(ai.provider);
+          if (mobile && isLocalProvider) {
+            setNewProvider("anthropic");
+            setNewModel("claude-sonnet-4-6");
+          } else {
+            setNewProvider(ai.provider);
+            setNewModel(ai.model);
+          }
           setNewApiKey(ai.api_key);
         }
         setWhisperModels(whisper);
@@ -227,8 +240,9 @@ export default function Settings() {
     setStatus(msg);
   }, []);
 
-  // ---- Auto-update check on mount ----
+  // ---- Auto-update check on mount (desktop only) ----
   useEffect(() => {
+    if (mobile) return;
     (async () => {
       try {
         setUpdateStatus('checking');
@@ -245,7 +259,7 @@ export default function Settings() {
         setUpdateStatus('idle');
       }
     })();
-  }, []);
+  }, [mobile]);
 
   // ---- Handlers ----
 
@@ -326,7 +340,7 @@ export default function Settings() {
 
   const handleProviderChange = (provider: string) => {
     setNewProvider(provider);
-    const p = AI_PROVIDERS.find((pr) => pr.value === provider);
+    const p = availableProviders.find((pr) => pr.value === provider);
     if (p) setNewModel(p.defaultModel);
   };
 
@@ -429,8 +443,8 @@ export default function Settings() {
         </p>
       </div>
 
-      {/* ================= 0. MISE A JOUR ================= */}
-      <Section icon={RefreshCw} title={t("settings.update")} iconColor="text-cyan-500 dark:text-cyan-400">
+      {/* ================= 0. MISE A JOUR (desktop only) ================= */}
+      {!mobile && <Section icon={RefreshCw} title={t("settings.update")} iconColor="text-cyan-500 dark:text-cyan-400">
         <div className="flex items-center justify-between">
           <div>
             {updateStatus === 'idle' && (
@@ -496,7 +510,7 @@ export default function Settings() {
             )}
           </div>
         </div>
-      </Section>
+      </Section>}
 
       {/* ================= 1. LANGUE ================= */}
       <Section icon={Globe} title={t("settings.language")} iconColor="text-blue-500 dark:text-blue-400">
@@ -585,7 +599,7 @@ export default function Settings() {
               {t("settings.presets")}
             </label>
             <div className="flex flex-wrap gap-2">
-              {AI_PRESETS.map((preset) => (
+              {availablePresets.map((preset) => (
                 <button
                   key={preset.label}
                   onClick={() => {
@@ -601,8 +615,8 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Ollama status */}
-          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+          {/* Ollama status (desktop only) */}
+          {!mobile && <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
             ollamaStatus.available
               ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
               : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
@@ -612,7 +626,7 @@ export default function Settings() {
               ? `Ollama: ${ollamaStatus.models.length} model${ollamaStatus.models.length !== 1 ? "s" : ""} (${ollamaStatus.models.slice(0, 3).join(", ")}${ollamaStatus.models.length > 3 ? "..." : ""})`
               : "Ollama: not detected"
             }
-          </div>
+          </div>}
 
           {/* Provider */}
           <div>
@@ -626,15 +640,15 @@ export default function Settings() {
                 className="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 pr-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
                 <optgroup label="API (requires key)">
-                  {AI_PROVIDERS.filter(p => p.group === "api").map((p) => (
+                  {availableProviders.filter(p => p.group === "api").map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
                 </optgroup>
-                <optgroup label="Local (no key needed)">
-                  {AI_PROVIDERS.filter(p => p.group === "local").map((p) => (
+                {!mobile && <optgroup label="Local (no key needed)">
+                  {availableProviders.filter(p => p.group === "local").map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
-                </optgroup>
+                </optgroup>}
               </select>
               <ChevronDown
                 size={16}
@@ -644,7 +658,7 @@ export default function Settings() {
           </div>
 
           {/* API Key */}
-          {!AI_PROVIDERS.find(p => p.value === newProvider)?.noKey && (
+          {!availableProviders.find(p => p.value === newProvider)?.noKey && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
@@ -675,7 +689,7 @@ export default function Settings() {
               list="model-suggestions"
               value={newModel}
               onChange={(e) => setNewModel(e.target.value)}
-              placeholder={AI_PROVIDERS.find(p => p.value === newProvider)?.placeholder || "model-name"}
+              placeholder={availableProviders.find(p => p.value === newProvider)?.placeholder || "model-name"}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
             />
             <datalist id="model-suggestions">

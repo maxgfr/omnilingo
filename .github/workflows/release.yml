@@ -121,9 +121,115 @@ jobs:
             | **macOS Intel** | `.dmg` (x64) |
             | **Windows** | `.msi` or `.exe` |
             | **Linux** | `.AppImage` or `.deb` |
+            | **Android** | `.apk` (arm64) |
+            | **iOS** | `.ipa` (arm64) |
 
-            Auto-update is built-in.
+            Auto-update is built-in (desktop).
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}
           includeUpdaterJson: true
+
+  # ─────────────────────────────────────────────
+  # Mobile builds
+  # ─────────────────────────────────────────────
+  build-android:
+    name: Build (Android-arm64)
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.new_release_version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Initialize Android project
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: cargo tauri android init
+
+      - name: Build Android APK
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: cargo tauri android build --apk
+
+      - name: Upload APK to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=$(find src-tauri/gen/android -name "*.apk" -type f | head -1)
+          if [ -n "$APK" ]; then
+            gh release upload "v${{ needs.release.outputs.new_release_version }}" "$APK" --clobber
+          fi
+
+  build-ios:
+    name: Build (iOS-arm64)
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.new_release_version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Initialize iOS project
+        run: cargo tauri ios init
+
+      - name: Build iOS (unsigned)
+        run: cargo tauri ios build --debug
+
+      - name: Upload IPA to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IPA=$(find src-tauri/gen/apple -name "*.ipa" -type f | head -1)
+          if [ -n "$IPA" ]; then
+            gh release upload "v${{ needs.release.outputs.new_release_version }}" "$IPA" --clobber
+          fi

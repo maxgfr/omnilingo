@@ -11,12 +11,15 @@ pub struct BaseDirState(pub PathBuf);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
-        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init());
 
-    // Only load the updater in release builds (requires pubkey in config)
-    if !cfg!(debug_assertions) {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    // Desktop-only plugins (process & updater are not available on mobile)
+    #[cfg(not(mobile))]
+    {
+        builder = builder.plugin(tauri_plugin_process::init());
+        if !cfg!(debug_assertions) {
+            builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        }
     }
 
     // MCP Bridge for E2E testing (debug builds only, requires --features mcp)
@@ -35,12 +38,19 @@ pub fn run() {
                 )?;
             }
 
-            let base_dir = if cfg!(debug_assertions) {
+            let base_dir = if cfg!(debug_assertions) && !cfg!(mobile) {
+                // Desktop debug: use project root
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .parent()
                     .expect("Failed to get project root")
                     .to_path_buf()
+            } else if cfg!(mobile) {
+                // Mobile: use app data directory (sandboxed storage)
+                app.path()
+                    .app_data_dir()
+                    .unwrap_or_else(|_| PathBuf::from("."))
             } else {
+                // Desktop release: use resource dir
                 app.path()
                     .resource_dir()
                     .unwrap_or_else(|_| PathBuf::from("."))
@@ -216,29 +226,41 @@ fn reset_progress(
 /// Detect if Ollama is running locally and list available models
 #[tauri::command]
 async fn detect_ollama() -> Result<serde_json::Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(3))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    match client.get("http://localhost:11434/api/tags").send().await {
-        Ok(resp) if resp.status().is_success() => {
-            let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-            let models: Vec<String> = json["models"]
-                .as_array()
-                .unwrap_or(&vec![])
-                .iter()
-                .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
-                .collect();
-            Ok(serde_json::json!({
-                "available": true,
-                "models": models,
-            }))
-        }
-        _ => Ok(serde_json::json!({
+    // Ollama is a desktop-only local service
+    #[cfg(mobile)]
+    {
+        return Ok(serde_json::json!({
             "available": false,
             "models": [],
-        })),
+        }));
+    }
+
+    #[cfg(not(mobile))]
+    {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(3))
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        match client.get("http://localhost:11434/api/tags").send().await {
+            Ok(resp) if resp.status().is_success() => {
+                let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+                let models: Vec<String> = json["models"]
+                    .as_array()
+                    .unwrap_or(&vec![])
+                    .iter()
+                    .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
+                    .collect();
+                Ok(serde_json::json!({
+                    "available": true,
+                    "models": models,
+                }))
+            }
+            _ => Ok(serde_json::json!({
+                "available": false,
+                "models": [],
+            })),
+        }
     }
 }
 

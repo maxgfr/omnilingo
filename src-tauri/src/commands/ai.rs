@@ -80,19 +80,27 @@ pub async fn ask_ai(
     let cwd = base_dir.0.clone();
 
     match settings.provider.as_str() {
+        #[cfg(not(mobile))]
         "claude-cli" | "claude-code" => call_claude_cli(&settings.model, &prompt, &cwd).await,
+        #[cfg(not(mobile))]
         "codex" => call_codex_cli(&prompt, &cwd).await,
+        #[cfg(not(mobile))]
+        "ollama" => call_openai_compatible("http://localhost:11434/v1/chat/completions", &settings, &prompt).await,
+        #[cfg(mobile)]
+        "claude-cli" | "claude-code" | "codex" | "ollama" => {
+            Err("Les fournisseurs locaux (Claude CLI, Codex, Ollama) ne sont pas disponibles sur mobile. Configurez un fournisseur API dans les Paramètres.".into())
+        },
         "anthropic" => call_anthropic(&settings, &prompt).await,
         "openai" => call_openai_compatible("https://api.openai.com/v1/chat/completions", &settings, &prompt).await,
         "gemini" => call_gemini(&settings, &prompt).await,
         "mistral" => call_openai_compatible("https://api.mistral.ai/v1/chat/completions", &settings, &prompt).await,
         "glm" => call_openai_compatible("https://open.bigmodel.cn/api/coding/paas/v4/chat/completions", &settings, &prompt).await,
-        "ollama" => call_openai_compatible("http://localhost:11434/v1/chat/completions", &settings, &prompt).await,
         other => Err(format!("Unknown AI provider: {}", other)),
     }
 }
 
 /// Claude CLI / Claude Code (local subprocess, no API key needed)
+#[cfg(not(mobile))]
 async fn call_claude_cli(model: &str, prompt: &str, cwd: &std::path::Path) -> Result<String, String> {
     let cwd = cwd.to_path_buf();
     let prompt = prompt.to_string();
@@ -130,6 +138,7 @@ async fn call_claude_cli(model: &str, prompt: &str, cwd: &std::path::Path) -> Re
 }
 
 /// OpenAI Codex CLI (local subprocess)
+#[cfg(not(mobile))]
 async fn call_codex_cli(prompt: &str, cwd: &std::path::Path) -> Result<String, String> {
     let cwd = cwd.to_path_buf();
     let prompt = prompt.to_string();
