@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/maxgfr/omnilingo/compare/v2.10.1...v2.11.0) (2026-03-20)
+
+
+### Features
+
+* add iOS & Android mobile support (Tauri v2) ([547458d](https://github.com/maxgfr/omnilingo/commit/547458d1941d80f1655dbea49e6a043319a89ea4))
+
 ## [2.10.1](https://github.com/maxgfr/omnilingo/compare/v2.10.0...v2.10.1) (2026-03-18)
 
 
