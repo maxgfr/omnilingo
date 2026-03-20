@@ -1,3 +1,10 @@
+## [2.11.1](https://github.com/maxgfr/omnilingo/compare/v2.11.0...v2.11.1) (2026-03-20)
+
+
+### Bug Fixes
+
+* use bunx tauri instead of cargo tauri in mobile CI ([d64666e](https://github.com/maxgfr/omnilingo/commit/d64666efc9a771134ff9d4d4bc38766c70f1fa3d))
+
 # [2.11.0](https://github.com/maxgfr/omnilingo/compare/v2.10.1...v2.11.0) (2026-03-20)
 
 
