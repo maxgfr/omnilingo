@@ -53,12 +53,12 @@ jobs:
       - name: Initialize Android project
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: cargo tauri android init
+        run: bunx tauri android init
 
       - name: Build Android (debug)
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: cargo tauri android build --debug
+        run: bunx tauri android build --debug
 
   # ─────────────────────────────────────────────
   # iOS: build check
@@ -86,7 +86,7 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Initialize iOS project
-        run: cargo tauri ios init
+        run: bunx tauri ios init
 
       - name: Build iOS (debug)
-        run: cargo tauri ios build --debug
+        run: bunx tauri ios build --debug
