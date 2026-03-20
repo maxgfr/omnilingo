@@ -88,5 +88,5 @@ jobs:
       - name: Initialize iOS project
         run: bunx tauri ios init
 
-      - name: Build iOS (debug)
-        run: bunx tauri ios build --debug
+      - name: Build iOS (simulator, no signing)
+        run: bunx tauri ios build --debug --target aarch64-apple-ios-sim
