@@ -1,3 +1,10 @@
+## [2.11.2](https://github.com/maxgfr/omnilingo/compare/v2.11.1...v2.11.2) (2026-03-20)
+
+
+### Bug Fixes
+
+* build iOS for simulator in CI (no code signing required) ([e9a2547](https://github.com/maxgfr/omnilingo/commit/e9a25476f89ace889b0efa7106c848dfd3305d88))
+
 ## [2.11.1](https://github.com/maxgfr/omnilingo/compare/v2.11.0...v2.11.1) (2026-03-20)
 
 
