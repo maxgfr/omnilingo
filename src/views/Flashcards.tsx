@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
+import { downloadFile } from "../lib/platform";
 import type { SrsCard } from "../types";
 
 type Tab = "all" | "custom";
@@ -85,14 +86,7 @@ export default function Flashcards() {
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
       });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `flashcards-${activePair.source_lang}-${activePair.target_lang}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await downloadFile(blob, `flashcards-${activePair.source_lang}-${activePair.target_lang}.json`);
     } catch (err) {
       console.error("Failed to export:", err);
     } finally {

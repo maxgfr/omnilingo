@@ -26,7 +26,7 @@ import { setUILanguage, getUILanguage, getAvailableLanguages, saveCustomTranslat
 import en from "../i18n/locales/en.json";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
-import { isMobile } from "../lib/platform";
+import { isMobile, downloadFile } from "../lib/platform";
 import type { AiSettings, WhisperModelInfo, DictionarySource } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -264,6 +264,7 @@ export default function Settings() {
   // ---- Handlers ----
 
   const handleCheckUpdate = async () => {
+    if (mobile) return;
     setUpdateStatus('checking');
     setUpdateError(null);
     try {
@@ -282,6 +283,7 @@ export default function Settings() {
   };
 
   const handleInstallUpdate = async () => {
+    if (mobile) return;
     setUpdateStatus('downloading');
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
@@ -1049,12 +1051,7 @@ export default function Settings() {
                 const data = await bridge.exportProgress(activePair.id);
                 const json = JSON.stringify(data, null, 2);
                 const blob = new Blob([json], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `omnilingo-progress-${new Date().toISOString().split("T")[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+                await downloadFile(blob, `omnilingo-progress-${new Date().toISOString().split("T")[0]}.json`);
                 showStatus(t("settings.exportSuccess"));
               } catch (err) {
                 showStatus(`${t("common.error")}: ${err}`);

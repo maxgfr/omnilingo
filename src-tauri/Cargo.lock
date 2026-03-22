@@ -2943,7 +2943,7 @@ dependencies = [
 
 [[package]]
 name = "omnilingo"
-version = "2.11.1"
+version = "2.11.2"
 dependencies = [
  "chrono",
  "hound",

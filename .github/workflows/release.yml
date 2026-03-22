@@ -222,14 +222,24 @@ jobs:
       - name: Initialize iOS project
         run: bunx tauri ios init
 
-      - name: Build iOS (unsigned)
-        run: bunx tauri ios build --debug
+      - name: Build iOS
+        env:
+          APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_DEVELOPMENT_TEAM }}
+        run: |
+          if [ -n "$APPLE_DEVELOPMENT_TEAM" ]; then
+            bunx tauri ios build
+          else
+            echo "No APPLE_DEVELOPMENT_TEAM secret set, building for simulator only"
+            bunx tauri ios build --debug --target aarch64-sim
+          fi
 
       - name: Upload IPA to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          IPA=$(find src-tauri/gen/apple -name "*.ipa" -type f | head -1)
+          IPA=$(find src-tauri/gen/apple -name "*.ipa" -type f 2>/dev/null | head -1)
           if [ -n "$IPA" ]; then
             gh release upload "v${{ needs.release.outputs.new_release_version }}" "$IPA" --clobber
+          else
+            echo "No IPA produced (signing not configured)"
           fi
