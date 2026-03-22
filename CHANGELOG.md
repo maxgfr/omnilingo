@@ -1,3 +1,10 @@
+## [2.11.3](https://github.com/maxgfr/omnilingo/compare/v2.11.2...v2.11.3) (2026-03-22)
+
+
+### Bug Fixes
+
+* use correct iOS simulator target name (aarch64-sim) ([14543d8](https://github.com/maxgfr/omnilingo/commit/14543d8fd00840be13871dbbf30b9df01524c6c1))
+
 ## [2.11.2](https://github.com/maxgfr/omnilingo/compare/v2.11.1...v2.11.2) (2026-03-20)
 
 
