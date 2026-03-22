@@ -1,3 +1,10 @@
+## [2.11.4](https://github.com/maxgfr/omnilingo/compare/v2.11.3...v2.11.4) (2026-03-22)
+
+
+### Bug Fixes
+
+* mobile file export, update handler guards, iOS release build ([f7ccdb2](https://github.com/maxgfr/omnilingo/commit/f7ccdb26306cc8a6dcb12b00d00775878b7f0e95))
+
 ## [2.11.3](https://github.com/maxgfr/omnilingo/compare/v2.11.2...v2.11.3) (2026-03-22)
 
 
