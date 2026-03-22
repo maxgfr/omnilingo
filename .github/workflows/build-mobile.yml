@@ -89,4 +89,4 @@ jobs:
         run: bunx tauri ios init
 
       - name: Build iOS (simulator, no signing)
-        run: bunx tauri ios build --debug --target aarch64-apple-ios-sim
+        run: bunx tauri ios build --debug --target aarch64-sim
