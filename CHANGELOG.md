@@ -1,3 +1,10 @@
+## [2.11.5](https://github.com/maxgfr/omnilingo/compare/v2.11.4...v2.11.5) (2026-03-30)
+
+
+### Bug Fixes
+
+* security hardening, bug fixes, and CI improvements ([42168d1](https://github.com/maxgfr/omnilingo/commit/42168d1007ca4f75cf6c6f6e3a8a03c899854acc))
+
 ## [2.11.4](https://github.com/maxgfr/omnilingo/compare/v2.11.3...v2.11.4) (2026-03-22)
 
 
