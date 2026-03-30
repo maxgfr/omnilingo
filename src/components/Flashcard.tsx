@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { speak, getSourceLang } from "../lib/speech";
@@ -37,6 +37,10 @@ export default function Flashcard({
   const { t } = useTranslation();
   const { activePair, isGerman } = useApp();
   const [isFlipped, setIsFlipped] = useState(flipped);
+
+  useEffect(() => {
+    setIsFlipped(flipped);
+  }, [flipped]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);

@@ -31,9 +31,25 @@ export default function Layout() {
   const [dueCount, setDueCount] = useState(0);
 
   useEffect(() => {
-    if (activePair) {
+    if (!activePair) return;
+
+    const refresh = () => {
       bridge.getDueCount(activePair.id).then(setDueCount).catch(() => {});
-    }
+    };
+
+    refresh();
+
+    const interval = setInterval(refresh, 30_000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [activePair]);
 
   return (

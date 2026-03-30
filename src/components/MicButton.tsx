@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { recordAudio } from "../lib/speech";
 import * as bridge from "../lib/bridge";
 
+type MicState = "idle" | "recording" | "transcribing";
+
 interface MicButtonProps {
   expectedText: string;
   language: string;
@@ -12,20 +14,18 @@ interface MicButtonProps {
 
 export default function MicButton({ expectedText, language, onResult }: MicButtonProps) {
   const { t } = useTranslation();
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
+  const [micState, setMicState] = useState<MicState>("idle");
   const [result, setResult] = useState<{ text: string; match: boolean } | null>(null);
 
   const handleRecord = async () => {
-    if (recording || transcribing) return;
+    if (micState !== "idle") return;
 
     setResult(null);
-    setRecording(true);
+    setMicState("recording");
 
     try {
       const samples = await recordAudio(3000);
-      setRecording(false);
-      setTranscribing(true);
+      setMicState("transcribing");
 
       const langCode = language.split("-")[0];
       const transcript = await bridge.transcribeAudio(Array.from(samples), langCode);
@@ -38,8 +38,7 @@ export default function MicButton({ expectedText, language, onResult }: MicButto
     } catch (err) {
       setResult({ text: String(err), match: false });
     } finally {
-      setRecording(false);
-      setTranscribing(false);
+      setMicState("idle");
     }
   };
 
@@ -47,17 +46,17 @@ export default function MicButton({ expectedText, language, onResult }: MicButto
     <div className="flex flex-col items-center gap-1">
       <button
         onClick={handleRecord}
-        disabled={recording || transcribing}
+        disabled={micState !== "idle"}
         className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all ${
-          recording
+          micState === "recording"
             ? "bg-red-500 border-red-500 text-white animate-pulse"
-            : transcribing
+            : micState === "transcribing"
               ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-400 cursor-wait"
               : "border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
         }`}
         title={t("mic.record")}
       >
-        {transcribing ? (
+        {micState === "transcribing" ? (
           <Loader2 size={18} className="animate-spin" />
         ) : (
           <Mic size={18} />

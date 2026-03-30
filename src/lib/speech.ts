@@ -83,39 +83,59 @@ export async function recordAudio(durationMs: number = 3000): Promise<Float32Arr
     },
   });
 
-  const audioContext = new AudioContext();
-  const actualSampleRate = audioContext.sampleRate;
-  const source = audioContext.createMediaStreamSource(stream);
-  const processor = audioContext.createScriptProcessor(4096, 1, 1);
+  let audioContext: AudioContext | null = null;
+  let source: MediaStreamAudioSourceNode | null = null;
+  let processor: ScriptProcessorNode | null = null;
 
-  const chunks: Float32Array[] = [];
+  function cleanup() {
+    try { processor?.disconnect(); } catch { /* already disconnected */ }
+    try { source?.disconnect(); } catch { /* already disconnected */ }
+    stream.getTracks().forEach((t) => t.stop());
+    audioContext?.close().catch(() => { /* ignore close errors */ });
+    audioContext = null;
+    source = null;
+    processor = null;
+  }
 
-  return new Promise((resolve) => {
-    processor.onaudioprocess = (e) => {
-      chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-    };
+  try {
+    audioContext = new AudioContext();
+    const actualSampleRate = audioContext.sampleRate;
+    source = audioContext.createMediaStreamSource(stream);
+    processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-    source.connect(processor);
-    processor.connect(audioContext.destination);
+    const chunks: Float32Array[] = [];
 
-    setTimeout(() => {
-      processor.disconnect();
-      source.disconnect();
-      stream.getTracks().forEach((t) => t.stop());
-      audioContext.close();
+    return await new Promise<Float32Array>((resolve, reject) => {
+      processor!.onaudioprocess = (e) => {
+        chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      };
 
-      // Concatenate all chunks
-      const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-      const raw = new Float32Array(totalLength);
-      let offset = 0;
-      for (const chunk of chunks) {
-        raw.set(chunk, offset);
-        offset += chunk.length;
-      }
+      source!.connect(processor!);
+      processor!.connect(audioContext!.destination);
 
-      // Resample to 16kHz if needed (Whisper requirement)
-      const result = resample(raw, actualSampleRate, 16000);
-      resolve(result);
-    }, durationMs);
-  });
+      setTimeout(() => {
+        try {
+          cleanup();
+
+          // Concatenate all chunks
+          const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+          const raw = new Float32Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunks) {
+            raw.set(chunk, offset);
+            offset += chunk.length;
+          }
+
+          // Resample to 16kHz if needed (Whisper requirement)
+          const result = resample(raw, actualSampleRate, 16000);
+          resolve(result);
+        } catch (err) {
+          reject(err);
+        }
+      }, durationMs);
+    });
+  } catch (err) {
+    cleanup();
+    throw err;
+  }
 }

@@ -24,15 +24,29 @@ function escapeHtml(text: string): string {
 }
 
 function formatMessage(text: string): string {
-  let html = escapeHtml(text);
+  // Apply formatting on raw text, escaping captured content in each replacement
+  // to prevent XSS while preserving correct rendering (e.g. & in code blocks).
+  let html = text;
 
-  // Code blocks (must be before inline code)
+  // Code blocks (must be before inline code) - escape content inside
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g,
-    '<pre class="bg-gray-800 text-gray-100 dark:bg-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2"><code>$2</code></pre>');
+    (_m, _lang, code) =>
+      `<pre class="bg-gray-800 text-gray-100 dark:bg-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2"><code>${escapeHtml(code)}</code></pre>`);
 
-  // Inline code
+  // Inline code - escape content inside
   html = html.replace(/`([^`]+)`/g,
-    '<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+    (_m, code) =>
+      `<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">${escapeHtml(code)}</code>`);
+
+  // Escape remaining text that is not inside HTML tags we just created.
+  // Split on our generated tags, escape only the text parts.
+  html = html.replace(/((?:^|>)[^<]*)/g, (_m, segment) => {
+    // segment starts with > if after a tag, or is at the start
+    if (segment.startsWith(">")) {
+      return ">" + escapeHtml(segment.slice(1));
+    }
+    return escapeHtml(segment);
+  });
 
   // Headers
   html = html.replace(/^### (.+)$/gm, '<h3 class="font-bold text-base mt-3 mb-1">$1</h3>');

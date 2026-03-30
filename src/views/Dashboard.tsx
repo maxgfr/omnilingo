@@ -36,12 +36,12 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
     bridge.getDailyStats(activePair.id, 1).then(daily => {
       if (daily.length > 0) setTodayLearned(daily[0].words_learned);
-    });
+    }).catch(() => {});
     bridge.getDailyStats(activePair.id, 365).then(stats => {
       const map: Record<string, number> = {};
       stats.forEach(s => { map[s.date] = s.words_learned + s.words_reviewed; });
       setCalendarData(map);
-    });
+    }).catch(() => {});
   }, [activePair]);
 
   if (loading) {

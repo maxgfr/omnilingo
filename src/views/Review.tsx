@@ -23,6 +23,16 @@ const levelColors: Record<string, string> = {
   B2: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
 };
 
+/** Fisher-Yates shuffle (returns a new array). */
+function shuffleArray<T>(arr: readonly T[]): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 interface SessionResults {
   correct: number;
   total: number;
@@ -50,23 +60,25 @@ export default function Review() {
   // Load and shuffle cards
   useEffect(() => {
     if (!activePair) return;
+    let stale = false;
     setLoading(true);
     bridge
       .getDueCards(activePair.id)
       .then((c) => {
-        // Fisher-Yates shuffle
-        const shuffled = [...c];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        if (!stale) {
+          setCards(shuffleArray(c));
+          setCurrentIndex(0);
+          setFlipped(false);
+          setCompleted(false);
+          setResults({ correct: 0, total: 0, forgotten: [] });
         }
-        setCards(shuffled);
-        setCurrentIndex(0);
-        setFlipped(false);
-        setCompleted(false);
-        setResults({ correct: 0, total: 0, forgotten: [] });
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
   }, [activePair]);
 
   const currentCard = cards[currentIndex] ?? null;
@@ -162,13 +174,7 @@ export default function Review() {
   }, [handleKeyDown]);
 
   const handleRestart = () => {
-    // Re-shuffle and restart
-    const shuffled = [...cards];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    setCards(shuffled);
+    setCards(shuffleArray(cards));
     setCurrentIndex(0);
     setFlipped(false);
     setCompleted(false);

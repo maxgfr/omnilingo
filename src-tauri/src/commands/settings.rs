@@ -32,38 +32,7 @@ pub struct LanguagePair {
 #[tauri::command]
 pub fn get_settings(state: State<'_, DbState>) -> Result<Settings, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    let settings = db
-        .query_row(
-            "SELECT active_language_pair_id, level, words_per_day, streak,
-                    last_session_date, start_date, dark_mode, audio_enabled,
-                    COALESCE(ai_provider, 'anthropic'), COALESCE(ai_model, '')
-             FROM settings WHERE id = 1",
-            [],
-            |row| {
-                Ok(Settings {
-                    active_language_pair_id: row.get(0)?,
-                    level: row.get(1)?,
-                    words_per_day: row.get(2)?,
-                    streak: row.get(3)?,
-                    last_session_date: row.get(4)?,
-                    start_date: row.get(5)?,
-                    dark_mode: {
-                        // Support both legacy integer (0/1) and string ("light"/"dark"/"system")
-                        let raw: rusqlite::types::Value = row.get(6)?;
-                        match raw {
-                            rusqlite::types::Value::Text(s) => s,
-                            rusqlite::types::Value::Integer(i) => if i != 0 { "dark".to_string() } else { "light".to_string() },
-                            _ => "system".to_string(),
-                        }
-                    },
-                    audio_enabled: row.get::<_, i64>(7)? != 0,
-                    ai_provider: row.get(8)?,
-                    ai_model: row.get(9)?,
-                })
-            },
-        )
-        .map_err(|e| format!("Failed to get settings: {}", e))?;
-    Ok(settings)
+    read_settings_from_db(&db)
 }
 
 #[tauri::command]
@@ -168,47 +137,48 @@ pub fn update_streak(state: State<'_, DbState>, base_dir: State<'_, BaseDirState
     )
     .map_err(|e| e.to_string())?;
 
-    // Persist progress to markdown
-    drop(db);
-    let _ = persist_progress(&state, &base_dir);
+    // Persist progress to markdown and return settings, all under the same lock
+    let _ = persist_progress_inner(&db, &base_dir.0);
 
-    get_settings(state)
+    let settings = read_settings_from_db(&db)?;
+
+    Ok(settings)
 }
 
-fn persist_progress(state: &State<'_, DbState>, base_dir: &State<'_, BaseDirState>) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+fn read_settings_from_db(db: &rusqlite::Connection) -> Result<Settings, String> {
+    db.query_row(
+        "SELECT active_language_pair_id, level, words_per_day, streak,
+                last_session_date, start_date, dark_mode, audio_enabled,
+                COALESCE(ai_provider, 'anthropic'), COALESCE(ai_model, '')
+         FROM settings WHERE id = 1",
+        [],
+        |row| {
+            Ok(Settings {
+                active_language_pair_id: row.get(0)?,
+                level: row.get(1)?,
+                words_per_day: row.get(2)?,
+                streak: row.get(3)?,
+                last_session_date: row.get(4)?,
+                start_date: row.get(5)?,
+                dark_mode: {
+                    let raw: rusqlite::types::Value = row.get(6)?;
+                    match raw {
+                        rusqlite::types::Value::Text(s) => s,
+                        rusqlite::types::Value::Integer(i) => if i != 0 { "dark".to_string() } else { "light".to_string() },
+                        _ => "system".to_string(),
+                    }
+                },
+                audio_enabled: row.get::<_, i64>(7)? != 0,
+                ai_provider: row.get(8)?,
+                ai_model: row.get(9)?,
+            })
+        },
+    )
+    .map_err(|e| format!("Failed to get settings: {}", e))
+}
 
-    let settings: Settings = db
-        .query_row(
-            "SELECT active_language_pair_id, level, words_per_day, streak,
-                    last_session_date, start_date, dark_mode, audio_enabled,
-                    COALESCE(ai_provider, 'anthropic'), COALESCE(ai_model, '')
-             FROM settings WHERE id = 1",
-            [],
-            |row| {
-                Ok(Settings {
-                    active_language_pair_id: row.get(0)?,
-                    level: row.get(1)?,
-                    words_per_day: row.get(2)?,
-                    streak: row.get(3)?,
-                    last_session_date: row.get(4)?,
-                    start_date: row.get(5)?,
-                    dark_mode: {
-                        // Support both legacy integer (0/1) and string ("light"/"dark"/"system")
-                        let raw: rusqlite::types::Value = row.get(6)?;
-                        match raw {
-                            rusqlite::types::Value::Text(s) => s,
-                            rusqlite::types::Value::Integer(i) => if i != 0 { "dark".to_string() } else { "light".to_string() },
-                            _ => "system".to_string(),
-                        }
-                    },
-                    audio_enabled: row.get::<_, i64>(7)? != 0,
-                    ai_provider: row.get(8)?,
-                    ai_model: row.get(9)?,
-                })
-            },
-        )
-        .map_err(|e| e.to_string())?;
+fn persist_progress_inner(db: &rusqlite::Connection, base_dir: &std::path::Path) -> Result<(), String> {
+    let settings = read_settings_from_db(db)?;
 
     let pair_id = settings.active_language_pair_id.unwrap_or(1);
     let total_learned: i64 = db
@@ -243,7 +213,7 @@ fn persist_progress(state: &State<'_, DbState>, base_dir: &State<'_, BaseDirStat
         )
         .unwrap_or(36);
 
-    let accuracy = crate::commands::srs::compute_accuracy(&db, pair_id);
+    let accuracy = crate::commands::srs::compute_accuracy(db, pair_id);
 
     let md = format!(
         "# Omnilingo Progress\n\n\
@@ -269,7 +239,7 @@ fn persist_progress(state: &State<'_, DbState>, base_dir: &State<'_, BaseDirStat
         accuracy,
     );
 
-    let memory_dir = base_dir.0.join("memory");
+    let memory_dir = base_dir.join("memory");
     let _ = std::fs::write(memory_dir.join("progress.md"), md);
     Ok(())
 }

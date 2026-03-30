@@ -35,7 +35,7 @@ export default function WordOfDay() {
 
     bridge.getRandomWord(activePair.id).then((w) => {
       if (w) {
-        setWord(w as unknown as Word);
+        setWord(w);
         sessionStorage.setItem(storageKey, JSON.stringify(w));
       }
     });

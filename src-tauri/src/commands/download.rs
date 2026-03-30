@@ -86,6 +86,10 @@ pub async fn download_dictionary(
         return Err("No download URL provided".to_string());
     }
 
+    if !url.starts_with("https://") {
+        return Err("Only HTTPS URLs are allowed for dictionary downloads".to_string());
+    }
+
     // Download the archive
     let response = reqwest::get(&url)
         .await

@@ -120,6 +120,10 @@ pub fn review_card(
     card_id: i64,
     quality: i64,
 ) -> Result<SrsCard, String> {
+    if !(0..=5).contains(&quality) {
+        return Err(format!("Invalid quality value: {}. Must be between 0 and 5 (SM-2 algorithm).", quality));
+    }
+
     let db = state.0.lock().map_err(|e| e.to_string())?;
 
     // Get current card state

@@ -48,9 +48,10 @@ pub fn get_ai_settings_cmd(state: State<'_, DbState>) -> Result<AiSettings, Stri
     let db = state.0.lock().map_err(|e| e.to_string())?;
     let mut settings = get_ai_settings(&db)?;
     // Mask the API key for frontend display
-    if settings.api_key.len() > 8 {
-        let visible = &settings.api_key[..4];
-        settings.api_key = format!("{}...{}", visible, &settings.api_key[settings.api_key.len()-4..]);
+    if settings.api_key.len() > 4 {
+        let first2 = &settings.api_key[..2];
+        let last2 = &settings.api_key[settings.api_key.len()-2..];
+        settings.api_key = format!("{}...{}", first2, last2);
     }
     Ok(settings)
 }
@@ -202,10 +203,14 @@ async fn call_anthropic(settings: &AiSettings, prompt: &str) -> Result<String, S
     }
 
     let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    json["content"][0]["text"]
-        .as_str()
+    let content = json.get("content")
+        .ok_or_else(|| format!("Anthropic response missing 'content' field: {}", json))?;
+    let first = content.get(0)
+        .ok_or_else(|| "Anthropic response 'content' array is empty".to_string())?;
+    first.get("text")
+        .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .ok_or_else(|| "Invalid Anthropic response".to_string())
+        .ok_or_else(|| format!("Anthropic response content block missing 'text': {}", first))
 }
 
 /// OpenAI-compatible API (works for OpenAI, Mistral, GLM, Ollama)
@@ -239,10 +244,16 @@ async fn call_openai_compatible(url: &str, settings: &AiSettings, prompt: &str) 
     }
 
     let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    json["choices"][0]["message"]["content"]
-        .as_str()
+    let choices = json.get("choices")
+        .ok_or_else(|| format!("API response missing 'choices' field: {}", json))?;
+    let first = choices.get(0)
+        .ok_or_else(|| "API response 'choices' array is empty".to_string())?;
+    let message = first.get("message")
+        .ok_or_else(|| format!("API response choice missing 'message': {}", first))?;
+    message.get("content")
+        .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .ok_or_else(|| "Invalid API response".to_string())
+        .ok_or_else(|| format!("API response message missing 'content': {}", message))
 }
 
 /// Google Gemini API
@@ -252,8 +263,8 @@ async fn call_gemini(settings: &AiSettings, prompt: &str) -> Result<String, Stri
     }
     let client = reqwest::Client::new();
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-        settings.model, settings.api_key
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
+        settings.model
     );
     let body = serde_json::json!({
         "contents": [{"parts": [{"text": prompt}]}]
@@ -261,6 +272,7 @@ async fn call_gemini(settings: &AiSettings, prompt: &str) -> Result<String, Stri
 
     let resp = client
         .post(&url)
+        .header("x-goog-api-key", &settings.api_key)
         .header("content-type", "application/json")
         .json(&body)
         .send()
@@ -274,8 +286,18 @@ async fn call_gemini(settings: &AiSettings, prompt: &str) -> Result<String, Stri
     }
 
     let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    json["candidates"][0]["content"]["parts"][0]["text"]
-        .as_str()
+    let candidates = json.get("candidates")
+        .ok_or_else(|| format!("Gemini response missing 'candidates' field: {}", json))?;
+    let first = candidates.get(0)
+        .ok_or_else(|| "Gemini response 'candidates' array is empty".to_string())?;
+    let content = first.get("content")
+        .ok_or_else(|| format!("Gemini response candidate missing 'content': {}", first))?;
+    let parts = content.get("parts")
+        .ok_or_else(|| format!("Gemini response content missing 'parts': {}", content))?;
+    let first_part = parts.get(0)
+        .ok_or_else(|| "Gemini response 'parts' array is empty".to_string())?;
+    first_part.get("text")
+        .and_then(|v| v.as_str())
         .map(|s| s.to_string())
-        .ok_or_else(|| "Invalid Gemini response".to_string())
+        .ok_or_else(|| format!("Gemini response part missing 'text': {}", first_part))
 }

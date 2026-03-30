@@ -29,13 +29,21 @@ export default function Learn() {
 
   useEffect(() => {
     if (!activePair || !settings) return;
+    let stale = false;
     bridge
       .getUnlearnedWords(activePair.id, settings.level, settings.words_per_day)
       .then((w) => {
-        setWords(w);
-        if (w.length === 0) setCompleted(true);
+        if (!stale) {
+          setWords(w);
+          if (w.length === 0) setCompleted(true);
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
   }, [activePair, settings]);
 
   const currentWord = words[currentIndex] ?? null;
