@@ -1,3 +1,10 @@
+## [2.11.6](https://github.com/maxgfr/omnilingo/compare/v2.11.5...v2.11.6) (2026-03-30)
+
+
+### Bug Fixes
+
+* update vulnerable deps (tar, rustls-webpki) and configure cargo audit ([96d7f70](https://github.com/maxgfr/omnilingo/commit/96d7f70db78e3161bb32d22b84bb105773febafa))
+
 ## [2.11.5](https://github.com/maxgfr/omnilingo/compare/v2.11.4...v2.11.5) (2026-03-30)
 
 
