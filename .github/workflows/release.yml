@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -11,9 +13,13 @@ permissions:
   pull-requests: write
 
 jobs:
+  # ─────────────────────────────────────────────
+  # Semantic Release (only on branch push, skipped for tag push)
+  # ─────────────────────────────────────────────
   release:
     name: Semantic Release
     runs-on: ubuntu-22.04
+    if: github.ref_name == 'main'
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
@@ -38,10 +44,41 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ─────────────────────────────────────────────
+  # Resolve version from semantic-release OR tag push
+  # ─────────────────────────────────────────────
+  resolve-version:
+    name: Resolve Version
+    runs-on: ubuntu-22.04
+    needs: [release]
+    if: always()
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      should_build: ${{ steps.resolve.outputs.should_build }}
+    steps:
+      - id: resolve
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          elif [[ "${{ needs.release.outputs.new_release_published }}" == "true" ]]; then
+            VERSION="${{ needs.release.outputs.new_release_version }}"
+          fi
+          if [ -n "$VERSION" ]; then
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ─────────────────────────────────────────────
+  # Desktop builds
+  # ─────────────────────────────────────────────
   build:
     name: Build (${{ matrix.label }})
-    needs: release
-    if: needs.release.outputs.new_release_published == 'true'
+    needs: [resolve-version]
+    if: needs.resolve-version.outputs.should_build == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: v${{ needs.release.outputs.new_release_version }}
+          ref: ${{ needs.resolve-version.outputs.tag }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -110,10 +147,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_SIGNING_IDENTITY: "-"
         with:
-          tagName: v${{ needs.release.outputs.new_release_version }}
-          releaseName: "Omnilingo v${{ needs.release.outputs.new_release_version }}"
+          tagName: ${{ needs.resolve-version.outputs.tag }}
+          releaseName: "Omnilingo ${{ needs.resolve-version.outputs.tag }}"
           releaseBody: |
-            ## Omnilingo v${{ needs.release.outputs.new_release_version }}
+            ## Omnilingo ${{ needs.resolve-version.outputs.tag }}
 
             | Platform | File |
             |----------|------|
@@ -135,13 +172,13 @@ jobs:
   # ─────────────────────────────────────────────
   build-android:
     name: Build (Android-arm64)
-    needs: release
-    if: needs.release.outputs.new_release_published == 'true'
+    needs: [resolve-version]
+    if: needs.resolve-version.outputs.should_build == 'true'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: v${{ needs.release.outputs.new_release_version }}
+          ref: ${{ needs.resolve-version.outputs.tag }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -190,18 +227,18 @@ jobs:
         run: |
           APK=$(find src-tauri/gen/android -name "*.apk" -type f | head -1)
           if [ -n "$APK" ]; then
-            gh release upload "v${{ needs.release.outputs.new_release_version }}" "$APK" --clobber
+            gh release upload "${{ needs.resolve-version.outputs.tag }}" "$APK" --clobber
           fi
 
   build-ios:
     name: Build (iOS-arm64)
-    needs: release
-    if: needs.release.outputs.new_release_published == 'true'
+    needs: [resolve-version]
+    if: needs.resolve-version.outputs.should_build == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: v${{ needs.release.outputs.new_release_version }}
+          ref: ${{ needs.resolve-version.outputs.tag }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -239,7 +276,7 @@ jobs:
         run: |
           IPA=$(find src-tauri/gen/apple -name "*.ipa" -type f 2>/dev/null | head -1)
           if [ -n "$IPA" ]; then
-            gh release upload "v${{ needs.release.outputs.new_release_version }}" "$IPA" --clobber
+            gh release upload "${{ needs.resolve-version.outputs.tag }}" "$IPA" --clobber
           else
             echo "No IPA produced (signing not configured)"
           fi
