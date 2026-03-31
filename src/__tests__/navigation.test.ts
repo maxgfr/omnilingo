@@ -127,17 +127,16 @@ describe("Route definitions", () => {
     "/flashcards",
     "/conversation",
     "/chat",
+    "/tools",
     "/stats",
     "/settings",
   ];
 
-  it("has exactly 12 routes defined", () => {
-    expect(EXPECTED_ROUTES).toHaveLength(12);
+  it("has exactly 13 routes defined", () => {
+    expect(EXPECTED_ROUTES).toHaveLength(13);
   });
 
   it("all expected routes are present in App.tsx source", async () => {
-    // We verify by reading the App module source structure
-    // The routes are defined as string paths in JSX
     const routePaths = [
       "/",
       "/learn",
@@ -149,11 +148,11 @@ describe("Route definitions", () => {
       "/flashcards",
       "/conversation",
       "/chat",
+      "/tools",
       "/stats",
       "/settings",
     ];
 
-    // Verify all routes match expected routes
     for (const route of routePaths) {
       expect(EXPECTED_ROUTES).toContain(route);
     }
@@ -180,6 +179,10 @@ describe("Route definitions", () => {
   it("communication routes exist", () => {
     expect(EXPECTED_ROUTES).toContain("/conversation");
     expect(EXPECTED_ROUTES).toContain("/chat");
+  });
+
+  it("tools route exists", () => {
+    expect(EXPECTED_ROUTES).toContain("/tools");
   });
 
   it("utility routes exist", () => {
@@ -263,6 +266,12 @@ describe("View modules", () => {
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
   });
+
+  it("Tools view exports a default component", async () => {
+    const mod = await import("../views/Tools");
+    expect(mod.default).toBeDefined();
+    expect(typeof mod.default).toBe("function");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────
@@ -283,10 +292,11 @@ describe("ViewName type", () => {
     "quiz",
     "flashcards",
     "conversation",
+    "tools",
   ];
 
-  it("has 12 view names", () => {
-    expect(VIEW_NAMES).toHaveLength(12);
+  it("has 13 view names", () => {
+    expect(VIEW_NAMES).toHaveLength(13);
   });
 
   it("all view names are lowercase", () => {
@@ -301,7 +311,7 @@ describe("ViewName type", () => {
     const EXPECTED_ROUTES = [
       "/", "/learn", "/review", "/grammar", "/conjugation",
       "/dictionary", "/quiz", "/flashcards", "/conversation",
-      "/chat", "/stats", "/settings",
+      "/chat", "/tools", "/stats", "/settings",
     ];
     for (const view of VIEW_NAMES) {
       expect(EXPECTED_ROUTES).toContain(routeFromView(view));

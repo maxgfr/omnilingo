@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Repeat, BookText, Languages, Search,
-  Zap, Layers, MessageSquare, MessageCircle, BarChart3,
+  Zap, Layers, MessageSquare, MessageCircle, Wrench, BarChart3,
   Settings as SettingsIcon, Menu, X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -25,6 +25,7 @@ export default function Layout() {
     { to: "/flashcards", icon: Layers, label: t("nav.flashcards") },
     { to: "/conversation", icon: MessageSquare, label: t("nav.conversation") },
     { to: "/chat", icon: MessageCircle, label: t("nav.chat") },
+    { to: "/tools", icon: Wrench, label: t("nav.tools") },
     { to: "/stats", icon: BarChart3, label: t("nav.stats") },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);

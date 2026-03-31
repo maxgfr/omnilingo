@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
+import { formatMessage } from "../lib/markdown";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -11,64 +12,6 @@ interface ChatMessage {
 
 const MAX_MESSAGES = 20;
 const STORAGE_KEY = "omnilingo-chat";
-
-function escapeHtml(text: string): string {
-  const map: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;",
-  };
-  return text.replace(/[&<>"']/g, (c) => map[c]);
-}
-
-function formatMessage(text: string): string {
-  // Apply formatting on raw text, escaping captured content in each replacement
-  // to prevent XSS while preserving correct rendering (e.g. & in code blocks).
-  let html = text;
-
-  // Code blocks (must be before inline code) - escape content inside
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g,
-    (_m, _lang, code) =>
-      `<pre class="bg-gray-800 text-gray-100 dark:bg-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2"><code>${escapeHtml(code)}</code></pre>`);
-
-  // Inline code - escape content inside
-  html = html.replace(/`([^`]+)`/g,
-    (_m, code) =>
-      `<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">${escapeHtml(code)}</code>`);
-
-  // Escape remaining text that is not inside HTML tags we just created.
-  // Split on our generated tags, escape only the text parts.
-  html = html.replace(/((?:^|>)[^<]*)/g, (_m, segment) => {
-    // segment starts with > if after a tag, or is at the start
-    if (segment.startsWith(">")) {
-      return ">" + escapeHtml(segment.slice(1));
-    }
-    return escapeHtml(segment);
-  });
-
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h3 class="font-bold text-base mt-3 mb-1">$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-lg mt-3 mb-1">$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-3 mb-1">$1</h1>');
-
-  // Bold and italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-  // Unordered lists
-  html = html.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>');
-  html = html.replace(/(<li class="ml-4 list-disc">.*<\/li>\n?)+/g, '<ul class="my-1">$&</ul>');
-
-  // Ordered lists
-  html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>');
-
-  // Line breaks (but not inside pre/code blocks)
-  html = html.replace(/\n/g, '<br />');
-
-  return html;
-}
 
 export default function Chat() {
   const { t } = useTranslation();

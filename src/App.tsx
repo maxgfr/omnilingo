@@ -14,6 +14,7 @@ import Flashcards from "./views/Flashcards";
 import Conversation from "./views/Conversation";
 import Chat from "./views/Chat";
 import Stats from "./views/Stats";
+import Tools from "./views/Tools";
 import Settings from "./views/Settings";
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="/flashcards" element={<Flashcards />} />
               <Route path="/conversation" element={<Conversation />} />
               <Route path="/chat" element={<Chat />} />
+              <Route path="/tools" element={<Tools />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/settings" element={<Settings />} />
             </Route>

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Search, LayoutDashboard, BookOpen, Repeat, BookText, Languages,
-  Zap, Layers, MessageSquare, MessageCircle, BarChart3, Settings,
+  Zap, Layers, MessageSquare, MessageCircle, Wrench, BarChart3, Settings,
 } from "lucide-react";
 
 interface CommandItem {
@@ -33,6 +33,7 @@ export default function CommandPalette() {
     { id: "flashcards", label: t("nav.flashcards"), icon: Layers, action: () => navigate("/flashcards"), keywords: "cards memorize" },
     { id: "conversation", label: t("nav.conversation"), icon: MessageSquare, action: () => navigate("/conversation"), keywords: "roleplay scenario prompt" },
     { id: "chat", label: t("nav.chat"), icon: MessageCircle, action: () => navigate("/chat"), keywords: "ai tutor" },
+    { id: "tools", label: t("nav.tools"), icon: Wrench, action: () => navigate("/tools"), keywords: "translate correct rephrase synonyms conjugate define vocabulary context definition rewrite" },
     { id: "stats", label: t("nav.stats"), icon: BarChart3, action: () => navigate("/stats"), keywords: "statistics progress" },
     { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config" },
   ];

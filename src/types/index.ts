@@ -179,4 +179,4 @@ export type DictionarySource = z.infer<typeof DictionarySourceSchema>;
 export type FavoriteWord = z.infer<typeof FavoriteWordSchema>;
 export type DailyStatRow = z.infer<typeof DailyStatRowSchema>;
 export type OverviewStats = z.infer<typeof OverviewStatsSchema>;
-export type ViewName = "dashboard" | "learn" | "review" | "grammar" | "conjugation" | "dictionary" | "chat" | "settings" | "stats" | "quiz" | "flashcards" | "conversation";
+export type ViewName = "dashboard" | "learn" | "review" | "grammar" | "conjugation" | "dictionary" | "chat" | "settings" | "stats" | "quiz" | "flashcards" | "conversation" | "tools";

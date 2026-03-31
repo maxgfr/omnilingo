@@ -1,0 +1,101 @@
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  };
+  return text.replace(/[&<>"']/g, (c) => map[c]);
+}
+
+export function formatMessage(text: string): string {
+  let html = text;
+
+  // Code blocks (must be before inline code) - escape content inside
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g,
+    (_m, _lang, code) =>
+      `<pre class="bg-gray-800 text-gray-100 dark:bg-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2"><code>${escapeHtml(code)}</code></pre>`);
+
+  // Inline code - escape content inside
+  html = html.replace(/`([^`]+)`/g,
+    (_m, code) =>
+      `<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">${escapeHtml(code)}</code>`);
+
+  // Escape remaining text that is not inside HTML tags we just created.
+  html = html.replace(/((?:^|>)[^<]*)/g, (_m, segment) => {
+    if (segment.startsWith(">")) {
+      return ">" + escapeHtml(segment.slice(1));
+    }
+    return escapeHtml(segment);
+  });
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-bold text-base mt-3 mb-1">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-lg mt-3 mb-1">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-3 mb-1">$1</h1>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Unordered lists
+  html = html.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>');
+  html = html.replace(/(<li class="ml-4 list-disc">.*<\/li>\n?)+/g, '<ul class="my-1">$&</ul>');
+
+  // Ordered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>');
+
+  // Line breaks (but not inside pre/code blocks)
+  html = html.replace(/\n/g, '<br />');
+
+  return html;
+}
+
+/**
+ * Render text with **bold** markers as highlighted spans (Reverso-style).
+ * Safe: escapes HTML first, then applies highlighting.
+ */
+export function renderHighlighted(text: string): string {
+  let html = escapeHtml(text);
+  html = html.replace(
+    /\*\*(.+?)\*\*/g,
+    '<mark class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-0.5 rounded font-semibold not-italic">$1</mark>'
+  );
+  return html;
+}
+
+/**
+ * Like renderHighlighted but marks are clickable (cursor-pointer + data attribute).
+ * Use with event delegation: e.target.closest("[data-clickable-word]")
+ */
+export function renderClickable(text: string): string {
+  let html = escapeHtml(text);
+  html = html.replace(
+    /\*\*(.+?)\*\*/g,
+    '<mark class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-0.5 rounded font-semibold not-italic cursor-pointer hover:bg-indigo-200 dark:hover:bg-indigo-800/60 transition-colors" data-clickable-word="$1">$1</mark>'
+  );
+  return html;
+}
+
+/**
+ * Parse AI response as JSON. Strips markdown code fences, tries to find JSON object.
+ * Returns null if parsing fails (caller should fallback to markdown rendering).
+ */
+export function parseAiJson<T>(raw: string): T | null {
+  let cleaned = raw.trim();
+  // Strip markdown code fences
+  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    // Try to extract first JSON object or array from response
+    const match = cleaned.match(/[\[{][\s\S]*[\]}]/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]) as T;
+      } catch { /* fallthrough */ }
+    }
+    return null;
+  }
+}
