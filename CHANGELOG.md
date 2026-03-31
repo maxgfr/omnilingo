@@ -1,3 +1,11 @@
+## [2.11.7](https://github.com/maxgfr/omnilingo/compare/v2.11.6...v2.11.7) (2026-03-31)
+
+
+### Bug Fixes
+
+* add code-review-expert, sigma, and skill-forge skills ([991f25a](https://github.com/maxgfr/omnilingo/commit/991f25a41c142374700e7bb6cf3fe9479a13c419))
+* ds store ([e68423b](https://github.com/maxgfr/omnilingo/commit/e68423bce0dc4ae0c9418656f8649625ac011434))
+
 ## [2.11.6](https://github.com/maxgfr/omnilingo/compare/v2.11.5...v2.11.6) (2026-03-30)
 
 
