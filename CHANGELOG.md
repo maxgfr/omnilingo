@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/maxgfr/omnilingo/compare/v2.11.7...v2.12.0) (2026-03-31)
+
+
+### Features
+
+* add Reverso-style AI linguistic tools with 10 interconnected features ([3994e93](https://github.com/maxgfr/omnilingo/commit/3994e93fd797bb7d4e9501681faa3581491d41b9))
+
 ## [2.11.7](https://github.com/maxgfr/omnilingo/compare/v2.11.6...v2.11.7) (2026-03-31)
 
 
