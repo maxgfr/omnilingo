@@ -1,3 +1,10 @@
+## [2.12.1](https://github.com/maxgfr/omnilingo/compare/v2.12.0...v2.12.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* add Reverso-style AI tools and learning features ([2630ffd](https://github.com/maxgfr/omnilingo/commit/2630ffd9a00f1aab04d85751792ac49fc123e65f))
+
 # [2.12.0](https://github.com/maxgfr/omnilingo/compare/v2.11.7...v2.12.0) (2026-03-31)
 
 
