@@ -9,6 +9,8 @@ import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import WordOfDay from "../components/WordOfDay";
 import StreakCalendar from "../components/StreakCalendar";
+import LearningPath from "../components/LearningPath";
+import Achievements from "../components/Achievements";
 import type { SrsStats } from "../types";
 
 export default function Dashboard() {
@@ -139,6 +141,12 @@ export default function Dashboard() {
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t("dashboard.streakCalendar")}</h2>
         <StreakCalendar data={calendarData} />
       </div>
+
+      {/* Learning Path */}
+      {totalWords > 0 && <LearningPath />}
+
+      {/* Achievements */}
+      {totalCards > 0 && <Achievements />}
 
       {/* Quick actions */}
       <div>

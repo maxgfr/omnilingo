@@ -202,6 +202,7 @@
     "hello": "Hello! I'm your AI tutor",
     "askQuestions": "Ask me questions, request corrections, or practice conversation. Use the quick buttons above to get started.",
     "thinking": "Thinking...",
+    "stop": "Stop",
     "typePlaceholder": "Type your message...",
     "shiftEnter": "Shift+Enter for new line — Enter to send",
     "errorAi": "Error communicating with AI",
@@ -456,7 +457,10 @@
       "definition": "Definition",
       "reader": "Reader",
       "pronunciation": "Pronunciation",
-      "daily": "Daily Words"
+      "daily": "Daily Words",
+      "mastery": "Mastery",
+      "dictation": "Dictation",
+      "mining": "Sentence Mining"
     },
     "recentSearches": "Recent searches",
     "translate": {
@@ -529,6 +533,32 @@
     "exercise": {
       "title": "Practice"
     },
+    "dictation": {
+      "title": "Dictation",
+      "subtitle": "Listen and write — train your ear",
+      "start": "Start dictation",
+      "generating": "Generating sentence...",
+      "listenAndType": "Listen and type what you hear",
+      "typePlaceholder": "Type what you heard...",
+      "originalSentence": "Original sentence",
+      "yourAnswer": "Your answer",
+      "submitAnswer": "Submit",
+      "viewResults": "View results",
+      "results": "Dictation Results",
+      "newSession": "New dictation",
+      "speed": {
+        "normal": "Normal",
+        "slow": "Slow"
+      }
+    },
+    "mining": {
+      "inputPlaceholder": "Paste a text to extract sentences from...",
+      "mine": "Extract sentences",
+      "mining": "Extracting...",
+      "saved": "Saved",
+      "savedSentences": "Saved sentences",
+      "grammarPoint": "Grammar"
+    },
     "daily": {
       "title": "Daily Words",
       "subtitle": "Random words to discover today",
@@ -539,6 +569,53 @@
       "textTitle": "Text of the day",
       "showTranslation": "Show translation",
       "hideTranslation": "Hide translation"
+    },
+    "mastery": {
+      "startSession": "Start mastery session",
+      "generating": "Generating adaptive exercise...",
+      "evaluating": "Evaluating your answer...",
+      "submitAnswer": "Submit",
+      "nextExercise": "Next exercise",
+      "endSession": "End session",
+      "viewSummary": "View summary",
+      "newSession": "New session",
+      "dueCards": "Due cards",
+      "accuracy": "Accuracy",
+      "wordsLearned": "Words learned",
+      "errors": "Error patterns",
+      "weakAreas": "Weak areas detected",
+      "feedbackLabel": "Feedback",
+      "misconception": "Misconception identified",
+      "sessionScore": "Score",
+      "focus": {
+        "mixed": "Mixed",
+        "vocabulary": "Vocabulary",
+        "grammar": "Grammar"
+      },
+      "difficulty": {
+        "review": "Review",
+        "frontier": "Frontier",
+        "stretch": "Stretch"
+      },
+      "signal": {
+        "not_yet": "Not yet",
+        "progressing": "Progressing",
+        "mastered": "Mastered"
+      },
+      "placeholder": {
+        "fill": "Type the missing word...",
+        "translate": "Type your translation...",
+        "construct": "Build the sentence...",
+        "error_correction": "Type the corrected sentence..."
+      },
+      "summary": {
+        "title": "Session Summary",
+        "exercises": "Exercises",
+        "correct": "Correct",
+        "accuracy": "Accuracy",
+        "skills": "Skills breakdown",
+        "misconceptions": "Misconceptions"
+      }
     }
   },
   "conversation": {
@@ -564,5 +641,49 @@
     "summary": "Summary",
     "tryAgain": "Try another scenario",
     "endConversation": "End & evaluate"
+  },
+  "learningPath": {
+    "title": "Learning Path",
+    "completed": "completed",
+    "currentLevel": "Current",
+    "noTopics": "No learning content yet. Import a dictionary to get started.",
+    "importData": "Import data"
+  },
+  "achievements": {
+    "title": "Achievements",
+    "unlocked": "unlocked",
+    "nextUp": "Next achievement",
+    "firstSteps": "First Steps",
+    "firstStepsDesc": "Learn 10 words",
+    "wordCollector": "Word Collector",
+    "wordCollectorDesc": "Learn 50 words",
+    "centurion": "Centurion",
+    "centurionDesc": "Learn 100 words",
+    "polyglot": "Polyglot",
+    "polyglotDesc": "Learn 500 words",
+    "scholar": "Scholar",
+    "scholarDesc": "Learn 1000 words",
+    "onFire": "On Fire",
+    "onFireDesc": "3-day streak",
+    "weekWarrior": "Week Warrior",
+    "weekWarriorDesc": "7-day streak",
+    "monthlyMaster": "Monthly Master",
+    "monthlyMasterDesc": "30-day streak",
+    "reviewer": "Reviewer",
+    "reviewerDesc": "50 reviews done",
+    "practiceChampion": "Practice Champion",
+    "practiceChampionDesc": "500 reviews done",
+    "sharpMind": "Sharp Mind",
+    "sharpMindDesc": "80% accuracy",
+    "perfectionist": "Perfectionist",
+    "perfectionistDesc": "95% accuracy",
+    "dedicated": "Dedicated",
+    "dedicatedDesc": "7 study days",
+    "committed": "Committed",
+    "committedDesc": "30 study days",
+    "veteran": "Veteran",
+    "veteranDesc": "100 study days",
+    "grammarian": "Grammarian",
+    "grammarianDesc": "5 grammar topics completed"
   }
 }

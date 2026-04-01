@@ -4,7 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import {
   Languages, BookMarked, SpellCheck, RefreshCw, Table,
   ArrowRightLeft, BookOpen, CalendarDays, Wrench,
-  BookOpenCheck, Mic, Loader2, Clock,
+  BookOpenCheck, Mic, Loader2, Clock, GraduationCap,
+  Ear, Pickaxe,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { getSearchHistory } from "../lib/ai-cache";
@@ -21,10 +22,15 @@ const DefinitionTool = lazy(() => import("../components/tools/DefinitionTool"));
 const DailyWordsTool = lazy(() => import("../components/tools/DailyWordsTool"));
 const ReaderTool = lazy(() => import("../components/tools/ReaderTool"));
 const PronunciationTool = lazy(() => import("../components/tools/PronunciationTool"));
+const MasteryTool = lazy(() => import("../components/tools/MasteryTool"));
+const DictationTool = lazy(() => import("../components/tools/DictationTool"));
+const SentenceMiningTool = lazy(() => import("../components/tools/SentenceMiningTool"));
 
-type ToolTab = "translate" | "context" | "corrector" | "rephrase" | "conjugate" | "synonyms" | "definition" | "daily" | "reader" | "pronunciation";
+type ToolTab = "mastery" | "dictation" | "translate" | "context" | "corrector" | "rephrase" | "conjugate" | "synonyms" | "definition" | "daily" | "reader" | "mining" | "pronunciation";
 
 const TOOL_TABS: { key: ToolTab; icon: React.ComponentType<{ size?: number; className?: string }>; labelKey: string }[] = [
+  { key: "mastery", icon: GraduationCap, labelKey: "tools.tabs.mastery" },
+  { key: "dictation", icon: Ear, labelKey: "tools.tabs.dictation" },
   { key: "translate", icon: Languages, labelKey: "tools.tabs.translate" },
   { key: "context", icon: BookMarked, labelKey: "tools.tabs.context" },
   { key: "corrector", icon: SpellCheck, labelKey: "tools.tabs.corrector" },
@@ -33,6 +39,7 @@ const TOOL_TABS: { key: ToolTab; icon: React.ComponentType<{ size?: number; clas
   { key: "synonyms", icon: ArrowRightLeft, labelKey: "tools.tabs.synonyms" },
   { key: "definition", icon: BookOpen, labelKey: "tools.tabs.definition" },
   { key: "reader", icon: BookOpenCheck, labelKey: "tools.tabs.reader" },
+  { key: "mining", icon: Pickaxe, labelKey: "tools.tabs.mining" },
   { key: "pronunciation", icon: Mic, labelKey: "tools.tabs.pronunciation" },
   { key: "daily", icon: CalendarDays, labelKey: "tools.tabs.daily" },
 ];
@@ -167,8 +174,11 @@ export default function Tools() {
         {activeTab === "conjugate" && <ConjugateTool {...toolProps} />}
         {activeTab === "synonyms" && <SynonymsTool {...toolProps} />}
         {activeTab === "definition" && <DefinitionTool {...toolProps} />}
+        {activeTab === "mastery" && <MasteryTool key="mastery" />}
+        {activeTab === "dictation" && <DictationTool key="dictation" />}
         {activeTab === "daily" && <DailyWordsTool key="daily" />}
         {activeTab === "reader" && <ReaderTool {...toolProps} />}
+        {activeTab === "mining" && <SentenceMiningTool {...toolProps} />}
         {activeTab === "pronunciation" && <PronunciationTool key="pronunciation" />}
       </Suspense>
     </div>

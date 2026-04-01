@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
+import { Send, Sparkles, Loader2, Trash2, Square } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import { formatMessage } from "../lib/markdown";
+import { useStreamingResponse } from "../lib/useStreamingResponse";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -37,6 +38,7 @@ export default function Chat() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { displayedText, isStreaming, isLoading: streamLoading, streamResponse, stop: stopStream } = useStreamingResponse();
 
   // Save to sessionStorage on change
   useEffect(() => {
@@ -85,7 +87,7 @@ ${history ? `\nRecent conversation history:\n${history}` : ""}
     setLoading(true);
     try {
       const prompt = await buildPrompt(userMsg);
-      const response = await bridge.askAi(prompt);
+      const response = await streamResponse(() => bridge.askAi(prompt));
       setMessages((prev) => [...prev.slice(-(MAX_MESSAGES - 1)), { role: "assistant", content: response }]);
     } catch (err) {
       setMessages((prev) => [
@@ -96,7 +98,7 @@ ${history ? `\nRecent conversation history:\n${history}` : ""}
       setLoading(false);
       inputRef.current?.focus();
     }
-  }, [input, loading, buildPrompt]);
+  }, [input, loading, buildPrompt, streamResponse]);
 
   const handleQuickAction = (prompt: string) => {
     setInput(prompt);
@@ -196,7 +198,28 @@ ${history ? `\nRecent conversation history:\n${history}` : ""}
           </div>
         ))}
 
-        {loading && (
+        {/* Streaming response */}
+        {(isStreaming || streamLoading) && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] sm:max-w-[70%] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+              {streamLoading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>{t("chat.thinking")}</span>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-sm leading-relaxed text-gray-900 dark:text-gray-100" dangerouslySetInnerHTML={{ __html: formatMessage(displayedText) }} />
+                  <button onClick={stopStream} className="mt-1 flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600">
+                    <Square size={8} /> {t("chat.stop")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {loading && !isStreaming && !streamLoading && (
           <div className="flex justify-start">
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
               <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
