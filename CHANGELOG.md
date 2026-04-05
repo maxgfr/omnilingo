@@ -1,3 +1,10 @@
+# [2.13.0](https://github.com/maxgfr/omnilingo/compare/v2.12.1...v2.13.0) (2026-04-05)
+
+
+### Features
+
+* add persistent chat history and AI content generation ([db6c363](https://github.com/maxgfr/omnilingo/commit/db6c363d9e143f40e0f4e12e00c906aa511b1670))
+
 ## [2.12.1](https://github.com/maxgfr/omnilingo/compare/v2.12.0...v2.12.1) (2026-04-01)
 
 
