@@ -60,8 +60,8 @@ pub fn run() {
             let _ = std::fs::create_dir_all(base_dir.join("exercises"));
 
             let conn = db::init_database(&base_dir).expect("Failed to init DB");
-            // Ensure default language pair exists (no data import — users import their own)
-            commands::import::ensure_default_pair(&conn).ok();
+            // Ensure settings row exists (onboarding creates the language pair)
+            commands::import::ensure_settings_exist(&conn).ok();
 
             app.manage(DbState(Mutex::new(conn)));
             app.manage(BaseDirState(base_dir));
@@ -77,8 +77,12 @@ pub fn run() {
             commands::memory::read_memory_file,
             commands::memory::write_memory_file,
             commands::ai::ask_ai,
+            commands::ai::ask_ai_conversation,
             commands::ai::get_ai_settings_cmd,
             commands::ai::set_ai_provider,
+            commands::ai::generate_vocabulary,
+            commands::ai::generate_grammar,
+            commands::ai::generate_verbs,
             commands::import::import_builtin_data,
             commands::import::import_from_file,
             commands::dictionary::get_words,
@@ -104,6 +108,9 @@ pub fn run() {
             commands::favorites::toggle_favorite,
             commands::favorites::get_favorites,
             commands::favorites::is_favorite,
+            commands::chat::get_chat_history,
+            commands::chat::save_chat_message,
+            commands::chat::clear_chat_history,
             commands::stats::get_daily_stats,
             commands::stats::get_overview_stats,
             commands::stats::log_error,

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Search,
@@ -11,30 +11,19 @@ import {
   ChevronRight,
   List,
   Volume2,
+  Wand2,
+  Loader2,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
 import { speak, getSourceLang } from "../lib/speech";
 import type { Verb } from "../types";
 
-const PERSONS = ["ich", "du", "er/sie/es", "wir", "ihr", "sie/Sie"];
-const IMPERATIVE_PERSONS = ["du", "ihr", "Sie"];
-const TENSE_KEYS = ["prasens", "prateritum", "perfekt", "futur1", "konjunktiv2", "imperativ"];
-
 type Mode = "random" | "byTense" | "byVerb";
 
 export default function Conjugation() {
   const { t } = useTranslation();
-  const { activePair } = useApp();
-
-  const TENSE_LABELS: Record<string, string> = {
-    prasens: t("conjugation.present"),
-    prateritum: t("conjugation.past"),
-    perfekt: t("conjugation.perfect"),
-    futur1: t("conjugation.futureI"),
-    konjunktiv2: t("conjugation.subjunctiveII"),
-    imperativ: t("conjugation.imperative"),
-  };
+  const { activePair, settings } = useApp();
 
   const [verbs, setVerbs] = useState<Verb[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +31,9 @@ export default function Conjugation() {
   // Mode & navigation
   const [mode, setMode] = useState<Mode>("random");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTense, setSelectedTense] = useState<string>("prasens");
+  const [selectedTense, setSelectedTense] = useState<string>("");
   const [currentVerb, setCurrentVerb] = useState<Verb | null>(null);
-  const [currentTense, setCurrentTense] = useState<string>("prasens");
+  const [currentTense, setCurrentTense] = useState<string>("");
 
   // Form state
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -55,6 +44,64 @@ export default function Conjugation() {
   const [correctCount, setCorrectCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  // AI generation
+  const [generating, setGenerating] = useState(false);
+
+  // Dynamically extract all available tense keys from loaded verbs
+  const allTenseKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const verb of verbs) {
+      for (const tense of Object.keys(verb.conjugations)) {
+        if (verb.conjugations[tense] && Object.keys(verb.conjugations[tense]).length > 0) {
+          keys.add(tense);
+        }
+      }
+    }
+    return Array.from(keys);
+  }, [verbs]);
+
+  // Known tense translations (fallback to key itself for unknown tenses)
+  const TENSE_LABELS: Record<string, string> = {
+    prasens: t("conjugation.present"),
+    present: t("conjugation.present"),
+    prateritum: t("conjugation.past"),
+    past: t("conjugation.past"),
+    perfekt: t("conjugation.perfect"),
+    perfect: t("conjugation.perfect"),
+    futur1: t("conjugation.futureI"),
+    future: t("conjugation.futureI"),
+    konjunktiv2: t("conjugation.subjunctiveII"),
+    subjunctive: t("conjugation.subjunctiveII"),
+    imperativ: t("conjugation.imperative"),
+    imperative: t("conjugation.imperative"),
+    imparfait: "Imparfait",
+    passe_compose: "Passe compose",
+    conditionnel: "Conditionnel",
+    subjonctif: "Subjonctif",
+  };
+
+  function getTenseLabel(key: string): string {
+    return TENSE_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
+  }
+
+  // Get available tenses for a specific verb
+  function getVerbTenses(verb: Verb): string[] {
+    return Object.keys(verb.conjugations).filter(
+      (k) => verb.conjugations[k] && Object.keys(verb.conjugations[k]).length > 0,
+    );
+  }
+
+  // Get persons for current verb/tense dynamically
+  const persons = useMemo(() => {
+    if (!currentVerb || !currentVerb.conjugations[currentTense]) return [];
+    return Object.keys(currentVerb.conjugations[currentTense]);
+  }, [currentVerb, currentTense]);
+
+  const correctAnswers = useMemo(() => {
+    if (!currentVerb || !currentVerb.conjugations[currentTense]) return {};
+    return currentVerb.conjugations[currentTense];
+  }, [currentVerb, currentTense]);
+
   useEffect(() => {
     if (!activePair) return;
     setLoading(true);
@@ -62,7 +109,12 @@ export default function Conjugation() {
       .getVerbs(activePair.id)
       .then((v) => {
         setVerbs(v);
-        if (v.length > 0) pickRandom(v, "prasens");
+        if (v.length > 0) {
+          const tenses = getVerbTenses(v[0]);
+          const firstTense = tenses[0] || "";
+          setSelectedTense(firstTense);
+          pickRandom(v, firstTense);
+        }
       })
       .finally(() => setLoading(false));
   }, [activePair]);
@@ -77,28 +129,18 @@ export default function Conjugation() {
     );
   }, [verbs, searchQuery]);
 
-  const persons =
-    currentTense === "imperativ" ? IMPERATIVE_PERSONS : PERSONS;
-
-  const correctAnswers = useMemo(() => {
-    if (!currentVerb || !currentVerb.conjugations[currentTense]) return {};
-    return currentVerb.conjugations[currentTense];
-  }, [currentVerb, currentTense]);
-
   // ------ Helpers ------
 
   function pickRandom(pool: Verb[] = verbs, tense?: string) {
     if (pool.length === 0) return;
     const verb = pool[Math.floor(Math.random() * pool.length)];
-    const availableTenses = TENSE_KEYS.filter(
-      (k) => verb.conjugations[k] && Object.keys(verb.conjugations[k]).length > 0,
-    );
+    const availableTenses = getVerbTenses(verb);
     const picked =
       tense && availableTenses.includes(tense)
         ? tense
         : availableTenses.length > 0
           ? availableTenses[Math.floor(Math.random() * availableTenses.length)]
-          : "prasens";
+          : "";
     startPractice(verb, picked);
   }
 
@@ -119,10 +161,9 @@ export default function Conjugation() {
     if (!currentVerb) return;
     setChecked(true);
 
-    const p = currentTense === "imperativ" ? IMPERATIVE_PERSONS : PERSONS;
     let correct = 0;
     const errors: string[] = [];
-    p.forEach((person) => {
+    persons.forEach((person) => {
       const expected = (correctAnswers[person] || "").trim().toLowerCase();
       const given = (answers[person] || "").trim().toLowerCase();
       if (given === expected) {
@@ -132,9 +173,9 @@ export default function Conjugation() {
       }
     });
 
-    const allCorrect = correct === p.length;
+    const allCorrect = correct === persons.length;
     setCorrectCount((c) => c + correct);
-    setTotalCount((prev) => prev + p.length);
+    setTotalCount((prev) => prev + persons.length);
 
     if (activePair) {
       bridge
@@ -165,12 +206,7 @@ export default function Conjugation() {
       );
       pickRandom(tensVerbs, selectedTense);
     } else if (mode === "byVerb" && currentVerb) {
-      // Go to next tense for same verb
-      const available = TENSE_KEYS.filter(
-        (k) =>
-          currentVerb.conjugations[k] &&
-          Object.keys(currentVerb.conjugations[k]).length > 0,
-      );
+      const available = getVerbTenses(currentVerb);
       const idx = available.indexOf(currentTense);
       const nextIdx = (idx + 1) % available.length;
       startPractice(currentVerb, available[nextIdx]);
@@ -179,11 +215,7 @@ export default function Conjugation() {
 
   function handlePrevTense() {
     if (!currentVerb) return;
-    const available = TENSE_KEYS.filter(
-      (k) =>
-        currentVerb.conjugations[k] &&
-        Object.keys(currentVerb.conjugations[k]).length > 0,
-    );
+    const available = getVerbTenses(currentVerb);
     const idx = available.indexOf(currentTense);
     const prevIdx = (idx - 1 + available.length) % available.length;
     startPractice(currentVerb, available[prevIdx]);
@@ -191,22 +223,15 @@ export default function Conjugation() {
 
   function handleNextTense() {
     if (!currentVerb) return;
-    const available = TENSE_KEYS.filter(
-      (k) =>
-        currentVerb.conjugations[k] &&
-        Object.keys(currentVerb.conjugations[k]).length > 0,
-    );
+    const available = getVerbTenses(currentVerb);
     const idx = available.indexOf(currentTense);
     const nextIdx = (idx + 1) % available.length;
     startPractice(currentVerb, available[nextIdx]);
   }
 
   function selectVerb(verb: Verb) {
-    const available = TENSE_KEYS.filter(
-      (k) =>
-        verb.conjugations[k] && Object.keys(verb.conjugations[k]).length > 0,
-    );
-    startPractice(verb, available[0] || "prasens");
+    const available = getVerbTenses(verb);
+    startPractice(verb, available[0] || "");
   }
 
   function isAnswerCorrect(person: string): boolean {
@@ -214,6 +239,25 @@ export default function Conjugation() {
     const given = (answers[person] || "").trim().toLowerCase();
     return given === expected;
   }
+
+  const handleGenerate = useCallback(async () => {
+    if (!activePair) return;
+    setGenerating(true);
+    try {
+      await bridge.generateVerbs(activePair.id, 20, settings?.level || "A1");
+      const v = await bridge.getVerbs(activePair.id);
+      setVerbs(v);
+      if (v.length > 0) {
+        const tenses = getVerbTenses(v[0]);
+        setSelectedTense(tenses[0] || "");
+        pickRandom(v, tenses[0]);
+      }
+    } catch (err) {
+      console.error("Generation failed:", err);
+    } finally {
+      setGenerating(false);
+    }
+  }, [activePair, settings]);
 
   // ------ Render ------
 
@@ -233,10 +277,15 @@ export default function Conjugation() {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("conjugation.noVerbsAvailable")}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">{t("conjugation.emptyDescription")}</p>
         </div>
-        <div className="flex gap-3">
-          <a href="#/dictionary" className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium text-sm transition-all">
-            {t("dashboard.importDict")}
-          </a>
+        <div className="flex flex-wrap gap-3 justify-center">
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm disabled:opacity-50"
+          >
+            {generating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+            {generating ? "Generating..." : "Generate with AI"}
+          </button>
           <a href="#/settings" className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
             {t("dashboard.downloadDict")}
           </a>
@@ -290,12 +339,13 @@ export default function Conjugation() {
         <button
           onClick={() => {
             setMode("byTense");
+            const tense = selectedTense || allTenseKeys[0] || "";
             const tensVerbs = verbs.filter(
               (v) =>
-                v.conjugations[selectedTense] &&
-                Object.keys(v.conjugations[selectedTense]).length > 0,
+                v.conjugations[tense] &&
+                Object.keys(v.conjugations[tense]).length > 0,
             );
-            pickRandom(tensVerbs, selectedTense);
+            pickRandom(tensVerbs, tense);
           }}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             mode === "byTense"
@@ -319,10 +369,10 @@ export default function Conjugation() {
         </button>
       </div>
 
-      {/* Tense selector (byTense mode) */}
+      {/* Tense selector (byTense mode) -- dynamic from data */}
       {mode === "byTense" && (
         <div className="flex flex-wrap gap-2">
-          {TENSE_KEYS.map((tense) => (
+          {allTenseKeys.map((tense) => (
             <button
               key={tense}
               onClick={() => {
@@ -340,7 +390,7 @@ export default function Conjugation() {
                   : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
-              {TENSE_LABELS[tense]}
+              {getTenseLabel(tense)}
             </button>
           ))}
         </div>
@@ -427,7 +477,7 @@ export default function Conjugation() {
                   onClick={() =>
                     speak(
                       currentVerb.infinitive,
-                      getSourceLang(activePair?.source_lang || "de"),
+                      getSourceLang(activePair?.source_lang || "en"),
                     )
                   }
                   className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
@@ -468,7 +518,7 @@ export default function Conjugation() {
                 <ChevronLeft size={18} />
               </button>
               <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 min-w-[100px] text-center">
-                {TENSE_LABELS[currentTense] || currentTense}
+                {getTenseLabel(currentTense)}
               </span>
               <button
                 onClick={handleNextTense}
@@ -480,7 +530,7 @@ export default function Conjugation() {
             </div>
           </div>
 
-          {/* Conjugation inputs */}
+          {/* Conjugation inputs -- persons from data */}
           <div className="p-6 space-y-3">
             {persons.map((person) => {
               const userAnswer = answers[person] || "";
@@ -531,23 +581,33 @@ export default function Conjugation() {
             })}
           </div>
 
-          {/* Examples */}
+          {/* Examples -- generic keys */}
           {currentVerb.examples && currentVerb.examples.length > 0 && (
             <div className="px-6 pb-4">
               <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 p-3 space-y-1">
-                {currentVerb.examples.slice(0, 2).map((ex, i) => (
-                  <div key={i} className="text-xs">
-                    <span className="text-gray-600 dark:text-gray-400 italic">
-                      "{ex.de}"
-                    </span>
-                    <span className="text-gray-400 dark:text-gray-500 mx-1.5">
-                      —
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-500">
-                      "{ex.fr}"
-                    </span>
-                  </div>
-                ))}
+                {currentVerb.examples.slice(0, 2).map((ex: Record<string, string>, i: number) => {
+                  // Try common keys: source/target, de/fr, or first two keys
+                  const keys = Object.keys(ex);
+                  const sourceKey = keys.find((k) => ["source", "de", "en", "es", "it", "pt"].includes(k)) || keys[0];
+                  const targetKey = keys.find((k) => ["target", "fr", "translation"].includes(k)) || keys[1];
+                  return (
+                    <div key={i} className="text-xs">
+                      <span className="text-gray-600 dark:text-gray-400 italic">
+                        &ldquo;{ex[sourceKey]}&rdquo;
+                      </span>
+                      {targetKey && ex[targetKey] && (
+                        <>
+                          <span className="text-gray-400 dark:text-gray-500 mx-1.5">
+                            &mdash;
+                          </span>
+                          <span className="text-gray-500 dark:text-gray-500">
+                            &ldquo;{ex[targetKey]}&rdquo;
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

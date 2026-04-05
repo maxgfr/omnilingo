@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   Flame, Clock, BookOpen, Target, Repeat,
   MessageCircle, ArrowRight, Search, BookText,
+  Wand2, Loader2,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
@@ -22,6 +23,8 @@ export default function Dashboard() {
   const [calendarData, setCalendarData] = useState<Record<string, number>>({});
   const [totalWords, setTotalWords] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [genStatus, setGenStatus] = useState("");
 
   useEffect(() => {
     if (!activePair) return;
@@ -97,10 +100,39 @@ export default function Dashboard() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("dashboard.emptyTitle")}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">{t("dashboard.emptyDescription")}</p>
           </div>
-          <Link to="/settings" className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm">
-            <BookOpen size={16} />
-            {t("dashboard.downloadDict")}
-          </Link>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={async () => {
+                if (!activePair) return;
+                setGenerating(true);
+                try {
+                  const level = settings?.level || "A1";
+                  setGenStatus("Generating vocabulary...");
+                  await bridge.generateVocabulary(activePair.id, 80, level);
+                  setGenStatus("Generating grammar...");
+                  await bridge.generateGrammar(activePair.id, 8, level);
+                  setGenStatus("Generating verbs...");
+                  await bridge.generateVerbs(activePair.id, 20, level);
+                  const wc = await bridge.getWordCount(activePair.id);
+                  setTotalWords(wc);
+                } catch (err) {
+                  setGenStatus(`Error: ${err}`);
+                } finally {
+                  setGenerating(false);
+                  setGenStatus("");
+                }
+              }}
+              disabled={generating}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm disabled:opacity-50"
+            >
+              {generating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+              {generating ? genStatus || "Generating..." : "Generate with AI"}
+            </button>
+            <Link to="/settings" className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm">
+              <BookOpen size={16} />
+              {t("dashboard.downloadDict")}
+            </Link>
+          </div>
         </div>
       )}
 

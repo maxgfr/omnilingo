@@ -11,9 +11,6 @@ interface ChatMessage {
   content: string;
 }
 
-const MAX_MESSAGES = 20;
-const STORAGE_KEY = "omnilingo-chat";
-
 export default function Chat() {
   const { t } = useTranslation();
   const { settings, activePair } = useApp();
@@ -26,24 +23,20 @@ export default function Chat() {
     { label: t("chat.exercises"), prompt: `Give me 5 exercises at level ` },
     { label: t("chat.translate"), prompt: `Translate into ${sourceName}: ` },
   ];
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { displayedText, isStreaming, isLoading: streamLoading, streamResponse, stop: stopStream } = useStreamingResponse();
 
-  // Save to sessionStorage on change
+  // Load chat history from SQLite on mount
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)));
-  }, [messages]);
+    if (!activePair) return;
+    bridge.getChatHistory(activePair.id, 100).then((rows) => {
+      setMessages(rows.map((r) => ({ role: r.role as "user" | "assistant", content: r.content })));
+    }).catch(() => {});
+  }, [activePair?.id]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -55,59 +48,67 @@ export default function Chat() {
     inputRef.current?.focus();
   }, []);
 
-  const buildPrompt = useCallback(
-    async (userMessage: string) => {
+  const buildSystemPrompt = useCallback(
+    async () => {
       const errors = await bridge.readMemoryFile("errors.md").catch(() => null);
       const level = settings?.level || "A2";
       const srcName = activePair?.source_name || "the target language";
       const tgtName = activePair?.target_name || "the native language";
 
-      const history = messages
-        .slice(-6)
-        .map((m) => `${m.role === "user" ? "Student" : "Tutor"}: ${m.content}`)
-        .join("\n");
-
-      const context = `You are an expert, patient and encouraging language tutor. The student is learning ${srcName} (target language) from ${tgtName} (native language).
+      return `You are an expert, patient and encouraging language tutor. The student is learning ${srcName} (target language) from ${tgtName} (native language).
 Their CEFR level is ${level}. Adapt your responses to this level: simple vocabulary for A1-A2, more complex for B1+.
 Always respond in ${tgtName}, except when giving examples in the target language.
 Use concrete examples and correct errors with kindness.
-${errors ? `\nRecent student errors (target these in your responses):\n${errors.slice(0, 500)}` : ""}
-${history ? `\nRecent conversation history:\n${history}` : ""}
-\nStudent message: ${userMessage}`;
-      return context;
+${errors ? `\nRecent student errors (target these in your responses):\n${errors.slice(0, 500)}` : ""}`;
     },
-    [settings, activePair, messages],
+    [settings, activePair],
   );
 
   const send = useCallback(async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || !activePair) return;
     const userMsg = input.trim();
     setInput("");
-    setMessages((prev) => [...prev.slice(-(MAX_MESSAGES - 1)), { role: "user", content: userMsg }]);
+
+    const newMessages: ChatMessage[] = [...messages, { role: "user", content: userMsg }];
+    setMessages(newMessages);
     setLoading(true);
+
+    // Persist user message
+    bridge.saveChatMessage(activePair.id, "user", userMsg).catch(() => {});
+
     try {
-      const prompt = await buildPrompt(userMsg);
-      const response = await streamResponse(() => bridge.askAi(prompt));
-      setMessages((prev) => [...prev.slice(-(MAX_MESSAGES - 1)), { role: "assistant", content: response }]);
+      const systemPrompt = await buildSystemPrompt();
+
+      // Build conversation messages for multi-turn API call
+      const apiMessages = [
+        { role: "system", content: systemPrompt },
+        ...newMessages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+      ];
+
+      const response = await streamResponse(() => bridge.askAiConversation(apiMessages));
+      setMessages((prev) => [...prev, { role: "assistant", content: response }]);
+
+      // Persist assistant message
+      bridge.saveChatMessage(activePair.id, "assistant", response).catch(() => {});
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `${t("chat.errorAi")}: ${err}` },
-      ]);
+      const errMsg = `${t("chat.errorAi")}: ${err}`;
+      setMessages((prev) => [...prev, { role: "assistant", content: errMsg }]);
     } finally {
       setLoading(false);
       inputRef.current?.focus();
     }
-  }, [input, loading, buildPrompt, streamResponse]);
+  }, [input, loading, activePair, messages, buildSystemPrompt, streamResponse]);
 
   const handleQuickAction = (prompt: string) => {
     setInput(prompt);
     inputRef.current?.focus();
   };
 
-  const clearChat = () => {
+  const clearChat = async () => {
     setMessages([]);
-    sessionStorage.removeItem(STORAGE_KEY);
+    if (activePair) {
+      bridge.clearChatHistory(activePair.id).catch(() => {});
+    }
     inputRef.current?.focus();
   };
 

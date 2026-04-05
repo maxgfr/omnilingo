@@ -70,9 +70,25 @@ export const writeMemoryFile = (path: string, content: string) => safeInvoke<voi
 
 // AI
 export const askAi = (prompt: string) => safeInvoke<string>("ask_ai", { prompt });
+export const askAiConversation = (messages: Array<{ role: string; content: string }>) =>
+  safeInvoke<string>("ask_ai_conversation", { messages });
 export const getAiSettings = () => invokeAndParse("get_ai_settings_cmd", AiSettingsSchema);
 export const setAiProvider = (provider: string, apiKey: string, model: string) =>
   safeInvoke<void>("set_ai_provider", { provider, apiKey, model });
+export const generateVocabulary = (pairId: number, count: number, level: string, theme?: string) =>
+  safeInvoke<number>("generate_vocabulary", { pairId, count, level, theme: theme ?? null });
+export const generateGrammar = (pairId: number, count: number, level: string) =>
+  safeInvoke<number>("generate_grammar", { pairId, count, level });
+export const generateVerbs = (pairId: number, count: number, level: string) =>
+  safeInvoke<number>("generate_verbs", { pairId, count, level });
+
+// Chat persistence
+export const getChatHistory = (pairId: number, limit?: number) =>
+  safeInvoke<Array<{ id: number; role: string; content: string; created_at: string }>>("get_chat_history", { pairId, limit: limit ?? null });
+export const saveChatMessage = (pairId: number, role: string, content: string) =>
+  safeInvoke<number>("save_chat_message", { pairId, role, content });
+export const clearChatHistory = (pairId: number) =>
+  safeInvoke<void>("clear_chat_history", { pairId });
 
 // Session
 export const logSession = (pairId: number, sessionType: string, sessionData: Record<string, unknown>) =>
@@ -92,8 +108,8 @@ export const transcribeAudio = (audioData: number[], language?: string) =>
 
 // Download
 export const getAvailableDictionaries = () => invokeAndParseArray("get_available_dictionaries", DictionarySourceSchema);
-export const downloadDictionary = (sourceLang: string, targetLang: string, url: string, sourceName: string, targetName: string) =>
-  safeInvoke<string>("download_dictionary", { sourceLang, targetLang, url, sourceName, targetName });
+export const downloadDictionary = (sourceLang: string, targetLang: string, url: string, sourceName: string, targetName: string, format: string) =>
+  safeInvoke<string>("download_dictionary", { sourceLang, targetLang, url, sourceName, targetName, format });
 
 // Favorites
 export const toggleFavorite = (wordId: number) => safeInvoke<boolean>("toggle_favorite", { wordId });

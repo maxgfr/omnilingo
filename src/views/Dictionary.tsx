@@ -35,7 +35,7 @@ const genderBadges: Record<string, { label: string; color: string }> = {
 
 export default function Dictionary() {
   const { t } = useTranslation();
-  const { activePair, isGerman } = useApp();
+  const { activePair, isGerman, settings } = useApp();
 
   const [words, setWords] = useState<Word[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -526,9 +526,28 @@ Return ONLY valid JSON array, no markdown.`;
 
       {/* Word list */}
       {displayWords.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-16 text-gray-500 dark:text-gray-400 space-y-4">
           <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
           <p className="text-lg font-medium">{t("dictionary.noWordsFound")}</p>
+          {totalCount === 0 && !searchQuery.trim() && activePair && (
+            <button
+              onClick={async () => {
+                try {
+                  await bridge.generateVocabulary(activePair.id, 50, settings?.level || "A1");
+                  const wc = await bridge.getWordCount(activePair.id);
+                  setTotalCount(wc);
+                  const w = await bridge.getWords(activePair.id, undefined, PAGE_SIZE, 0);
+                  setWords(w);
+                } catch (err) {
+                  console.error("Generation failed:", err);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm"
+            >
+              <Wand2 size={16} />
+              Generate vocabulary with AI
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-2">

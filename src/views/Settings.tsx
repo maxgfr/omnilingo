@@ -370,6 +370,7 @@ export default function Settings() {
         dict.url,
         dict.source_name,
         dict.target_name,
+        dict.format,
       );
       showStatus(t("settings.dictDownloaded", { name: `${dict.source_name}-${dict.target_name}` }));
       await reloadSettings();

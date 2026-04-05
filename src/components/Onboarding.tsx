@@ -56,6 +56,8 @@ export default function Onboarding({ children }: OnboardingProps) {
   const [aiTestStatus, setAiTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [aiTestError, setAiTestError] = useState("");
   const [dictSearch, setDictSearch] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [generateStatus, setGenerateStatus] = useState("");
 
   // Load dictionary catalog once
   useEffect(() => {
@@ -158,12 +160,42 @@ export default function Onboarding({ children }: OnboardingProps) {
         dict.url,
         dict.source_name,
         dict.target_name,
+        dict.format,
       );
       setDownloadDone(true);
     } catch (err) {
       console.error("Download failed:", err);
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleGenerateWithAi = async () => {
+    setGenerating(true);
+    try {
+      const pairs = await bridge.getLanguagePairs();
+      const pair = pairs[0];
+      if (!pair) {
+        setGenerating(false);
+        return;
+      }
+      const level = "A1";
+
+      setGenerateStatus("Generating vocabulary...");
+      await bridge.generateVocabulary(pair.id, 80, level);
+
+      setGenerateStatus("Generating grammar...");
+      await bridge.generateGrammar(pair.id, 8, level);
+
+      setGenerateStatus("Generating verbs...");
+      await bridge.generateVerbs(pair.id, 20, level);
+
+      setDownloadDone(true);
+    } catch (err) {
+      console.error("AI generation failed:", err);
+      setGenerateStatus(`Error: ${err}`);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -516,8 +548,27 @@ export default function Onboarding({ children }: OnboardingProps) {
               )}
 
               <button
+                onClick={handleGenerateWithAi}
+                disabled={generating || downloadDone}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:border-purple-400 transition-all hover:shadow-md active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow-sm text-purple-500">
+                  {generating ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />}
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                    {generating ? generateStatus : "Generate with AI"}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    80 words + 8 grammar topics + 20 verbs
+                  </p>
+                </div>
+              </button>
+
+              <button
                 onClick={handleImportFile}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 hover:border-indigo-400 transition-all hover:shadow-md active:scale-[0.99]"
+                disabled={generating}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 hover:border-indigo-400 transition-all hover:shadow-md active:scale-[0.99] disabled:opacity-50"
               >
                 <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow-sm text-indigo-500">
                   <FileUp size={20} />

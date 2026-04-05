@@ -95,32 +95,16 @@ export default function Quiz() {
         }
       }
 
-      // Build conjugation questions (text input)
-      const tenseKeys = [
-        "prasens",
-        "prateritum",
-        "perfekt",
-        "futur1",
-        "konjunktiv2",
-      ];
-      const tenseLabels: Record<string, string> = {
-        prasens: t("conjugation.present"),
-        prateritum: t("conjugation.past"),
-        perfekt: t("conjugation.perfect"),
-        futur1: t("conjugation.futureI"),
-        konjunktiv2: t("conjugation.subjunctiveII"),
-      };
-      const persons = ["ich", "du", "er/sie/es", "wir", "ihr", "sie/Sie"];
-
+      // Build conjugation questions (text input) -- dynamic from verb data
       for (const verb of verbs) {
-        const availableTenses = tenseKeys.filter(
+        const availableTenses = Object.keys(verb.conjugations).filter(
           (k) =>
             verb.conjugations[k] &&
             Object.keys(verb.conjugations[k]).length > 0,
         );
         for (const tense of availableTenses) {
           const conjugation = verb.conjugations[tense];
-          const availablePersons = persons.filter(
+          const availablePersons = Object.keys(conjugation).filter(
             (p) => conjugation[p] && conjugation[p].trim() !== "",
           );
           if (availablePersons.length === 0) continue;
@@ -130,10 +114,11 @@ export default function Quiz() {
               Math.floor(Math.random() * availablePersons.length)
             ];
           const answer = conjugation[person];
+          const tenseLabel = tense.charAt(0).toUpperCase() + tense.slice(1).replace(/_/g, " ");
 
           pool.push({
             type: "conjugation",
-            question: `${verb.infinitive} (${tenseLabels[tense] || tense}, ${person})`,
+            question: `${verb.infinitive} (${tenseLabel}, ${person})`,
             answer,
           });
         }

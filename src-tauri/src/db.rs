@@ -34,6 +34,14 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Migration 003 failed: {}", e))?;
     }
 
+    if current_version < 4 {
+        let migration_sql = include_str!("../migrations/004_chat_history.sql");
+        conn.execute_batch(migration_sql)
+            .map_err(|e| format!("Migration 004 failed: {}", e))?;
+        conn.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (4)", [])
+            .map_err(|e| format!("Failed to update schema version: {}", e))?;
+    }
+
     Ok(())
 }
 

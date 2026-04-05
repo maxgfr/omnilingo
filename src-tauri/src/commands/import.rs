@@ -3,30 +3,14 @@ use tauri::State;
 
 use crate::{DbState, BaseDirState};
 
-/// Ensure the default DE-FR language pair exists, return its ID
-pub fn ensure_default_pair(conn: &Connection) -> Result<i64, String> {
+/// Ensure the settings row exists (no hardcoded language pair -- onboarding handles that)
+pub fn ensure_settings_exist(conn: &Connection) -> Result<(), String> {
     conn.execute(
-        "INSERT OR IGNORE INTO language_pairs (source_lang, target_lang, source_name, target_name, source_flag, target_flag, is_active)
-         VALUES ('de', 'fr', 'German', 'French', '🇩🇪', '🇫🇷', 1)",
+        "INSERT OR IGNORE INTO settings (id) VALUES (1)",
         [],
     )
     .map_err(|e| e.to_string())?;
-
-    let pair_id: i64 = conn
-        .query_row(
-            "SELECT id FROM language_pairs WHERE source_lang = 'de' AND target_lang = 'fr'",
-            [],
-            |row| row.get(0),
-        )
-        .map_err(|e| e.to_string())?;
-
-    conn.execute(
-        "UPDATE settings SET active_language_pair_id = ?1 WHERE id = 1 AND active_language_pair_id IS NULL",
-        [pair_id],
-    )
-    .map_err(|e| e.to_string())?;
-
-    Ok(pair_id)
+    Ok(())
 }
 
 /// Re-import builtin data (kept for backwards compatibility but does nothing without data files)

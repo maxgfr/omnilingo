@@ -10,3 +10,4 @@ pub mod speech;
 pub mod download;
 pub mod favorites;
 pub mod stats;
+pub mod chat;
