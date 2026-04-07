@@ -1,17 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import * as bridge from "../lib/bridge";
-import { setAudioEnabled } from "../lib/speech";
 import type { Settings, LanguagePair } from "../types";
 
 interface AppState {
   settings: Settings | null;
-  activePair: LanguagePair | null;
   languagePairs: LanguagePair[];
   loading: boolean;
   reloadSettings: () => Promise<void>;
-  switchPair: (pairId: number) => Promise<void>;
   updateSetting: (key: string, value: string) => Promise<void>;
-  isGerman: () => boolean;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -19,7 +15,6 @@ const AppContext = createContext<AppState | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [languagePairs, setLanguagePairs] = useState<LanguagePair[]>([]);
-  const [activePair, setActivePair] = useState<LanguagePair | null>(null);
   const [loading, setLoading] = useState(true);
 
   const reloadSettings = useCallback(async () => {
@@ -30,26 +25,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ]);
       setSettings(s);
       setLanguagePairs(pairs);
-      const active = pairs.find((p) => p.id === s.active_language_pair_id) || pairs[0] || null;
-      setActivePair(active);
     } catch (err) {
       console.error("Failed to load settings:", err);
     }
   }, []);
 
-  const switchPair = useCallback(async (pairId: number) => {
-    await bridge.setActiveLanguagePair(pairId);
-    await reloadSettings();
-  }, [reloadSettings]);
-
   const updateSettingFn = useCallback(async (key: string, value: string) => {
     await bridge.updateSetting(key, value);
     await reloadSettings();
   }, [reloadSettings]);
-
-  const isGerman = useCallback(() => {
-    return activePair?.source_lang === "de";
-  }, [activePair]);
 
   useEffect(() => {
     reloadSettings().then(() => setLoading(false));
@@ -74,14 +58,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [settings?.dark_mode]);
 
-  // Sync audio_enabled setting to speech module
-  useEffect(() => {
-    setAudioEnabled(settings?.audio_enabled ?? true);
-  }, [settings?.audio_enabled]);
-
   return (
     <AppContext.Provider
-      value={{ settings, activePair, languagePairs, loading, reloadSettings, switchPair, updateSetting: updateSettingFn, isGerman }}
+      value={{ settings, languagePairs, loading, reloadSettings, updateSetting: updateSettingFn }}
     >
       {children}
     </AppContext.Provider>

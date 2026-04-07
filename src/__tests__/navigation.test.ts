@@ -6,13 +6,7 @@ import React from "react";
 vi.mock("../lib/bridge", () => ({
   getSettings: vi.fn().mockResolvedValue({
     active_language_pair_id: 1,
-    level: "A2",
-    words_per_day: 10,
-    streak: 3,
-    last_session_date: null,
-    start_date: null,
     dark_mode: "system",
-    audio_enabled: true,
     ai_provider: "claude-code",
     ai_model: "",
   }),
@@ -33,9 +27,7 @@ vi.mock("../lib/bridge", () => ({
   getSrsStats: vi.fn().mockResolvedValue({ total_cards: 10, due_count: 3, average_accuracy: 80 }),
   getDueCount: vi.fn().mockResolvedValue(3),
   getWordCount: vi.fn().mockResolvedValue(100),
-  getDailyStats: vi.fn().mockResolvedValue([]),
   getAiSettings: vi.fn().mockResolvedValue({ provider: "claude-code", api_key: "", model: "" }),
-  getWhisperModels: vi.fn().mockResolvedValue([]),
   getAvailableDictionaries: vi.fn().mockResolvedValue([]),
   detectOllama: vi.fn().mockResolvedValue({ available: false, models: [] }),
   getDueCards: vi.fn().mockResolvedValue([]),
@@ -46,25 +38,7 @@ vi.mock("../lib/bridge", () => ({
   searchWords: vi.fn().mockResolvedValue([]),
   getCategories: vi.fn().mockResolvedValue([]),
   getFavorites: vi.fn().mockResolvedValue([]),
-  getOverviewStats: vi.fn().mockResolvedValue({
-    total_words: 0, total_learned: 0, total_reviews: 0,
-    total_grammar_completed: 0, total_grammar: 0,
-    streak: 0, accuracy: 0, study_days: 0, favorite_count: 0,
-  }),
-  getRandomWord: vi.fn().mockResolvedValue(null),
-  updateStreak: vi.fn().mockResolvedValue({
-    active_language_pair_id: 1, level: "A2", words_per_day: 10,
-    streak: 3, last_session_date: null, start_date: null,
-    dark_mode: "system", audio_enabled: true, ai_provider: "claude-code", ai_model: "",
-  }),
   fetchModelCatalog: vi.fn().mockResolvedValue({}),
-}));
-
-// Mock speech module to avoid window.speechSynthesis issues
-vi.mock("../lib/speech", () => ({
-  setAudioEnabled: vi.fn(),
-  speak: vi.fn(),
-  getSourceLang: vi.fn().mockReturnValue("de-DE"),
 }));
 
 // Mock onboarding as completed so it doesn't block rendering
@@ -118,38 +92,34 @@ describe("App rendering", () => {
 describe("Route definitions", () => {
   const EXPECTED_ROUTES = [
     "/",
-    "/learn",
-    "/review",
+    "/dictionary",
     "/grammar",
     "/conjugation",
-    "/dictionary",
-    "/quiz",
     "/flashcards",
     "/conversation",
-    "/chat",
-    "/tools",
-    "/stats",
+    "/rephrase",
+    "/corrector",
+    "/synonyms",
+    "/text-analysis",
     "/settings",
   ];
 
-  it("has exactly 13 routes defined", () => {
-    expect(EXPECTED_ROUTES).toHaveLength(13);
+  it("has exactly 11 routes defined", () => {
+    expect(EXPECTED_ROUTES).toHaveLength(11);
   });
 
-  it("all expected routes are present in App.tsx source", async () => {
+  it("all expected routes are present", () => {
     const routePaths = [
       "/",
-      "/learn",
-      "/review",
+      "/dictionary",
       "/grammar",
       "/conjugation",
-      "/dictionary",
-      "/quiz",
       "/flashcards",
       "/conversation",
-      "/chat",
-      "/tools",
-      "/stats",
+      "/rephrase",
+      "/corrector",
+      "/synonyms",
+      "/text-analysis",
       "/settings",
     ];
 
@@ -163,30 +133,25 @@ describe("Route definitions", () => {
     expect(EXPECTED_ROUTES).toContain("/");
   });
 
-  it("learning routes exist", () => {
-    expect(EXPECTED_ROUTES).toContain("/learn");
-    expect(EXPECTED_ROUTES).toContain("/review");
-    expect(EXPECTED_ROUTES).toContain("/quiz");
-    expect(EXPECTED_ROUTES).toContain("/flashcards");
-  });
-
   it("reference routes exist", () => {
     expect(EXPECTED_ROUTES).toContain("/grammar");
     expect(EXPECTED_ROUTES).toContain("/conjugation");
     expect(EXPECTED_ROUTES).toContain("/dictionary");
   });
 
-  it("communication routes exist", () => {
+  it("learning routes exist", () => {
+    expect(EXPECTED_ROUTES).toContain("/flashcards");
     expect(EXPECTED_ROUTES).toContain("/conversation");
-    expect(EXPECTED_ROUTES).toContain("/chat");
   });
 
-  it("tools route exists", () => {
-    expect(EXPECTED_ROUTES).toContain("/tools");
+  it("tool routes exist", () => {
+    expect(EXPECTED_ROUTES).toContain("/rephrase");
+    expect(EXPECTED_ROUTES).toContain("/corrector");
+    expect(EXPECTED_ROUTES).toContain("/synonyms");
+    expect(EXPECTED_ROUTES).toContain("/text-analysis");
   });
 
-  it("utility routes exist", () => {
-    expect(EXPECTED_ROUTES).toContain("/stats");
+  it("settings route exists", () => {
     expect(EXPECTED_ROUTES).toContain("/settings");
   });
 });
@@ -195,24 +160,6 @@ describe("Route definitions", () => {
 // 3. View modules can be imported
 // ─────────────────────────────────────────────────────────────────────
 describe("View modules", () => {
-  it("Dashboard view exports a default component", async () => {
-    const mod = await import("../views/Dashboard");
-    expect(mod.default).toBeDefined();
-    expect(typeof mod.default).toBe("function");
-  });
-
-  it("Learn view exports a default component", async () => {
-    const mod = await import("../views/Learn");
-    expect(mod.default).toBeDefined();
-    expect(typeof mod.default).toBe("function");
-  });
-
-  it("Review view exports a default component", async () => {
-    const mod = await import("../views/Review");
-    expect(mod.default).toBeDefined();
-    expect(typeof mod.default).toBe("function");
-  });
-
   it("Grammar view exports a default component", async () => {
     const mod = await import("../views/Grammar");
     expect(mod.default).toBeDefined();
@@ -231,12 +178,6 @@ describe("View modules", () => {
     expect(typeof mod.default).toBe("function");
   });
 
-  it("Quiz view exports a default component", async () => {
-    const mod = await import("../views/Quiz");
-    expect(mod.default).toBeDefined();
-    expect(typeof mod.default).toBe("function");
-  });
-
   it("Flashcards view exports a default component", async () => {
     const mod = await import("../views/Flashcards");
     expect(mod.default).toBeDefined();
@@ -249,14 +190,26 @@ describe("View modules", () => {
     expect(typeof mod.default).toBe("function");
   });
 
-  it("Chat view exports a default component", async () => {
-    const mod = await import("../views/Chat");
+  it("Rephrase view exports a default component", async () => {
+    const mod = await import("../views/Rephrase");
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
   });
 
-  it("Stats view exports a default component", async () => {
-    const mod = await import("../views/Stats");
+  it("Corrector view exports a default component", async () => {
+    const mod = await import("../views/Corrector");
+    expect(mod.default).toBeDefined();
+    expect(typeof mod.default).toBe("function");
+  });
+
+  it("Synonyms view exports a default component", async () => {
+    const mod = await import("../views/Synonyms");
+    expect(mod.default).toBeDefined();
+    expect(typeof mod.default).toBe("function");
+  });
+
+  it("TextAnalysis view exports a default component", async () => {
+    const mod = await import("../views/TextAnalysis");
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
   });
@@ -265,56 +218,5 @@ describe("View modules", () => {
     const mod = await import("../views/Settings");
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
-  });
-
-  it("Tools view exports a default component", async () => {
-    const mod = await import("../views/Tools");
-    expect(mod.default).toBeDefined();
-    expect(typeof mod.default).toBe("function");
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 4. ViewName type coverage
-// ─────────────────────────────────────────────────────────────────────
-describe("ViewName type", () => {
-  // ViewName is a TypeScript type, we verify the expected view names
-  const VIEW_NAMES = [
-    "dashboard",
-    "learn",
-    "review",
-    "grammar",
-    "conjugation",
-    "dictionary",
-    "chat",
-    "settings",
-    "stats",
-    "quiz",
-    "flashcards",
-    "conversation",
-    "tools",
-  ];
-
-  it("has 13 view names", () => {
-    expect(VIEW_NAMES).toHaveLength(13);
-  });
-
-  it("all view names are lowercase", () => {
-    for (const name of VIEW_NAMES) {
-      expect(name).toBe(name.toLowerCase());
-    }
-  });
-
-  it("view names correspond to routes", () => {
-    // dashboard -> /, others -> /name
-    const routeFromView = (view: string) => (view === "dashboard" ? "/" : `/${view}`);
-    const EXPECTED_ROUTES = [
-      "/", "/learn", "/review", "/grammar", "/conjugation",
-      "/dictionary", "/quiz", "/flashcards", "/conversation",
-      "/chat", "/tools", "/stats", "/settings",
-    ];
-    for (const view of VIEW_NAMES) {
-      expect(EXPECTED_ROUTES).toContain(routeFromView(view));
-    }
   });
 });

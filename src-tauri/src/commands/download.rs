@@ -214,6 +214,18 @@ fn parse_stardict(
                 .read_to_string(&mut s)
                 .map_err(|e| format!("Failed to read .ifo: {}", e))?;
             ifo_data = Some(s);
+        } else if path.ends_with(".idx.gz") {
+            let mut buf = Vec::new();
+            entry
+                .read_to_end(&mut buf)
+                .map_err(|e| format!("Failed to read .idx.gz: {}", e))?;
+            // Decompress gzip
+            let mut decoder = flate2::read::GzDecoder::new(&buf[..]);
+            let mut decompressed = Vec::new();
+            decoder
+                .read_to_end(&mut decompressed)
+                .map_err(|e| format!("Failed to decompress .idx.gz: {}", e))?;
+            idx_data = Some(decompressed);
         } else if path.ends_with(".idx") {
             let mut buf = Vec::new();
             entry

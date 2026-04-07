@@ -6,14 +6,11 @@ import {
   SrsCardSchema,
   SrsStatsSchema,
   DictionarySourceSchema,
-  DailyStatRowSchema,
   GrammarTopicSchema,
   ExerciseSchema,
   VerbSchema,
   AiSettingsSchema,
-  WhisperModelInfoSchema,
   FavoriteWordSchema,
-  OverviewStatsSchema,
 } from "../types";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -22,13 +19,7 @@ import {
 describe("SettingsSchema", () => {
   const validSettings = {
     active_language_pair_id: 1,
-    level: "A2",
-    words_per_day: 10,
-    streak: 0,
-    last_session_date: null,
-    start_date: null,
     dark_mode: "system",
-    audio_enabled: true,
     ai_provider: "claude-code",
     ai_model: "",
   };
@@ -36,13 +27,7 @@ describe("SettingsSchema", () => {
   it("accepts fully valid settings", () => {
     const result = SettingsSchema.parse(validSettings);
     expect(result.active_language_pair_id).toBe(1);
-    expect(result.level).toBe("A2");
-    expect(result.words_per_day).toBe(10);
-    expect(result.streak).toBe(0);
-    expect(result.last_session_date).toBeNull();
-    expect(result.start_date).toBeNull();
     expect(result.dark_mode).toBe("system");
-    expect(result.audio_enabled).toBe(true);
     expect(result.ai_provider).toBe("claude-code");
     expect(result.ai_model).toBe("");
   });
@@ -50,14 +35,8 @@ describe("SettingsSchema", () => {
   it("applies defaults for missing optional fields", () => {
     const result = SettingsSchema.parse({
       active_language_pair_id: null,
-      last_session_date: null,
-      start_date: null,
     });
-    expect(result.level).toBe("A1");
-    expect(result.words_per_day).toBe(10);
-    expect(result.streak).toBe(0);
     expect(result.dark_mode).toBe("system");
-    expect(result.audio_enabled).toBe(true);
     expect(result.ai_provider).toBe("claude-code");
     expect(result.ai_model).toBe("");
   });
@@ -95,94 +74,6 @@ describe("SettingsSchema", () => {
     ).toThrow();
   });
 
-  it("coerces audio_enabled from integer 1 to true", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      audio_enabled: 1,
-    });
-    expect(result.audio_enabled).toBe(true);
-  });
-
-  it("coerces audio_enabled from integer 0 to false", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      audio_enabled: 0,
-    });
-    expect(result.audio_enabled).toBe(false);
-  });
-
-  it("coerces audio_enabled from string 'true' to true", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      audio_enabled: "true",
-    });
-    expect(result.audio_enabled).toBe(true);
-  });
-
-  it("coerces audio_enabled from string '1' to true", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      audio_enabled: "1",
-    });
-    expect(result.audio_enabled).toBe(true);
-  });
-
-  it("coerces audio_enabled from string 'false' to false", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      audio_enabled: "false",
-    });
-    expect(result.audio_enabled).toBe(false);
-  });
-
-  it("coerces audio_enabled from boolean false to false", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      audio_enabled: false,
-    });
-    expect(result.audio_enabled).toBe(false);
-  });
-
-  it("coerces audio_enabled from boolean true to true", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      audio_enabled: true,
-    });
-    expect(result.audio_enabled).toBe(true);
-  });
-
-  it("coerces words_per_day from string to number", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      words_per_day: "20",
-    });
-    expect(result.words_per_day).toBe(20);
-  });
-
-  it("coerces streak from string to number", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      streak: "5",
-    });
-    expect(result.streak).toBe(5);
-  });
-
-  it("accepts non-null last_session_date", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      last_session_date: "2026-03-18",
-    });
-    expect(result.last_session_date).toBe("2026-03-18");
-  });
-
-  it("accepts non-null start_date", () => {
-    const result = SettingsSchema.parse({
-      ...validSettings,
-      start_date: "2026-01-01",
-    });
-    expect(result.start_date).toBe("2026-01-01");
-  });
-
   it("accepts various ai_provider values", () => {
     for (const provider of ["claude-code", "anthropic", "openai", "gemini", "ollama"]) {
       const result = SettingsSchema.parse({ ...validSettings, ai_provider: provider });
@@ -196,26 +87,6 @@ describe("SettingsSchema", () => {
       ai_model: "claude-sonnet-4-6",
     });
     expect(result.ai_model).toBe("claude-sonnet-4-6");
-  });
-
-  it("handles combined legacy values from backend", () => {
-    // Simulates a backend sending legacy integer/string values
-    const result = SettingsSchema.parse({
-      active_language_pair_id: 1,
-      level: "A2",
-      words_per_day: "10",
-      streak: "3",
-      last_session_date: null,
-      start_date: null,
-      dark_mode: "dark",
-      audio_enabled: 1,
-      ai_provider: "claude-code",
-      ai_model: "",
-    });
-    expect(result.words_per_day).toBe(10);
-    expect(result.streak).toBe(3);
-    expect(result.audio_enabled).toBe(true);
-    expect(result.dark_mode).toBe("dark");
   });
 });
 
@@ -566,58 +437,7 @@ describe("DictionarySourceSchema", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 7. DailyStatRowSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("DailyStatRowSchema", () => {
-  it("accepts a valid daily stat row", () => {
-    const result = DailyStatRowSchema.parse({
-      date: "2026-03-18",
-      words_learned: 10,
-      words_reviewed: 25,
-      correct_count: 22,
-      total_count: 25,
-    });
-    expect(result.date).toBe("2026-03-18");
-    expect(result.words_learned).toBe(10);
-    expect(result.words_reviewed).toBe(25);
-    expect(result.correct_count).toBe(22);
-    expect(result.total_count).toBe(25);
-  });
-
-  it("accepts zero values for a day with no activity", () => {
-    const result = DailyStatRowSchema.parse({
-      date: "2026-03-17",
-      words_learned: 0,
-      words_reviewed: 0,
-      correct_count: 0,
-      total_count: 0,
-    });
-    expect(result.words_learned).toBe(0);
-    expect(result.words_reviewed).toBe(0);
-  });
-
-  it("rejects missing date", () => {
-    expect(() =>
-      DailyStatRowSchema.parse({
-        words_learned: 5,
-        words_reviewed: 10,
-        correct_count: 8,
-        total_count: 10,
-      }),
-    ).toThrow();
-  });
-
-  it("rejects missing numeric fields", () => {
-    expect(() =>
-      DailyStatRowSchema.parse({
-        date: "2026-03-18",
-      }),
-    ).toThrow();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 8. GrammarTopicSchema
+// 7. GrammarTopicSchema
 // ─────────────────────────────────────────────────────────────────────
 describe("GrammarTopicSchema", () => {
   const validTopic = {
@@ -674,7 +494,7 @@ describe("GrammarTopicSchema", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 9. ExerciseSchema
+// 8. ExerciseSchema
 // ─────────────────────────────────────────────────────────────────────
 describe("ExerciseSchema", () => {
   it("accepts a QCM exercise", () => {
@@ -731,7 +551,7 @@ describe("ExerciseSchema", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 10. VerbSchema
+// 9. VerbSchema
 // ─────────────────────────────────────────────────────────────────────
 describe("VerbSchema", () => {
   const validVerb = {
@@ -801,7 +621,7 @@ describe("VerbSchema", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 11. AiSettingsSchema
+// 10. AiSettingsSchema
 // ─────────────────────────────────────────────────────────────────────
 describe("AiSettingsSchema", () => {
   it("accepts valid AI settings", () => {
@@ -844,34 +664,7 @@ describe("AiSettingsSchema", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 12. WhisperModelInfoSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("WhisperModelInfoSchema", () => {
-  it("accepts a valid whisper model info", () => {
-    const result = WhisperModelInfoSchema.parse({
-      name: "base",
-      size_mb: 141,
-      url: "https://example.com/base.bin",
-      downloaded: false,
-    });
-    expect(result.name).toBe("base");
-    expect(result.size_mb).toBe(141);
-    expect(result.downloaded).toBe(false);
-  });
-
-  it("accepts downloaded model", () => {
-    const result = WhisperModelInfoSchema.parse({
-      name: "small",
-      size_mb: 461,
-      url: "https://example.com/small.bin",
-      downloaded: true,
-    });
-    expect(result.downloaded).toBe(true);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 13. FavoriteWordSchema
+// 11. FavoriteWordSchema
 // ─────────────────────────────────────────────────────────────────────
 describe("FavoriteWordSchema", () => {
   it("accepts a valid favorite word", () => {
@@ -902,55 +695,5 @@ describe("FavoriteWordSchema", () => {
     expect(result.gender).toBeNull();
     expect(result.level).toBeNull();
     expect(result.category).toBeNull();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 14. OverviewStatsSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("OverviewStatsSchema", () => {
-  it("accepts valid overview stats", () => {
-    const result = OverviewStatsSchema.parse({
-      total_words: 500,
-      total_learned: 200,
-      total_reviews: 1500,
-      total_grammar_completed: 5,
-      total_grammar: 10,
-      streak: 7,
-      accuracy: 85.5,
-      study_days: 30,
-      favorite_count: 15,
-    });
-    expect(result.total_words).toBe(500);
-    expect(result.total_learned).toBe(200);
-    expect(result.total_reviews).toBe(1500);
-    expect(result.streak).toBe(7);
-    expect(result.accuracy).toBe(85.5);
-    expect(result.study_days).toBe(30);
-    expect(result.favorite_count).toBe(15);
-  });
-
-  it("accepts all-zero overview stats for new user", () => {
-    const result = OverviewStatsSchema.parse({
-      total_words: 0,
-      total_learned: 0,
-      total_reviews: 0,
-      total_grammar_completed: 0,
-      total_grammar: 0,
-      streak: 0,
-      accuracy: 0,
-      study_days: 0,
-      favorite_count: 0,
-    });
-    expect(result.total_words).toBe(0);
-    expect(result.accuracy).toBe(0);
-  });
-
-  it("rejects missing fields", () => {
-    expect(() =>
-      OverviewStatsSchema.parse({
-        total_words: 100,
-      }),
-    ).toThrow();
   });
 });

@@ -1,13 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Loader2, Pickaxe, Plus, Check, Volume2,
+  Loader2, Pickaxe, Plus, Check,
   BookOpenCheck, Trash2, Save,
 } from "lucide-react";
-import { useApp } from "../../store/AppContext";
 import * as bridge from "../../lib/bridge";
-import { speak, getSourceLang } from "../../lib/speech";
 import { cachedAskAi, addToHistory, getPromptContext } from "../../lib/ai-cache";
+import type { LanguagePair } from "../../types";
 import { parseAiJson, renderClickable } from "../../lib/markdown";
 
 interface MinedSentence {
@@ -38,11 +37,11 @@ function saveSentences(pairId: number, sentences: SavedSentence[]) {
 
 interface ToolProps {
   onWordClick?: (word: string) => void;
+  activePair?: LanguagePair | null;
 }
 
-export default function SentenceMiningTool({ onWordClick }: ToolProps) {
+export default function SentenceMiningTool({ onWordClick, activePair }: ToolProps) {
   const { t } = useTranslation();
-  const { settings, activePair } = useApp();
   const [input, setInput] = useState("");
   const [result, setResult] = useState<MinedSentence[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,14 +55,14 @@ export default function SentenceMiningTool({ onWordClick }: ToolProps) {
   }, [activePair]);
 
   const handleMine = useCallback(async () => {
-    if (!input.trim() || loading || !activePair || !settings) return;
+    if (!input.trim() || loading || !activePair) return;
     setLoading(true);
     setResult(null);
     setSavedIndices(new Set());
     setAddedWords(new Set());
 
     try {
-      const level = settings.level || "A2";
+      const level = "A2";
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
@@ -103,7 +102,7 @@ ${input.trim()}`;
     } finally {
       setLoading(false);
     }
-  }, [input, loading, activePair, settings]);
+  }, [input, loading, activePair]);
 
   const handleSaveSentence = (idx: number, sentence: MinedSentence) => {
     if (!activePair || savedIndices.has(idx)) return;
@@ -193,14 +192,6 @@ ${input.trim()}`;
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{s.sentence}</p>
                 <p className="text-xs text-gray-500 italic">{s.translation}</p>
               </div>
-              <button
-                onClick={() => {
-                  if (activePair) speak(s.sentence, getSourceLang(activePair.source_lang || "de"));
-                }}
-                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <Volume2 size={12} className="text-gray-400" />
-              </button>
               <button onClick={() => handleDeleteSaved(i)} className="p-1.5 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20">
                 <Trash2 size={12} className="text-rose-400" />
               </button>
@@ -226,12 +217,6 @@ ${input.trim()}`;
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{sentence.translation}</p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => { if (activePair) speak(sentence.sentence, getSourceLang(activePair.source_lang || "de")); }}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <Volume2 size={14} className="text-gray-400" />
-                </button>
                 <button
                   onClick={() => handleSaveSentence(idx, sentence)}
                   disabled={savedIndices.has(idx)}

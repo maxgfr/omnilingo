@@ -1,10 +1,9 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, Copy, Check, AlertTriangle, CheckCircle } from "lucide-react";
-import { useApp } from "../../store/AppContext";
-import * as bridge from "../../lib/bridge";
 import { cachedAskAi, getPromptContext } from "../../lib/ai-cache";
 import { parseAiJson, formatMessage } from "../../lib/markdown";
+import type { LanguagePair } from "../../types";
 
 interface CorrectorResult {
   corrected: string;
@@ -20,11 +19,10 @@ const SCORE_STYLES: Record<string, { bg: string; text: string; label: string }> 
   poor: { bg: "bg-rose-100 dark:bg-rose-900/30", text: "text-rose-700 dark:text-rose-400", label: "Needs work" },
 };
 
-interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; }
+interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; activePair?: LanguagePair | null; }
 
-export default function CorrectorTool({ initialWord }: ToolProps) {
+export default function CorrectorTool({ initialWord, activePair }: ToolProps) {
   const { t } = useTranslation();
-  const { settings, activePair } = useApp();
   const [input, setInput] = useState(initialWord || "");
   const [structured, setStructured] = useState<CorrectorResult | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
@@ -35,7 +33,7 @@ export default function CorrectorTool({ initialWord }: ToolProps) {
     if (!input.trim() || loading || !activePair) return;
     setLoading(true); setStructured(null); setFallback(null);
     try {
-      const level = settings?.level || "A2";
+      const level = "A2";
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
@@ -48,16 +46,10 @@ Text: ${input.trim()}`;
       const parsed = parseAiJson<CorrectorResult>(response);
       if (parsed?.corrected) {
         setStructured(parsed);
-        // Auto-feed errors to SRS stats
-        if (parsed.corrections.length > 0) {
-          for (const c of parsed.corrections) {
-            bridge.logError(activePair.id, "grammar", c.wrong, c.wrong, c.right).catch(() => {});
-          }
-        }
       } else { setFallback(response); }
     } catch (err) { setFallback(`Error: ${err}`); }
     finally { setLoading(false); }
-  }, [input, loading, activePair, settings]);
+  }, [input, loading, activePair]);
 
   const handleCopy = () => { navigator.clipboard.writeText(structured?.corrected || ""); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleCorrect(); } };

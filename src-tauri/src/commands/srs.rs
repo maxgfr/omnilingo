@@ -21,6 +21,9 @@ pub struct SrsCard {
     pub interval_days: i64,
     pub next_review: String,
     pub last_score: Option<i64>,
+    pub card_type: String,
+    pub deck: String,
+    pub cloze_sentence: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -47,17 +50,27 @@ fn row_to_card(row: &rusqlite::Row<'_>) -> rusqlite::Result<SrsCard> {
         interval_days: row.get(12)?,
         next_review: row.get(13)?,
         last_score: row.get(14)?,
+        card_type: row.get::<_, Option<String>>(15)?.unwrap_or_else(|| "translation".to_string()),
+        deck: row.get::<_, Option<String>>(16)?.unwrap_or_else(|| "default".to_string()),
+        cloze_sentence: row.get(17)?,
     })
 }
 
 const CARD_SELECT: &str =
     "SELECT sc.id, sc.word_id, w.source_word, w.target_word, w.gender, w.plural, w.level, w.category, w.example_source, w.example_target,
-            sc.repetitions, sc.ease_factor, sc.interval_days, sc.next_review, sc.last_score
+            sc.repetitions, sc.ease_factor, sc.interval_days, sc.next_review, sc.last_score,
+            sc.card_type, sc.deck, sc.cloze_sentence
      FROM srs_cards sc
      JOIN words w ON w.id = sc.word_id";
 
 #[tauri::command]
-pub fn add_word_to_srs(state: State<'_, DbState>, word_id: i64) -> Result<SrsCard, String> {
+pub fn add_word_to_srs(
+    state: State<'_, DbState>,
+    word_id: i64,
+    card_type: Option<String>,
+    deck: Option<String>,
+    cloze_sentence: Option<String>,
+) -> Result<SrsCard, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
 
     let pair_id: i64 = db
@@ -65,17 +78,19 @@ pub fn add_word_to_srs(state: State<'_, DbState>, word_id: i64) -> Result<SrsCar
         .map_err(|e| format!("Word not found: {}", e))?;
 
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let ct = card_type.unwrap_or_else(|| "translation".to_string());
+    let dk = deck.unwrap_or_else(|| "default".to_string());
 
     db.execute(
-        "INSERT OR IGNORE INTO srs_cards (word_id, language_pair_id, next_review) VALUES (?1, ?2, ?3)",
-        rusqlite::params![word_id, pair_id, today],
+        "INSERT OR IGNORE INTO srs_cards (word_id, language_pair_id, next_review, card_type, deck, cloze_sentence) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![word_id, pair_id, today, ct, dk, cloze_sentence],
     )
     .map_err(|e| e.to_string())?;
 
     let card = db
         .query_row(
-            &format!("{} WHERE sc.word_id = ?1", CARD_SELECT),
-            [word_id],
+            &format!("{} WHERE sc.word_id = ?1 AND sc.card_type = ?2", CARD_SELECT),
+            rusqlite::params![word_id, ct],
             row_to_card,
         )
         .map_err(|e| e.to_string())?;
@@ -99,6 +114,43 @@ pub fn get_due_cards(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<SrsC
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
     Ok(cards)
+}
+
+#[tauri::command]
+pub fn get_all_srs_cards(
+    state: State<'_, DbState>,
+    pair_id: i64,
+    deck: Option<String>,
+) -> Result<Vec<SrsCard>, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+
+    if let Some(dk) = deck {
+        let mut stmt = db
+            .prepare(&format!(
+                "{} WHERE sc.language_pair_id = ?1 AND sc.deck = ?2 ORDER BY w.source_word",
+                CARD_SELECT
+            ))
+            .map_err(|e| e.to_string())?;
+        let cards = stmt
+            .query_map(rusqlite::params![pair_id, dk], row_to_card)
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(cards)
+    } else {
+        let mut stmt = db
+            .prepare(&format!(
+                "{} WHERE sc.language_pair_id = ?1 ORDER BY w.source_word",
+                CARD_SELECT
+            ))
+            .map_err(|e| e.to_string())?;
+        let cards = stmt
+            .query_map([pair_id], row_to_card)
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(cards)
+    }
 }
 
 #[tauri::command]
@@ -126,7 +178,6 @@ pub fn review_card(
 
     let db = state.0.lock().map_err(|e| e.to_string())?;
 
-    // Get current card state
     let (reps, ef, interval): (i64, f64, i64) = db
         .query_row(
             "SELECT repetitions, ease_factor, interval_days FROM srs_cards WHERE id = ?1",
@@ -137,7 +188,6 @@ pub fn review_card(
 
     // SM-2 algorithm
     let (new_reps, new_interval) = if quality < 3 {
-        // Failure: reset
         (0_i64, 0_i64)
     } else {
         let new_reps = reps + 1;
@@ -149,12 +199,10 @@ pub fn review_card(
         (new_reps, new_interval)
     };
 
-    // Adjust ease factor
     let q = quality as f64;
     let new_ef = ef + (0.1 - (5.0 - q) * (0.08 + (5.0 - q) * 0.02));
     let new_ef = if new_ef < 1.3 { 1.3 } else { new_ef };
 
-    // Calculate next review date
     let days_to_add = if new_interval > 0 { new_interval } else { 1 };
     let next_review = (chrono::Local::now().date_naive() + chrono::naive::Days::new(days_to_add as u64))
         .format("%Y-%m-%d")
@@ -166,7 +214,6 @@ pub fn review_card(
     )
     .map_err(|e| e.to_string())?;
 
-    // Get updated card with word info
     let card = db
         .query_row(
             &format!("{} WHERE sc.id = ?1", CARD_SELECT),
@@ -182,6 +229,14 @@ pub fn review_card(
     let _ = sync_vocabulary_markdown(&db, pair_id, &base_dir.0);
 
     Ok(card)
+}
+
+#[tauri::command]
+pub fn delete_srs_card(state: State<'_, DbState>, card_id: i64) -> Result<(), String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM srs_cards WHERE id = ?1", [card_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]

@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
+import Fuse from "fuse.js";
 import { useTranslation } from "react-i18next";
 import {
   Search,
@@ -10,20 +11,19 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
-  Volume2,
-  Wand2,
-  Loader2,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
+import { useFeaturePair } from "../lib/useFeaturePair";
+import LanguagePairBar from "../components/LanguagePairBar";
 import * as bridge from "../lib/bridge";
-import { speak, getSourceLang } from "../lib/speech";
 import type { Verb } from "../types";
 
 type Mode = "random" | "byTense" | "byVerb";
 
 export default function Conjugation() {
   const { t } = useTranslation();
-  const { activePair, settings } = useApp();
+  const { languagePairs } = useApp();
+  const { activePair, switchPair } = useFeaturePair("conjugation");
 
   const [verbs, setVerbs] = useState<Verb[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export default function Conjugation() {
   const [totalCount, setTotalCount] = useState(0);
 
   // AI generation
-  const [generating, setGenerating] = useState(false);
+
 
   // Dynamically extract all available tense keys from loaded verbs
   const allTenseKeys = useMemo(() => {
@@ -119,15 +119,15 @@ export default function Conjugation() {
       .finally(() => setLoading(false));
   }, [activePair]);
 
+  const verbFuse = useMemo(
+    () => new Fuse(verbs, { keys: ["infinitive", "translation"], threshold: 0.4 }),
+    [verbs],
+  );
+
   const filteredVerbs = useMemo(() => {
     if (!searchQuery.trim()) return verbs;
-    const q = searchQuery.toLowerCase();
-    return verbs.filter(
-      (v) =>
-        v.infinitive.toLowerCase().includes(q) ||
-        v.translation.toLowerCase().includes(q),
-    );
-  }, [verbs, searchQuery]);
+    return verbFuse.search(searchQuery.trim()).map((r) => r.item);
+  }, [verbs, searchQuery, verbFuse]);
 
   // ------ Helpers ------
 
@@ -240,25 +240,6 @@ export default function Conjugation() {
     return given === expected;
   }
 
-  const handleGenerate = useCallback(async () => {
-    if (!activePair) return;
-    setGenerating(true);
-    try {
-      await bridge.generateVerbs(activePair.id, 20, settings?.level || "A1");
-      const v = await bridge.getVerbs(activePair.id);
-      setVerbs(v);
-      if (v.length > 0) {
-        const tenses = getVerbTenses(v[0]);
-        setSelectedTense(tenses[0] || "");
-        pickRandom(v, tenses[0]);
-      }
-    } catch (err) {
-      console.error("Generation failed:", err);
-    } finally {
-      setGenerating(false);
-    }
-  }, [activePair, settings]);
-
   // ------ Render ------
 
   if (loading) {
@@ -271,24 +252,14 @@ export default function Conjugation() {
 
   if (verbs.length === 0) {
     return (
-      <div className="max-w-lg mx-auto flex flex-col items-center justify-center py-20 space-y-6">
-        <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("conjugation.noVerbsAvailable")}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("conjugation.emptyDescription")}</p>
-        </div>
-        <div className="flex flex-wrap gap-3 justify-center">
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium text-sm transition-all shadow-sm disabled:opacity-50"
-          >
-            {generating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {generating ? "Generating..." : "Generate with AI"}
-          </button>
-          <a href="#/settings" className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-            {t("dashboard.downloadDict")}
-          </a>
+      <div className="space-y-6">
+        <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
+        <div className="max-w-lg mx-auto flex flex-col items-center justify-center py-16 space-y-6">
+          <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("conjugation.noVerbsAvailable")}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("conjugation.emptyDescription")}</p>
+          </div>
         </div>
       </div>
     );
@@ -296,6 +267,8 @@ export default function Conjugation() {
 
   return (
     <div className="space-y-6">
+      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -473,18 +446,6 @@ export default function Conjugation() {
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {currentVerb.infinitive}
                 </h2>
-                <button
-                  onClick={() =>
-                    speak(
-                      currentVerb.infinitive,
-                      getSourceLang(activePair?.source_lang || "en"),
-                    )
-                  }
-                  className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                  title={t("common.listen")}
-                >
-                  <Volume2 size={16} />
-                </button>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   {currentVerb.translation}
                 </span>

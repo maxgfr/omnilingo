@@ -39,18 +39,15 @@ pub fn run() {
             }
 
             let base_dir = if cfg!(debug_assertions) && !cfg!(mobile) {
-                // Desktop debug: use project root
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .parent()
                     .expect("Failed to get project root")
                     .to_path_buf()
             } else if cfg!(mobile) {
-                // Mobile: use app data directory (sandboxed storage)
                 app.path()
                     .app_data_dir()
                     .unwrap_or_else(|_| PathBuf::from("."))
             } else {
-                // Desktop release: use resource dir
                 app.path()
                     .resource_dir()
                     .unwrap_or_else(|_| PathBuf::from("."))
@@ -60,7 +57,6 @@ pub fn run() {
             let _ = std::fs::create_dir_all(base_dir.join("exercises"));
 
             let conn = db::init_database(&base_dir).expect("Failed to init DB");
-            // Ensure settings row exists (onboarding creates the language pair)
             commands::import::ensure_settings_exist(&conn).ok();
 
             app.manage(DbState(Mutex::new(conn)));
@@ -69,13 +65,16 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Settings
             commands::settings::get_settings,
             commands::settings::update_setting,
             commands::settings::get_language_pairs,
             commands::settings::set_active_language_pair,
-            commands::settings::update_streak,
+            commands::settings::delete_language_pair,
+            // Memory
             commands::memory::read_memory_file,
             commands::memory::write_memory_file,
+            // AI
             commands::ai::ask_ai,
             commands::ai::ask_ai_conversation,
             commands::ai::get_ai_settings_cmd,
@@ -83,45 +82,55 @@ pub fn run() {
             commands::ai::generate_vocabulary,
             commands::ai::generate_grammar,
             commands::ai::generate_verbs,
+            // Import
             commands::import::import_builtin_data,
             commands::import::import_from_file,
+            // Dictionary
             commands::dictionary::get_words,
             commands::dictionary::search_words,
             commands::dictionary::get_unlearned_words,
             commands::dictionary::get_word_count,
             commands::dictionary::get_categories,
+            commands::dictionary::add_custom_word,
+            // SRS
             commands::srs::add_word_to_srs,
             commands::srs::get_due_cards,
+            commands::srs::get_all_srs_cards,
             commands::srs::get_due_count,
             commands::srs::review_card,
+            commands::srs::delete_srs_card,
             commands::srs::get_srs_stats,
+            // Grammar
             commands::grammar::get_grammar_topics,
             commands::grammar::mark_grammar_completed,
+            commands::grammar::get_due_grammar_topics,
+            commands::grammar::review_grammar_topic,
+            // Conjugation
             commands::conjugation::get_verbs,
             commands::conjugation::log_conjugation_session,
-            commands::speech::get_whisper_models,
-            commands::speech::download_whisper_model,
-            commands::speech::delete_whisper_model,
-            commands::speech::transcribe_audio,
+            // Dictionary download
             commands::download::get_available_dictionaries,
             commands::download::download_dictionary,
+            // Favorites
             commands::favorites::toggle_favorite,
             commands::favorites::get_favorites,
             commands::favorites::is_favorite,
+            // Chat
             commands::chat::get_chat_history,
             commands::chat::save_chat_message,
             commands::chat::clear_chat_history,
-            commands::stats::get_daily_stats,
-            commands::stats::get_overview_stats,
-            commands::stats::log_error,
-            commands::stats::get_frequent_errors,
-            commands::stats::add_custom_word,
-            commands::stats::get_random_word,
-            commands::stats::export_progress,
-            commands::stats::import_progress,
+            // Conversation
+            commands::conversation::get_conversation_scenarios,
+            commands::conversation::save_conversation_scenario,
+            commands::conversation::delete_conversation_scenario,
+            commands::conversation::get_conversation_sessions,
+            commands::conversation::save_conversation_session,
+            commands::conversation::delete_conversation_session,
+            // Global
             log_session,
             clear_cache,
             reset_progress,
+            delete_all_data,
             detect_ollama,
             fetch_model_catalog,
         ])
@@ -159,23 +168,11 @@ fn log_session(
     Ok(())
 }
 
-/// Clear downloaded models and dictionary caches
+/// Clear downloaded dictionary caches
 #[tauri::command]
 fn clear_cache(base_dir: tauri::State<'_, BaseDirState>) -> Result<String, String> {
     let mut freed = 0u64;
 
-    // Clear whisper models
-    let models_dir = base_dir.0.join("models");
-    if models_dir.exists() {
-        if let Ok(entries) = std::fs::read_dir(&models_dir) {
-            for e in entries.flatten() {
-                freed += e.metadata().map(|m| m.len()).unwrap_or(0);
-            }
-        }
-        let _ = std::fs::remove_dir_all(&models_dir);
-    }
-
-    // Clear downloaded dictionaries
     let downloads_dir = base_dir.0.join("downloads");
     if downloads_dir.exists() {
         if let Ok(entries) = std::fs::read_dir(&downloads_dir) {
@@ -197,20 +194,14 @@ fn reset_progress(
 ) -> Result<String, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
 
-    // Reset SRS cards
     db.execute("DELETE FROM srs_cards", []).map_err(|e| e.to_string())?;
-    // Reset grammar progress
     db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
-    // Reset sessions
+    db.execute("DELETE FROM grammar_srs", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM sessions", []).map_err(|e| e.to_string())?;
-    // Reset errors
     db.execute("DELETE FROM errors", []).map_err(|e| e.to_string())?;
-    // Reset settings
-    db.execute(
-        "UPDATE settings SET streak = 0, last_session_date = NULL, start_date = NULL WHERE id = 1",
-        [],
-    )
-    .map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM favorites", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM chat_messages", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM conversation_sessions", []).map_err(|e| e.to_string())?;
 
     // Reset memory files
     let memory_dir = base_dir.0.join("memory");
@@ -218,9 +209,7 @@ fn reset_progress(
     let _ = std::fs::write(memory_dir.join("vocabulary.md"), "# Learned Vocabulary\n\n| Source | Target | Gender | Level | EF | Interval | Next Review | Score |\n|---|---|---|---|---|---|---|---|\n");
     let _ = std::fs::write(memory_dir.join("grammar-log.md"), "# Grammar Log\n\n");
     let _ = std::fs::write(memory_dir.join("conjugation-log.md"), "# Conjugation Log\n\n");
-    let _ = std::fs::write(memory_dir.join("errors.md"), "# Frequent Errors\n\n## Vocabulary\n| Date | Word | Error | Correction |\n|---|---|---|---|\n");
 
-    // Clear session files
     let sessions_dir = memory_dir.join("sessions");
     if sessions_dir.exists() {
         let _ = std::fs::remove_dir_all(&sessions_dir);
@@ -230,10 +219,53 @@ fn reset_progress(
     Ok("Progress reset".to_string())
 }
 
+/// Delete ALL data (words, progress, settings — everything except language pairs)
+#[tauri::command]
+fn delete_all_data(
+    state: tauri::State<'_, DbState>,
+    base_dir: tauri::State<'_, BaseDirState>,
+) -> Result<String, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+
+    db.execute("DELETE FROM srs_cards", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM grammar_srs", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM grammar_topics", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM verbs", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM words", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM favorites", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM sessions", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM errors", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM chat_messages", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM conversation_sessions", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM conversation_scenarios WHERE is_builtin = 0", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM dictionary_packs", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM language_pairs", []).map_err(|e| e.to_string())?;
+
+    // Clear downloads
+    let downloads_dir = base_dir.0.join("downloads");
+    if downloads_dir.exists() {
+        let _ = std::fs::remove_dir_all(&downloads_dir);
+    }
+
+    // Reset memory files
+    let memory_dir = base_dir.0.join("memory");
+    let _ = std::fs::write(memory_dir.join("progress.md"), "# Omnilingo Progress\n\n");
+    let _ = std::fs::write(memory_dir.join("vocabulary.md"), "# Learned Vocabulary\n\n");
+    let _ = std::fs::write(memory_dir.join("grammar-log.md"), "# Grammar Log\n\n");
+    let _ = std::fs::write(memory_dir.join("conjugation-log.md"), "# Conjugation Log\n\n");
+    let sessions_dir = memory_dir.join("sessions");
+    if sessions_dir.exists() {
+        let _ = std::fs::remove_dir_all(&sessions_dir);
+        let _ = std::fs::create_dir_all(&sessions_dir);
+    }
+
+    Ok("All data deleted".to_string())
+}
+
 /// Detect if Ollama is running locally and list available models
 #[tauri::command]
 async fn detect_ollama() -> Result<serde_json::Value, String> {
-    // Ollama is a desktop-only local service
     #[cfg(mobile)]
     {
         return Ok(serde_json::json!({
@@ -291,7 +323,6 @@ async fn fetch_model_catalog() -> Result<serde_json::Value, String> {
 
     let catalog: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
 
-    // Extract only the providers we support
     let providers = ["anthropic", "openai", "mistral", "google-ai-studio"];
     let mut result = serde_json::Map::new();
 

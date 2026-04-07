@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Search, LayoutDashboard, BookOpen, Repeat, BookText, Languages,
-  Zap, Layers, MessageSquare, MessageCircle, Wrench, BarChart3, Settings,
+  Search, BookOpen, BookText, Languages, Layers, MessageSquare,
+  RefreshCw, SpellCheck, ArrowRightLeft, FileSearch, Settings,
 } from "lucide-react";
 
 interface CommandItem {
@@ -23,26 +24,25 @@ export default function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const commands: CommandItem[] = [
-    { id: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard, action: () => navigate("/"), keywords: "home main" },
-    { id: "learn", label: t("nav.learn"), icon: BookOpen, action: () => navigate("/learn"), keywords: "study words new" },
-    { id: "review", label: t("nav.review"), icon: Repeat, action: () => navigate("/review"), keywords: "srs flashcard practice" },
-    { id: "grammar", label: t("nav.grammar"), icon: BookText, action: () => navigate("/grammar"), keywords: "rules syntax" },
-    { id: "conjugation", label: t("nav.conjugation"), icon: Languages, action: () => navigate("/conjugation"), keywords: "verbs tenses" },
-    { id: "dictionary", label: t("nav.dictionary"), icon: Search, action: () => navigate("/dictionary"), keywords: "words search find" },
-    { id: "quiz", label: t("nav.quiz"), icon: Zap, action: () => navigate("/quiz"), keywords: "test knowledge" },
-    { id: "flashcards", label: t("nav.flashcards"), icon: Layers, action: () => navigate("/flashcards"), keywords: "cards memorize" },
-    { id: "conversation", label: t("nav.conversation"), icon: MessageSquare, action: () => navigate("/conversation"), keywords: "roleplay scenario prompt" },
-    { id: "chat", label: t("nav.chat"), icon: MessageCircle, action: () => navigate("/chat"), keywords: "ai tutor" },
-    { id: "tools", label: t("nav.tools"), icon: Wrench, action: () => navigate("/tools"), keywords: "translate correct rephrase synonyms conjugate define vocabulary context definition rewrite" },
-    { id: "stats", label: t("nav.stats"), icon: BarChart3, action: () => navigate("/stats"), keywords: "statistics progress" },
-    { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config" },
+    { id: "dictionary", label: t("nav.dictionary"), icon: BookOpen, action: () => navigate("/dictionary"), keywords: "words search find dictionnaire" },
+    { id: "grammar", label: t("nav.grammar"), icon: BookText, action: () => navigate("/grammar"), keywords: "rules syntax grammaire" },
+    { id: "conjugation", label: t("nav.conjugation"), icon: Languages, action: () => navigate("/conjugation"), keywords: "verbs tenses conjugaison" },
+    { id: "flashcards", label: t("nav.flashcards"), icon: Layers, action: () => navigate("/flashcards"), keywords: "cards memorize srs review" },
+    { id: "conversation", label: t("nav.conversation"), icon: MessageSquare, action: () => navigate("/conversation"), keywords: "chat ai tutor scenario" },
+    { id: "rephrase", label: t("nav.rephrase"), icon: RefreshCw, action: () => navigate("/rephrase"), keywords: "reformuler rewrite" },
+    { id: "corrector", label: t("nav.corrector"), icon: SpellCheck, action: () => navigate("/corrector"), keywords: "correcteur grammar spelling" },
+    { id: "synonyms", label: t("nav.synonyms"), icon: ArrowRightLeft, action: () => navigate("/synonyms"), keywords: "synonymes similar words" },
+    { id: "text-analysis", label: t("nav.textAnalysis"), icon: FileSearch, action: () => navigate("/text-analysis"), keywords: "analyse sentence mining" },
+    { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config parametres" },
   ];
 
+  const commandFuse = useMemo(
+    () => new Fuse(commands, { keys: ["label", "keywords"], threshold: 0.4 }),
+    [commands],
+  );
+
   const filtered = query.trim()
-    ? commands.filter(cmd => {
-        const q = query.toLowerCase();
-        return cmd.label.toLowerCase().includes(q) || (cmd.keywords || "").toLowerCase().includes(q);
-      })
+    ? commandFuse.search(query.trim()).map((r) => r.item)
     : commands;
 
   useEffect(() => {

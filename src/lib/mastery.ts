@@ -1,6 +1,6 @@
 import * as bridge from "./bridge";
 import { getPromptContext } from "./ai-cache";
-import type { SrsCard, SrsStats, OverviewStats, LanguagePair } from "../types";
+import type { SrsCard, SrsStats, LanguagePair } from "../types";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -43,6 +43,18 @@ interface FrequentError {
   correct: string;
 }
 
+interface OverviewStats {
+  total_words: number;
+  total_learned: number;
+  total_reviews: number;
+  total_grammar_completed: number;
+  total_grammar: number;
+  streak: number;
+  accuracy: number;
+  study_days: number;
+  favorite_count: number;
+}
+
 export interface StudentProfile {
   srsStats: SrsStats;
   overviewStats: OverviewStats;
@@ -55,19 +67,23 @@ export interface StudentProfile {
 // ── Data Aggregation ─────────────────────────────────────────────────
 
 export async function getStudentProfile(pairId: number): Promise<StudentProfile> {
-  const [srsStats, overviewStats, frequentErrors, dueCards, grammarTopics, recentContext] =
+  const [srsStats, dueCards, grammarTopics, recentContext] =
     await Promise.all([
       bridge.getSrsStats(pairId).catch(() => ({ total_cards: 0, due_count: 0, average_accuracy: 0 })),
-      bridge.getOverviewStats(pairId).catch(() => ({
-        total_words: 0, total_learned: 0, total_reviews: 0,
-        total_grammar_completed: 0, total_grammar: 0,
-        streak: 0, accuracy: 0, study_days: 0, favorite_count: 0,
-      })),
-      bridge.getFrequentErrors(pairId, 20).catch(() => [] as FrequentError[]),
       bridge.getDueCards(pairId).catch(() => [] as SrsCard[]),
       bridge.getGrammarTopics(pairId).catch(() => []),
       getPromptContext(pairId).catch(() => ""),
     ]);
+
+  // Build overview stats from available data
+  const overviewStats: OverviewStats = {
+    total_words: 0, total_learned: 0, total_reviews: 0,
+    total_grammar_completed: grammarTopics.filter((t) => t.completed).length,
+    total_grammar: grammarTopics.length,
+    streak: 0, accuracy: srsStats.average_accuracy, study_days: 0, favorite_count: 0,
+  };
+
+  const frequentErrors: FrequentError[] = [];
 
   // Sort due cards by ease_factor ascending (hardest first), take top 10
   const strugglingCards = [...dueCards]

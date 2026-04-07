@@ -3,9 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ── Mock bridge ──────────────────────────────────────────────────────
 vi.mock("../lib/bridge", () => ({
   getSettings: vi.fn().mockResolvedValue({
-    active_language_pair_id: 1, level: "A2", words_per_day: 10,
-    streak: 3, last_session_date: null, start_date: null,
-    dark_mode: "system", audio_enabled: true, ai_provider: "claude-code", ai_model: "",
+    active_language_pair_id: 1,
+    dark_mode: "system", ai_provider: "claude-code", ai_model: "",
   }),
   getLanguagePairs: vi.fn().mockResolvedValue([{
     id: 1, source_lang: "de", target_lang: "fr",
@@ -16,25 +15,14 @@ vi.mock("../lib/bridge", () => ({
   searchWords: vi.fn().mockResolvedValue([]),
   addWordToSrs: vi.fn().mockResolvedValue({}),
   getVerbs: vi.fn().mockResolvedValue([]),
-  getRandomWord: vi.fn().mockResolvedValue({ id: 1, language_pair_id: 1, source_word: "Haus", target_word: "maison", gender: "n", plural: "Häuser", level: "A1", category: null, tags: null, example_source: null, example_target: null }),
   readMemoryFile: vi.fn().mockResolvedValue(null),
-  logError: vi.fn().mockResolvedValue(undefined),
-  getWhisperModels: vi.fn().mockResolvedValue([]),
-  transcribeAudio: vi.fn().mockResolvedValue("Haus"),
   getDueCount: vi.fn().mockResolvedValue(0),
   getWordCount: vi.fn().mockResolvedValue(100),
   setActiveLanguagePair: vi.fn().mockResolvedValue(undefined),
   updateSetting: vi.fn().mockResolvedValue(undefined),
   getSrsStats: vi.fn().mockResolvedValue({ total_cards: 0, due_count: 0, average_accuracy: 0 }),
-  updateStreak: vi.fn().mockResolvedValue({ active_language_pair_id: 1, level: "A2", words_per_day: 10, streak: 0, last_session_date: null, start_date: null, dark_mode: "system", audio_enabled: true, ai_provider: "claude-code", ai_model: "" }),
 }));
 
-vi.mock("../lib/speech", () => ({
-  setAudioEnabled: vi.fn(),
-  speak: vi.fn(),
-  recordAudio: vi.fn().mockResolvedValue(new Float32Array(16000)),
-  getSourceLang: vi.fn().mockReturnValue("de-DE"),
-}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -176,18 +164,10 @@ describe("AI cache", () => {
 // ─────────────────────────────────────────────────────────────────────
 describe("Tool component imports", () => {
   const TOOL_COMPONENTS = [
-    { name: "TranslateTool", path: "../components/tools/TranslateTool" },
-    { name: "ContextTool", path: "../components/tools/ContextTool" },
     { name: "CorrectorTool", path: "../components/tools/CorrectorTool" },
     { name: "RephraseTool", path: "../components/tools/RephraseTool" },
-    { name: "ConjugateTool", path: "../components/tools/ConjugateTool" },
     { name: "SynonymsTool", path: "../components/tools/SynonymsTool" },
-    { name: "DefinitionTool", path: "../components/tools/DefinitionTool" },
-    { name: "DailyWordsTool", path: "../components/tools/DailyWordsTool" },
-    { name: "ReaderTool", path: "../components/tools/ReaderTool" },
-    { name: "PronunciationTool", path: "../components/tools/PronunciationTool" },
-    { name: "WordActionBar", path: "../components/tools/WordActionBar" },
-    { name: "ExerciseBox", path: "../components/tools/ExerciseBox" },
+    { name: "SentenceMiningTool", path: "../components/tools/SentenceMiningTool" },
   ];
 
   for (const { name, path } of TOOL_COMPONENTS) {
@@ -200,51 +180,13 @@ describe("Tool component imports", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 4. ExerciseBox types
-// ─────────────────────────────────────────────────────────────────────
-describe("ExerciseBox types", () => {
-  it("exports Exercise type that supports fill and mcq", async () => {
-    const mod = await import("../components/tools/ExerciseBox");
-    expect(mod.default).toBeDefined();
-    // Verify the component can be constructed - type export is compile-time only
-    // but we can verify the component exists and is callable
-    expect(typeof mod.default).toBe("function");
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 5. Tools hub view
-// ─────────────────────────────────────────────────────────────────────
-describe("Tools hub view", () => {
-  it("Tools view exports a default component", async () => {
-    const mod = await import("../views/Tools");
-    expect(mod.default).toBeDefined();
-    expect(typeof mod.default).toBe("function");
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 6. i18n tools keys completeness
+// 4. i18n tools keys completeness
 // ─────────────────────────────────────────────────────────────────────
 describe("i18n tools keys", () => {
-  it("all tool tab keys are defined", async () => {
+  it("tools section exists in locale", async () => {
     const locale = await import("../i18n/locales/en.json");
-    const tabs = locale.default.tools.tabs;
-    const expectedTabs = ["translate", "context", "corrector", "rephrase", "conjugate", "synonyms", "definition", "reader", "pronunciation", "daily"];
-    for (const tab of expectedTabs) {
-      expect(tabs).toHaveProperty(tab);
-      expect(typeof tabs[tab as keyof typeof tabs]).toBe("string");
-    }
-  });
-
-  it("tools nav key exists", async () => {
-    const locale = await import("../i18n/locales/en.json");
-    expect(locale.default.nav.tools).toBe("Tools");
-  });
-
-  it("exercise section exists", async () => {
-    const locale = await import("../i18n/locales/en.json");
-    expect(locale.default.tools.exercise.title).toBe("Practice");
+    expect(locale.default.tools).toBeDefined();
+    expect(locale.default.tools.title).toBeDefined();
   });
 
   it("pronunciation section has all keys", async () => {

@@ -167,6 +167,26 @@ pub fn get_unlearned_words(
     }
 }
 
+/// Add a custom word
+#[tauri::command]
+pub fn add_custom_word(
+    state: State<'_, DbState>,
+    pair_id: i64,
+    source_word: String,
+    target_word: String,
+    gender: Option<String>,
+    level: Option<String>,
+    category: Option<String>,
+) -> Result<i64, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    db.execute(
+        "INSERT INTO words (language_pair_id, source_word, target_word, gender, level, category) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![pair_id, source_word, target_word, gender, level, category],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(db.last_insert_rowid())
+}
+
 #[tauri::command]
 pub fn get_word_count(state: State<'_, DbState>, pair_id: i64) -> Result<i64, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;

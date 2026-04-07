@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Copy, Check, Volume2 } from "lucide-react";
-import { useApp } from "../../store/AppContext";
+import { Loader2, Copy, Check } from "lucide-react";
 import { cachedAskAi, getPromptContext } from "../../lib/ai-cache";
 import { parseAiJson, formatMessage } from "../../lib/markdown";
-import { speak } from "../../lib/speech";
+import type { LanguagePair } from "../../types";
 
 interface RephraseAlternative { text: string; tone: string; note: string; }
 interface RephraseResult { alternatives: RephraseAlternative[]; }
@@ -21,11 +20,10 @@ const TONE_STYLES: Record<string, { bg: string; text: string }> = {
   neutral: { bg: "bg-gray-100 dark:bg-gray-700", text: "text-gray-600 dark:text-gray-400" },
 };
 
-interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; }
+interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; activePair?: LanguagePair | null; }
 
-export default function RephraseTool({ initialWord }: ToolProps) {
+export default function RephraseTool({ initialWord, activePair }: ToolProps) {
   const { t } = useTranslation();
-  const { settings, activePair } = useApp();
   const [input, setInput] = useState(initialWord || "");
   const [structured, setStructured] = useState<RephraseResult | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
@@ -36,7 +34,7 @@ export default function RephraseTool({ initialWord }: ToolProps) {
     if (!input.trim() || loading || !activePair) return;
     setLoading(true); setStructured(null); setFallback(null);
     try {
-      const level = settings?.level || "A2";
+      const level = "A2";
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
@@ -50,7 +48,7 @@ Text: ${input.trim()}`;
       if (parsed?.alternatives?.length) setStructured(parsed); else setFallback(response);
     } catch (err) { setFallback(`Error: ${err}`); }
     finally { setLoading(false); }
-  }, [input, loading, activePair, settings]);
+  }, [input, loading, activePair]);
 
   useEffect(() => { if (initialWord) handleRephrase(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -77,7 +75,6 @@ Text: ${input.trim()}`;
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">{alt.note}</p>
                   </div>
                   <div className="flex flex-col gap-1 flex-shrink-0">
-                    <button onClick={() => speak(alt.text, activePair?.source_lang || "de")} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><Volume2 size={14} className="text-gray-400" /></button>
                     <button onClick={() => handleCopy(alt.text, i)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{copiedIdx === i ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-gray-400" />}</button>
                   </div>
                 </div>

@@ -1,12 +1,9 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2, Volume2 } from "lucide-react";
-import { useApp } from "../../store/AppContext";
+import { Search, Loader2 } from "lucide-react";
 import { cachedAskAi, addToHistory, getPromptContext } from "../../lib/ai-cache";
 import { renderClickable, parseAiJson, formatMessage } from "../../lib/markdown";
-import { speak } from "../../lib/speech";
-import ExerciseBox from "./ExerciseBox";
-import type { Exercise } from "./ExerciseBox";
+import type { LanguagePair } from "../../types";
 
 interface SynonymEntry { word: string; register: string; definition: string; example: { source: string; target: string }; }
 interface SynonymsResult { synonyms: SynonymEntry[]; }
@@ -20,11 +17,10 @@ const REGISTER_STYLES: Record<string, string> = {
   technical: "bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400",
 };
 
-interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; }
+interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; activePair?: LanguagePair | null; }
 
-export default function SynonymsTool({ onWordClick, initialWord }: ToolProps) {
+export default function SynonymsTool({ onWordClick, initialWord, activePair }: ToolProps) {
   const { t } = useTranslation();
-  const { settings, activePair } = useApp();
   const [input, setInput] = useState(initialWord || "");
   const [structured, setStructured] = useState<SynonymsResult | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
@@ -34,7 +30,7 @@ export default function SynonymsTool({ onWordClick, initialWord }: ToolProps) {
     if (!input.trim() || loading || !activePair) return;
     setLoading(true); setStructured(null); setFallback(null);
     try {
-      const level = settings?.level || "A2";
+      const level = "A2";
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
@@ -48,23 +44,13 @@ ${enriched}`;
       if (parsed?.synonyms?.length) setStructured(parsed); else setFallback(response);
     } catch (err) { setFallback(`Error: ${err}`); }
     finally { setLoading(false); }
-  }, [input, loading, activePair, settings]);
+  }, [input, loading, activePair]);
 
   useEffect(() => { if (initialWord) handleSearch(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } };
   const handleResultClick = (e: React.MouseEvent) => { const el = (e.target as HTMLElement).closest("[data-clickable-word]"); if (el) { const w = el.getAttribute("data-clickable-word"); if (w && onWordClick) onWordClick(w); } };
 
-  // MCQ exercise: pick one synonym's definition, ask which word matches
-  const exercise = useMemo((): Exercise | null => {
-    if (!structured?.synonyms?.length || structured.synonyms.length < 3) return null;
-    const idx = Math.floor(Math.random() * structured.synonyms.length);
-    const correct = structured.synonyms[idx];
-    const others = structured.synonyms.filter((_, i) => i !== idx);
-    const shuffled = others.sort(() => Math.random() - 0.5).slice(0, 3);
-    const options = [...shuffled.map((s) => s.word), correct.word].sort(() => Math.random() - 0.5);
-    return { type: "mcq", question: `${correct.definition} →`, options, correctIndex: options.indexOf(correct.word) };
-  }, [structured]);
 
   return (
     <div className="space-y-4">
@@ -85,7 +71,6 @@ ${enriched}`;
               {structured.synonyms.map((syn, i) => (
                 <div key={i} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className="flex items-center gap-3 mb-2">
-                    <button onClick={(e) => { e.stopPropagation(); speak(syn.word, activePair?.source_lang || "de"); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><Volume2 size={14} className="text-gray-400" /></button>
                     <span className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400" onClick={(e) => { e.stopPropagation(); onWordClick?.(syn.word); }}>{syn.word}</span>
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${REGISTER_STYLES[syn.register] || REGISTER_STYLES.neutral}`}>{syn.register}</span>
                     <span className="text-sm text-gray-500 dark:text-gray-400 italic ml-auto">{syn.definition}</span>
@@ -98,7 +83,6 @@ ${enriched}`;
               ))}
             </div>
           </div>
-          {exercise && <ExerciseBox exercise={exercise} />}
         </div>
       )}
       {fallback && <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm"><div className="prose prose-sm dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: formatMessage(fallback) }} /></div>}

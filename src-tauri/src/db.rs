@@ -42,6 +42,12 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Failed to update schema version: {}", e))?;
     }
 
+    if current_version < 5 {
+        let migration_sql = include_str!("../migrations/005_simplification.sql");
+        conn.execute_batch(migration_sql)
+            .map_err(|e| format!("Migration 005 failed: {}", e))?;
+    }
+
     Ok(())
 }
 

@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { speak, getSourceLang } from "../lib/speech";
-import { useApp } from "../store/AppContext";
 
 interface FlashcardProps {
   sourceWord: string;
@@ -15,6 +12,7 @@ interface FlashcardProps {
   exampleTarget?: string | null;
   flipped?: boolean;
   onFlip?: () => void;
+  sourceLang?: string;
 }
 
 const genderColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -32,10 +30,9 @@ const levelColors: Record<string, string> = {
 
 export default function Flashcard({
   sourceWord, targetWord, gender, plural, level, category,
-  exampleSource, exampleTarget, flipped = false, onFlip,
+  exampleSource, exampleTarget, flipped = false, onFlip, sourceLang,
 }: FlashcardProps) {
   const { t } = useTranslation();
-  const { activePair, isGerman } = useApp();
   const [isFlipped, setIsFlipped] = useState(flipped);
 
   useEffect(() => {
@@ -48,7 +45,6 @@ export default function Flashcard({
   };
 
   const genderInfo = gender ? genderColors[gender] : null;
-  const sourceLang = getSourceLang(activePair?.source_lang || "de");
 
   return (
     <div className="perspective-1000 w-full max-w-md h-64 mx-auto cursor-pointer" onClick={handleFlip}>
@@ -56,7 +52,7 @@ export default function Flashcard({
         {/* Front */}
         <div className="absolute inset-0 backface-hidden rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col items-center justify-center p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            {isGerman() && genderInfo && (
+            {sourceLang === "de" && genderInfo && (
               <span className={`${genderInfo.bg} text-white text-xs px-2 py-0.5 rounded-full font-bold`}>
                 {genderInfo.label}
               </span>
@@ -71,12 +67,6 @@ export default function Flashcard({
             {sourceWord}
           </p>
           {plural && <p className="text-sm text-gray-400 mt-2">pl. {plural}</p>}
-          <button
-            onClick={(e) => { e.stopPropagation(); speak(sourceWord, sourceLang); }}
-            className="mt-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-          >
-            <Volume2 size={20} />
-          </button>
           <p className="absolute bottom-3 text-xs text-gray-400">{t("flashcard.clickToFlip")}</p>
         </div>
 

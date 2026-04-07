@@ -2,11 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   SettingsSchema, LanguagePairSchema, WordSchema, SrsCardSchema,
   SrsStatsSchema, AiSettingsSchema, DictionarySourceSchema,
-  FavoriteWordSchema, DailyStatRowSchema, OverviewStatsSchema,
+  FavoriteWordSchema, GrammarSrsStateSchema,
+  ConversationScenarioSchema, ConversationSessionSchema,
 } from "../types";
-import type {
-  Word, GrammarTopic, Verb, WhisperModelInfo,
-} from "../types";
+import type { GrammarTopic, Verb } from "../types";
 import { z } from "zod";
 
 // Centralized error wrapper for IPC calls
@@ -35,7 +34,7 @@ export const getSettings = () => invokeAndParse("get_settings", SettingsSchema);
 export const updateSetting = (key: string, value: string) => safeInvoke<void>("update_setting", { key, value });
 export const getLanguagePairs = () => invokeAndParseArray("get_language_pairs", LanguagePairSchema);
 export const setActiveLanguagePair = (pairId: number) => safeInvoke<void>("set_active_language_pair", { pairId });
-export const updateStreak = () => invokeAndParse("update_streak", SettingsSchema);
+export const deleteLanguagePair = (pairId: number) => safeInvoke<void>("delete_language_pair", { pairId });
 
 // Dictionary
 export const getWords = (pairId: number, level?: string, limit?: number, offset?: number) =>
@@ -46,18 +45,28 @@ export const getUnlearnedWords = (pairId: number, level?: string, limit?: number
   invokeAndParseArray("get_unlearned_words", WordSchema, { pairId, level: level ?? null, limit: limit ?? null });
 export const getWordCount = (pairId: number) => safeInvoke<number>("get_word_count", { pairId });
 export const getCategories = (pairId: number) => safeInvoke<string[]>("get_categories", { pairId });
+export const addCustomWord = (pairId: number, sourceWord: string, targetWord: string, gender?: string, level?: string, category?: string) =>
+  safeInvoke<number>("add_custom_word", { pairId, sourceWord, targetWord, gender: gender ?? null, level: level ?? null, category: category ?? null });
 
 // SRS
-export const addWordToSrs = (wordId: number) => invokeAndParse("add_word_to_srs", SrsCardSchema, { wordId });
+export const addWordToSrs = (wordId: number, cardType?: string, deck?: string, clozeSentence?: string) =>
+  invokeAndParse("add_word_to_srs", SrsCardSchema, { wordId, cardType: cardType ?? null, deck: deck ?? null, clozeSentence: clozeSentence ?? null });
 export const getDueCards = (pairId: number) => invokeAndParseArray("get_due_cards", SrsCardSchema, { pairId });
+export const getAllSrsCards = (pairId: number, deck?: string) =>
+  invokeAndParseArray("get_all_srs_cards", SrsCardSchema, { pairId, deck: deck ?? null });
 export const getDueCount = (pairId: number) => safeInvoke<number>("get_due_count", { pairId });
 export const reviewCard = (cardId: number, quality: number) => invokeAndParse("review_card", SrsCardSchema, { cardId, quality });
+export const deleteSrsCard = (cardId: number) => safeInvoke<void>("delete_srs_card", { cardId });
 export const getSrsStats = (pairId: number) => invokeAndParse("get_srs_stats", SrsStatsSchema, { pairId });
 
 // Grammar
 export const getGrammarTopics = (pairId: number) => safeInvoke<GrammarTopic[]>("get_grammar_topics", { pairId });
 export const markGrammarCompleted = (topicId: string, pairId: number, correct: number, total: number) =>
   safeInvoke<void>("mark_grammar_completed", { topicId, pairId, correct, total });
+export const getDueGrammarTopics = (pairId: number) =>
+  invokeAndParseArray("get_due_grammar_topics", GrammarSrsStateSchema, { pairId });
+export const reviewGrammarTopic = (topicId: string, pairId: number, quality: number) =>
+  invokeAndParse("review_grammar_topic", GrammarSrsStateSchema, { topicId, pairId, quality });
 
 // Conjugation
 export const getVerbs = (pairId: number, query?: string) => safeInvoke<Verb[]>("get_verbs", { pairId, query: query ?? null });
@@ -90,6 +99,20 @@ export const saveChatMessage = (pairId: number, role: string, content: string) =
 export const clearChatHistory = (pairId: number) =>
   safeInvoke<void>("clear_chat_history", { pairId });
 
+// Conversation scenarios & sessions
+export const getConversationScenarios = (pairId: number) =>
+  invokeAndParseArray("get_conversation_scenarios", ConversationScenarioSchema, { pairId });
+export const saveConversationScenario = (pairId: number, name: string, icon: string, description: string, systemPrompt: string) =>
+  safeInvoke<number>("save_conversation_scenario", { pairId, name, icon, description, systemPrompt });
+export const deleteConversationScenario = (scenarioId: number) =>
+  safeInvoke<void>("delete_conversation_scenario", { scenarioId });
+export const getConversationSessions = (pairId: number, limit?: number) =>
+  invokeAndParseArray("get_conversation_sessions", ConversationSessionSchema, { pairId, limit: limit ?? null });
+export const saveConversationSession = (pairId: number, scenarioId: number | null, mode: string, title: string, messages: string) =>
+  safeInvoke<number>("save_conversation_session", { pairId, scenarioId, mode, title, messages });
+export const deleteConversationSession = (sessionId: number) =>
+  safeInvoke<void>("delete_conversation_session", { sessionId });
+
 // Session
 export const logSession = (pairId: number, sessionType: string, sessionData: Record<string, unknown>) =>
   safeInvoke<void>("log_session", { pairId, sessionType, sessionData });
@@ -98,13 +121,6 @@ export const logSession = (pairId: number, sessionType: string, sessionData: Rec
 export const importBuiltinData = (pairId: number) => safeInvoke<string>("import_builtin_data", { pairId });
 export const importFromFile = (pairId: number, content: string, format: string) =>
   safeInvoke<string>("import_from_file", { pairId, content, format });
-
-// Speech
-export const getWhisperModels = () => safeInvoke<WhisperModelInfo[]>("get_whisper_models");
-export const downloadWhisperModel = (modelName: string) => safeInvoke<string>("download_whisper_model", { modelName });
-export const deleteWhisperModel = (modelName: string) => safeInvoke<string>("delete_whisper_model", { modelName });
-export const transcribeAudio = (audioData: number[], language?: string) =>
-  safeInvoke<string>("transcribe_audio", { audioData, language: language ?? null });
 
 // Download
 export const getAvailableDictionaries = () => invokeAndParseArray("get_available_dictionaries", DictionarySourceSchema);
@@ -116,24 +132,10 @@ export const toggleFavorite = (wordId: number) => safeInvoke<boolean>("toggle_fa
 export const getFavorites = (pairId: number) => invokeAndParseArray("get_favorites", FavoriteWordSchema, { pairId });
 export const isFavorite = (wordId: number) => safeInvoke<boolean>("is_favorite", { wordId });
 
-// Stats
-export const getDailyStats = (pairId: number, days: number) => invokeAndParseArray("get_daily_stats", DailyStatRowSchema, { pairId, days });
-export const getOverviewStats = (pairId: number) => invokeAndParse("get_overview_stats", OverviewStatsSchema, { pairId });
-export const logError = (pairId: number, errorType: string, wordOrTopic: string, userAnswer: string, correctAnswer: string) =>
-  safeInvoke<void>("log_error", { pairId, errorType, wordOrTopic, userAnswer, correctAnswer });
-export const getFrequentErrors = (pairId: number, limit?: number) =>
-  safeInvoke<Array<{ word: string; type: string; count: number; correct: string }>>("get_frequent_errors", { pairId, limit: limit ?? null });
-export const addCustomWord = (pairId: number, sourceWord: string, targetWord: string, gender?: string, level?: string, category?: string) =>
-  safeInvoke<number>("add_custom_word", { pairId, sourceWord, targetWord, gender: gender ?? null, level: level ?? null, category: category ?? null });
-export const getRandomWord = (pairId: number) => safeInvoke<Word | null>("get_random_word", { pairId });
-
-// Export/Import
-export const exportProgress = (pairId: number) => safeInvoke<Record<string, unknown>>("export_progress", { pairId });
-export const importProgress = (pairId: number, data: Record<string, unknown>) => safeInvoke<string>("import_progress", { pairId, data });
-
 // Maintenance
 export const clearCache = () => safeInvoke<string>("clear_cache");
 export const resetProgress = () => safeInvoke<string>("reset_progress");
+export const deleteAllData = () => safeInvoke<string>("delete_all_data");
 
 // Ollama
 export const detectOllama = () => safeInvoke<{ available: boolean; models: string[] }>("detect_ollama");

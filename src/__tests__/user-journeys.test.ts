@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   OnboardingStateSchema,
   LANGUAGES,
-  LEVELS,
   AI_PROVIDERS,
   isOnboardingDone,
   markOnboardingDone,
@@ -18,8 +17,6 @@ import {
   WordSchema,
   SrsCardSchema,
   SrsStatsSchema,
-  DailyStatRowSchema,
-  OverviewStatsSchema,
   AiSettingsSchema,
   ExerciseSchema,
   FavoriteWordSchema,
@@ -29,8 +26,6 @@ import {
 // Helper: base settings that satisfy all required nullable fields
 const BASE_SETTINGS = {
   active_language_pair_id: 1,
-  last_session_date: null,
-  start_date: null,
 };
 
 // Helper: parse settings with required nullable fields pre-filled
@@ -185,13 +180,11 @@ describe("User Journey: Language Switching", () => {
   it("active_language_pair_id tracks current pair", () => {
     const settingsPair1 = parseSettings({
       active_language_pair_id: 1,
-      level: "A2",
     });
     expect(settingsPair1.active_language_pair_id).toBe(1);
 
     const settingsPair2 = parseSettings({
       active_language_pair_id: 2,
-      level: "A2",
     });
     expect(settingsPair2.active_language_pair_id).toBe(2);
   });
@@ -233,13 +226,7 @@ describe("User Journey: Settings", () => {
     for (const theme of ["light", "dark", "system"]) {
       const settings = SettingsSchema.parse({
         active_language_pair_id: 1,
-        level: "A2",
-        words_per_day: 10,
-        streak: 0,
-        last_session_date: null,
-        start_date: null,
         dark_mode: theme,
-        audio_enabled: true,
         ai_provider: "claude-code",
         ai_model: "",
       });
@@ -252,55 +239,11 @@ describe("User Journey: Settings", () => {
     expect(() =>
       SettingsSchema.parse({
         active_language_pair_id: 1,
-        level: "A2",
-        words_per_day: 10,
-        streak: 0,
-        last_session_date: null,
-        start_date: null,
         dark_mode: true,
-        audio_enabled: 1,
         ai_provider: "claude-code",
         ai_model: "",
       }),
     ).toThrow();
-  });
-
-  it("audio_enabled integer 1 coerces to true", () => {
-    const settings = parseSettings({ audio_enabled: 1 });
-    expect(settings.audio_enabled).toBe(true);
-  });
-
-  it("level can be changed between A1, A2, B1, B2", () => {
-    for (const level of ["A1", "A2", "B1", "B2"]) {
-      const settings = parseSettings({ level });
-      expect(settings.level).toBe(level);
-    }
-  });
-
-  it("words_per_day can be adjusted", () => {
-    for (const count of [5, 10, 15, 20, 30, 50]) {
-      const settings = parseSettings({ words_per_day: count });
-      expect(settings.words_per_day).toBe(count);
-    }
-  });
-
-  it("streak increments correctly", () => {
-    const day1 = parseSettings({ streak: 0 });
-    expect(day1.streak).toBe(0);
-
-    const day2 = parseSettings({ streak: 1 });
-    expect(day2.streak).toBe(1);
-
-    const day10 = parseSettings({ streak: 10 });
-    expect(day10.streak).toBe(10);
-  });
-
-  it("audio_enabled toggle works", () => {
-    const audioOn = parseSettings({ audio_enabled: true });
-    expect(audioOn.audio_enabled).toBe(true);
-
-    const audioOff = parseSettings({ audio_enabled: false });
-    expect(audioOff.audio_enabled).toBe(false);
   });
 });
 
@@ -727,35 +670,6 @@ describe("User Journey: Chat Flow", () => {
 // 9. User Journey: Stats Display
 // ─────────────────────────────────────────────────────────────────────
 describe("User Journey: Stats Display", () => {
-  it("daily stats track learning activity", () => {
-    const stats = [
-      { date: "2026-03-16", words_learned: 8, words_reviewed: 20, correct_count: 18, total_count: 20 },
-      { date: "2026-03-17", words_learned: 10, words_reviewed: 15, correct_count: 12, total_count: 15 },
-      { date: "2026-03-18", words_learned: 5, words_reviewed: 30, correct_count: 28, total_count: 30 },
-    ].map((s) => DailyStatRowSchema.parse(s));
-
-    expect(stats).toHaveLength(3);
-    expect(stats[0].date).toBe("2026-03-16");
-    expect(stats[2].words_learned).toBe(5);
-  });
-
-  it("overview stats aggregate all activity", () => {
-    const overview = OverviewStatsSchema.parse({
-      total_words: 500,
-      total_learned: 200,
-      total_reviews: 1500,
-      total_grammar_completed: 5,
-      total_grammar: 10,
-      streak: 7,
-      accuracy: 85.5,
-      study_days: 30,
-      favorite_count: 15,
-    });
-    expect(overview.total_words).toBe(500);
-    expect(overview.accuracy).toBe(85.5);
-    expect(overview.streak).toBe(7);
-  });
-
   it("SRS stats show review summary", () => {
     const srsStats = SrsStatsSchema.parse({
       total_cards: 150,
@@ -766,21 +680,6 @@ describe("User Journey: Stats Display", () => {
     expect(srsStats.due_count).toBe(12);
   });
 
-  it("streak calendar data maps dates to activity counts", () => {
-    const calendarData: Record<string, number> = {};
-    const dailyStats = [
-      { date: "2026-03-16", words_learned: 8, words_reviewed: 20, correct_count: 18, total_count: 20 },
-      { date: "2026-03-17", words_learned: 10, words_reviewed: 15, correct_count: 12, total_count: 15 },
-    ];
-    dailyStats.forEach((s) => {
-      calendarData[s.date] = s.words_learned + s.words_reviewed;
-    });
-
-    expect(calendarData["2026-03-16"]).toBe(28);
-    expect(calendarData["2026-03-17"]).toBe(25);
-    expect(calendarData["2026-03-19"]).toBeUndefined();
-  });
-
   it("accuracy calculation works", () => {
     // accuracy = Math.round(average_accuracy)
     const stats = SrsStatsSchema.parse({
@@ -789,17 +688,6 @@ describe("User Journey: Stats Display", () => {
       average_accuracy: 87.5,
     });
     expect(Math.round(stats.average_accuracy)).toBe(88);
-  });
-
-  it("daily goal progress is calculated correctly", () => {
-    const todayLearned = 7;
-    const wordsPerDay = 10;
-    const progress = Math.min((todayLearned / wordsPerDay) * 100, 100);
-    expect(progress).toBe(70);
-
-    // Over-achievement capped at 100%
-    const overAchieved = Math.min((15 / 10) * 100, 100);
-    expect(overAchieved).toBe(100);
   });
 });
 
@@ -914,85 +802,6 @@ describe("User Journey: AI Provider Configuration", () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────
-// 12. User Journey: Level Changes
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Level Changes", () => {
-  it("all CEFR levels are available", () => {
-    const levelValues = LEVELS.map((l) => l.value);
-    expect(levelValues).toEqual(["A1", "A2", "B1", "B2"]);
-  });
-
-  it("each level has associated styling", () => {
-    for (const level of LEVELS) {
-      expect(level.color).toMatch(/^text-/);
-      expect(level.bg).toMatch(/^bg-/);
-      expect(level.border).toMatch(/^border-/);
-      expect(level.hover).toMatch(/^hover:/);
-    }
-  });
-
-  it("level change updates settings", () => {
-    const before = parseSettings({ level: "A1" });
-    expect(before.level).toBe("A1");
-
-    const after = parseSettings({ level: "B2" });
-    expect(after.level).toBe("B2");
-  });
-
-  it("level affects word filtering", () => {
-    const words = [
-      { id: 1, language_pair_id: 1, source_word: "Haus", target_word: "maison", gender: null, plural: null, level: "A1", category: null, tags: null, example_source: null, example_target: null },
-      { id: 2, language_pair_id: 1, source_word: "Wissenschaft", target_word: "science", gender: null, plural: null, level: "B2", category: null, tags: null, example_source: null, example_target: null },
-      { id: 3, language_pair_id: 1, source_word: "Arbeit", target_word: "travail", gender: null, plural: null, level: "A2", category: null, tags: null, example_source: null, example_target: null },
-    ].map((w) => WordSchema.parse(w));
-
-    const a1Words = words.filter((w) => w.level === "A1");
-    expect(a1Words).toHaveLength(1);
-    expect(a1Words[0].source_word).toBe("Haus");
-
-    const b2Words = words.filter((w) => w.level === "B2");
-    expect(b2Words).toHaveLength(1);
-    expect(b2Words[0].source_word).toBe("Wissenschaft");
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 13. User Journey: Words Per Day Changes
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Words Per Day Changes", () => {
-  it("default words per day is 10", () => {
-    const settings = parseSettings({});
-    expect(settings.words_per_day).toBe(10);
-  });
-
-  it("words per day can be increased", () => {
-    const settings = parseSettings({ words_per_day: 25 });
-    expect(settings.words_per_day).toBe(25);
-  });
-
-  it("words per day can be decreased", () => {
-    const settings = parseSettings({ words_per_day: 5 });
-    expect(settings.words_per_day).toBe(5);
-  });
-
-  it("daily goal progress reflects words_per_day", () => {
-    const settings5 = parseSettings({ words_per_day: 5 });
-    const settings20 = parseSettings({ words_per_day: 20 });
-
-    const todayLearned = 5;
-    const progress5 = Math.min((todayLearned / settings5.words_per_day) * 100, 100);
-    const progress20 = Math.min((todayLearned / settings20.words_per_day) * 100, 100);
-
-    expect(progress5).toBe(100); // 5/5 = 100%
-    expect(progress20).toBe(25); // 5/20 = 25%
-  });
-
-  it("words_per_day coerces from string", () => {
-    const settings = parseSettings({ words_per_day: "15" });
-    expect(settings.words_per_day).toBe(15);
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────────
 // 14. User Journey: Grammar Exercises
@@ -1074,16 +883,6 @@ describe("User Journey: Speech and Audio", () => {
     expect(langMap.fr).toBe("fr-FR");
     expect(langMap.en).toBe("en-US");
     expect(Object.keys(langMap).length).toBe(10);
-  });
-
-  it("audio_enabled defaults to true in settings", () => {
-    const settings = parseSettings({});
-    expect(settings.audio_enabled).toBe(true);
-  });
-
-  it("audio can be disabled via settings", () => {
-    const settings = parseSettings({ audio_enabled: false });
-    expect(settings.audio_enabled).toBe(false);
   });
 });
 

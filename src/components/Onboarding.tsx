@@ -1,103 +1,70 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BookOpen,
   Sparkles,
-  GraduationCap,
-  Rocket,
   Globe,
   ChevronRight,
   Check,
   FileUp,
   Wand2,
-  Download,
   Loader2,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
-import type { DictionarySource } from "../types";
 import {
   LANGUAGES,
-  LEVELS,
   AI_PROVIDERS,
   isOnboardingDone,
   markOnboardingDone,
-  findLangCode3,
-  filterDictionaries,
 } from "../lib/onboarding";
 
 interface OnboardingProps {
   children: React.ReactNode;
 }
 
-const LEVEL_ICONS = {
-  A1: BookOpen,
-  A2: GraduationCap,
-  B1: Rocket,
-  B2: Sparkles,
-} as const;
-
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 export default function Onboarding({ children }: OnboardingProps) {
   const { t } = useTranslation();
-  const { reloadSettings, updateSetting } = useApp();
+  const { reloadSettings } = useApp();
 
   // ── All useState hooks declared upfront (Rules of Hooks) ──────────
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => !isOnboardingDone());
   const [step, setStep] = useState(0);
   const [nativeLang, setNativeLang] = useState<string | null>(null);
-  const [targetLang, setTargetLang] = useState<string | null>(null);
-  const [availableDicts, setAvailableDicts] = useState<DictionarySource[]>([]);
-  const [downloading, setDownloading] = useState<string | null>(null);
-  const [downloadDone, setDownloadDone] = useState(false);
+  const [contentDone, setContentDone] = useState(false);
   const [aiProvider, setAiProvider] = useState("claude-code");
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiTestStatus, setAiTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [aiTestError, setAiTestError] = useState("");
-  const [dictSearch, setDictSearch] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generateStatus, setGenerateStatus] = useState("");
-
-  // Load dictionary catalog once
-  useEffect(() => {
-    if (!showOnboarding) return;
-    bridge.getAvailableDictionaries().then(setAvailableDicts).catch(() => {});
-  }, [showOnboarding]);
 
   // ── Early returns AFTER all hooks ─────────────────────────────────
   if (!showOnboarding) return <>{children}</>;
 
   // ── Handlers ──────────────────────────────────────────────────────
 
-  const handleSelectLevel = async (level: string) => {
+  const handleSelectTarget = async (target: string) => {
     try {
-      await updateSetting("level", level);
-
-      // Find or create the matching language pair
       const pairs = await bridge.getLanguagePairs();
       const matchingPair =
         pairs.find(
-          (p) => p.source_lang === nativeLang && p.target_lang === targetLang,
+          (p) => p.source_lang === nativeLang && p.target_lang === target,
         ) ||
         pairs.find(
-          (p) => p.source_lang === targetLang && p.target_lang === nativeLang,
+          (p) => p.source_lang === target && p.target_lang === nativeLang,
         ) ||
         pairs[0];
 
       if (matchingPair) {
         await bridge.setActiveLanguagePair(matchingPair.id);
       }
-
-      // We intentionally do NOT call reloadSettings() here.
-      // That was the bug: reloadSettings updates activePair, which used to
-      // trigger a useEffect that checked word count and set needsOnboarding=false,
-      // skipping steps 4 and 5.
-      setStep(4);
     } catch (err) {
-      console.error("Onboarding level select failed:", err);
-      setStep(4);
+      console.error("Onboarding language pair setup failed:", err);
     }
+    setStep(3);
   };
 
   const handleTestAi = async () => {
@@ -121,7 +88,7 @@ export default function Onboarding({ children }: OnboardingProps) {
     } catch {
       /* ignore */
     }
-    setStep(5);
+    setStep(4);
   };
 
   const handleImportFile = async () => {
@@ -150,26 +117,6 @@ export default function Onboarding({ children }: OnboardingProps) {
     input.click();
   };
 
-  const handleDownloadDict = async (dict: DictionarySource) => {
-    const key = `${dict.source_lang}-${dict.target_lang}`;
-    setDownloading(key);
-    try {
-      await bridge.downloadDictionary(
-        dict.source_lang,
-        dict.target_lang,
-        dict.url,
-        dict.source_name,
-        dict.target_name,
-        dict.format,
-      );
-      setDownloadDone(true);
-    } catch (err) {
-      console.error("Download failed:", err);
-    } finally {
-      setDownloading(null);
-    }
-  };
-
   const handleGenerateWithAi = async () => {
     setGenerating(true);
     try {
@@ -190,7 +137,7 @@ export default function Onboarding({ children }: OnboardingProps) {
       setGenerateStatus("Generating verbs...");
       await bridge.generateVerbs(pair.id, 20, level);
 
-      setDownloadDone(true);
+      setContentDone(true);
     } catch (err) {
       console.error("AI generation failed:", err);
       setGenerateStatus(`Error: ${err}`);
@@ -211,9 +158,6 @@ export default function Onboarding({ children }: OnboardingProps) {
   // ── Derived values ────────────────────────────────────────────────
 
   const targetOptions = LANGUAGES.filter((l) => l.code !== nativeLang);
-  const nativeLang3 = findLangCode3(nativeLang || "");
-  const targetLang3 = findLangCode3(targetLang || "");
-  const filteredDicts = filterDictionaries(availableDicts, dictSearch, nativeLang3, targetLang3);
 
   // ── Render ────────────────────────────────────────────────────────
 
@@ -312,10 +256,7 @@ export default function Onboarding({ children }: OnboardingProps) {
                 {targetOptions.map((lang) => (
                   <button
                     key={lang.code}
-                    onClick={() => {
-                      setTargetLang(lang.code);
-                      setStep(3);
-                    }}
+                    onClick={() => handleSelectTarget(lang.code)}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border-gray-200 dark:border-gray-700 hover:border-blue-300"
                   >
                     <span className="text-2xl">{lang.flag}</span>
@@ -334,60 +275,8 @@ export default function Onboarding({ children }: OnboardingProps) {
             </div>
           )}
 
-          {/* Step 3: Level */}
+          {/* Step 3: AI setup */}
           {step === 3 && (
-            <div className="space-y-6">
-              <div className="text-center space-y-2">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {t("onboarding.selectLevel")}
-                </h2>
-                <p className="text-sm text-gray-400">
-                  {LANGUAGES.find((l) => l.code === nativeLang)?.flag} →{" "}
-                  {LANGUAGES.find((l) => l.code === targetLang)?.flag}{" "}
-                  {LANGUAGES.find((l) => l.code === targetLang)?.name}
-                </p>
-              </div>
-              <div className="space-y-3">
-                {LEVELS.map((level) => {
-                  const Icon = LEVEL_ICONS[level.value as keyof typeof LEVEL_ICONS];
-                  return (
-                    <button
-                      key={level.value}
-                      onClick={() => handleSelectLevel(level.value)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 ${level.border} ${level.bg} ${level.hover} transition-all hover:shadow-md active:scale-[0.99]`}
-                    >
-                      <div
-                        className={`flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-gray-800 shadow-sm ${level.color}`}
-                      >
-                        <Icon size={24} />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-bold text-gray-900 dark:text-white">{level.value}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {level.value === "A1"
-                            ? t("onboarding.beginner")
-                            : level.value === "A2"
-                              ? t("onboarding.elementary")
-                              : level.value === "B1"
-                                ? t("onboarding.intermediate")
-                                : t("onboarding.upperIntermediate")}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => setStep(2)}
-                className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                ← {t("common.back")}
-              </button>
-            </div>
-          )}
-
-          {/* Step 4: AI setup */}
-          {step === 4 && (
             <div className="space-y-5">
               <div className="text-center space-y-2">
                 <Wand2 size={32} className="mx-auto text-purple-500 mb-2" />
@@ -457,7 +346,7 @@ export default function Onboarding({ children }: OnboardingProps) {
               </button>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setStep(3)}
+                  onClick={() => setStep(2)}
                   className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   ← {t("common.back")}
@@ -473,12 +362,12 @@ export default function Onboarding({ children }: OnboardingProps) {
             </div>
           )}
 
-          {/* Step 5: Get content */}
-          {step === 5 && (
+          {/* Step 4: Get content */}
+          {step === 4 && (
             <div className="space-y-5">
               <div className="text-center space-y-2">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30">
-                  <Download size={32} className="text-emerald-500" />
+                  <BookOpen size={32} className="text-emerald-500" />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   {t("onboarding.addContent")}
@@ -488,68 +377,18 @@ export default function Onboarding({ children }: OnboardingProps) {
                 </p>
               </div>
 
-              {downloadDone ? (
+              {contentDone ? (
                 <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 p-4 text-center">
                   <Check size={24} className="text-emerald-500 mx-auto mb-2" />
                   <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                    {t("onboarding.dictDownloaded")}
+                    {t("onboarding.contentReady")}
                   </p>
                 </div>
-              ) : (
-                <>
-                  <input
-                    type="text"
-                    value={dictSearch}
-                    onChange={(e) => setDictSearch(e.target.value)}
-                    placeholder="Search dictionaries..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {filteredDicts.length === 0 ? (
-                      <p className="text-center text-sm text-gray-400 py-4">
-                        No dictionaries found
-                      </p>
-                    ) : (
-                      filteredDicts.map((dict) => {
-                        const key = `${dict.source_lang}-${dict.target_lang}`;
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => handleDownloadDict(dict)}
-                            disabled={downloading !== null}
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-400 transition-all text-left disabled:opacity-50"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{dict.source_flag}</span>
-                              <span className="text-xs text-gray-400">→</span>
-                              <span>{dict.target_flag}</span>
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                {dict.source_name} → {dict.target_name}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {dict.word_count && (
-                                <span className="text-xs text-gray-400">
-                                  {dict.word_count.toLocaleString()}
-                                </span>
-                              )}
-                              {downloading === key ? (
-                                <Loader2 size={14} className="animate-spin text-blue-500" />
-                              ) : (
-                                <Download size={14} className="text-blue-500" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </>
-              )}
+              ) : null}
 
               <button
                 onClick={handleGenerateWithAi}
-                disabled={generating || downloadDone}
+                disabled={generating || contentDone}
                 className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:border-purple-400 transition-all hover:shadow-md active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow-sm text-purple-500">
@@ -585,12 +424,12 @@ export default function Onboarding({ children }: OnboardingProps) {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setStep(4)}
+                  onClick={() => setStep(3)}
                   className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   ← {t("common.back")}
                 </button>
-                {downloadDone ? (
+                {contentDone ? (
                   <button
                     onClick={handleFinish}
                     className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium text-sm transition-all"

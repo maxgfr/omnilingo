@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -11,11 +12,14 @@ import {
   Search,
   Wand2,
   Loader2,
+  Clock,
 } from "lucide-react";
 import { useApp } from "../store/AppContext";
+import { useFeaturePair } from "../lib/useFeaturePair";
+import LanguagePairBar from "../components/LanguagePairBar";
 import * as bridge from "../lib/bridge";
 import { QCM, FillBlank, TrueFalse } from "../components/Exercise";
-import type { GrammarTopic, Exercise } from "../types";
+import type { GrammarTopic, GrammarSrsState, Exercise } from "../types";
 
 const levelColors: Record<string, string> = {
   A1: "text-emerald-600 dark:text-emerald-400",
@@ -64,7 +68,8 @@ function renderMarkdown(text: string) {
 
 export default function Grammar() {
   const { t } = useTranslation();
-  const { activePair } = useApp();
+  const { languagePairs } = useApp();
+  const { activePair, switchPair } = useFeaturePair("grammar");
   const navigate = useNavigate();
   const [topics, setTopics] = useState<GrammarTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<GrammarTopic | null>(null);
@@ -73,29 +78,40 @@ export default function Grammar() {
   const [exercisesDone, setExercisesDone] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // SRS due topics
+  const [dueTopics, setDueTopics] = useState<GrammarSrsState[]>([]);
+
   // AI lesson generator
   const [showAiLesson, setShowAiLesson] = useState(false);
   const [aiTopic, setAiTopic] = useState("");
   const [aiLesson, setAiLesson] = useState<GrammarTopic | null>(null);
   const [generatingLesson, setGeneratingLesson] = useState(false);
 
-  // Load topics
+  // Load topics and due SRS topics
   useEffect(() => {
     if (!activePair) return;
     setLoading(true);
-    bridge
-      .getGrammarTopics(activePair.id)
-      .then((topics) => setTopics(topics))
+    Promise.all([
+      bridge.getGrammarTopics(activePair.id),
+      bridge.getDueGrammarTopics(activePair.id),
+    ])
+      .then(([loadedTopics, loadedDue]) => {
+        setTopics(loadedTopics);
+        setDueTopics(loadedDue);
+      })
       .catch((err) => console.error("Failed to load grammar topics:", err))
       .finally(() => setLoading(false));
   }, [activePair]);
 
+  // Fuse instance for fuzzy search
+  const fuse = useMemo(
+    () => new Fuse(topics, { keys: ["title", "title_source", "explanation"], threshold: 0.4 }),
+    [topics],
+  );
+
   // Filter topics based on search query
   const filteredTopics = searchQuery.trim()
-    ? topics.filter(tp =>
-        tp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tp.level.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? fuse.search(searchQuery.trim()).map((r) => r.item)
     : topics;
 
   // Group topics by level
@@ -112,6 +128,9 @@ export default function Grammar() {
     (a, b) => levelOrder.indexOf(a) - levelOrder.indexOf(b),
   );
 
+  // Set of topic IDs that are due for SRS review
+  const dueTopicIds = useMemo(() => new Set(dueTopics.map((d) => d.topic_id)), [dueTopics]);
+
   const selectTopic = useCallback((topic: GrammarTopic) => {
     setSelectedTopic(topic);
     setExerciseResults([]);
@@ -122,9 +141,10 @@ export default function Grammar() {
     setSelectedTopic(null);
     setExerciseResults([]);
     setExercisesDone(false);
-    // Reload topics to reflect any completion changes
+    // Reload topics and due list to reflect any completion/review changes
     if (activePair) {
       bridge.getGrammarTopics(activePair.id).then((topics) => setTopics(topics));
+      bridge.getDueGrammarTopics(activePair.id).then((due) => setDueTopics(due));
     }
   }, [activePair]);
 
@@ -149,10 +169,11 @@ export default function Grammar() {
         setExercisesDone(true);
         const correctCount = newResults.filter((r) => r === true).length;
 
-        // Mark as completed if score >= 70%
+        // Mark as completed if score >= 70% and schedule SRS review
         if (selectedTopic && activePair && totalExercises > 0) {
           const scorePercent = (correctCount / totalExercises) * 100;
-          if (scorePercent >= 70) {
+          const passed = scorePercent >= 70;
+          if (passed) {
             try {
               await bridge.markGrammarCompleted(
                 selectedTopic.id,
@@ -163,6 +184,16 @@ export default function Grammar() {
             } catch (err) {
               console.error("Failed to mark grammar completed:", err);
             }
+          }
+          // Schedule SRS review: quality 3 for passing, 1 for failing
+          try {
+            await bridge.reviewGrammarTopic(
+              selectedTopic.id,
+              activePair.id,
+              passed ? 3 : 1,
+            );
+          } catch (err) {
+            console.error("Failed to schedule grammar SRS review:", err);
           }
         }
       }
@@ -238,29 +269,14 @@ Return ONLY valid JSON, no markdown fences.`;
   // Empty state
   if (topics.length === 0 && !aiLesson) {
     return (
-      <div className="max-w-lg mx-auto flex flex-col items-center justify-center py-20 space-y-6">
-        <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("grammar.noTopics")}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("grammar.emptyDescription")}</p>
-        </div>
-        {/* AI Generate inline */}
-        <div className="w-full space-y-3">
-          <input
-            type="text"
-            value={aiTopic}
-            onChange={(e) => setAiTopic(e.target.value)}
-            placeholder={t("grammar.topicPlaceholder")}
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder:text-gray-400"
-          />
-          <button
-            onClick={handleGenerateLesson}
-            disabled={generatingLesson || !aiTopic.trim()}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl font-medium text-sm transition-all disabled:opacity-50"
-          >
-            {generatingLesson ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {generatingLesson ? t("grammar.generating") : t("grammar.generateLesson")}
-          </button>
+      <div className="max-w-2xl mx-auto py-6 px-4">
+        <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
+        <div className="flex flex-col items-center justify-center py-16 space-y-6">
+          <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("grammar.noTopics")}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t("grammar.emptyDescription")}</p>
+          </div>
         </div>
       </div>
     );
@@ -495,12 +511,25 @@ Return ONLY valid JSON, no markdown fences.`;
   // Topic list view
   return (
     <div className="max-w-2xl mx-auto py-6 px-4">
+      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("grammar.title")}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })}
         </p>
       </div>
+
+      {/* Due for review banner */}
+      {dueTopics.length > 0 && (
+        <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
+          <Clock size={18} className="text-amber-500 flex-shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
+            {dueTopics.length === 1
+              ? t("grammar.dueForReview", { count: 1 })
+              : t("grammar.dueForReview", { count: dueTopics.length })}
+          </p>
+        </div>
+      )}
 
       {/* AI Lesson Generator */}
       <div className="mb-4 space-y-3">
@@ -615,6 +644,11 @@ Return ONLY valid JSON, no markdown fences.`;
                         </p>
                       )}
                     </div>
+                    {dueTopicIds.has(topic.id) && (
+                      <span title={t("grammar.dueReview")}>
+                        <Clock size={14} className="text-amber-500 flex-shrink-0" />
+                      </span>
+                    )}
                     {topic.score_total > 0 && (
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 rounded-full ${

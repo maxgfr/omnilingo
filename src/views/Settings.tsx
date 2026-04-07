@@ -1,65 +1,24 @@
 import { useEffect, useState, useCallback } from "react";
 import {
-  Globe,
-  Brain,
   Palette,
-  Mic,
-  BookOpen,
   Database,
   Trash2,
   Download,
-  Upload,
   RefreshCw,
   AlertTriangle,
   Check,
   Loader2,
-  Search,
   ChevronDown,
-  Key,
-  Volume2,
   Moon,
   Zap,
-  Languages,
+  BookOpen,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { setUILanguage, getUILanguage, getAvailableLanguages, saveCustomTranslation } from "../i18n";
-import en from "../i18n/locales/en.json";
 import { useApp } from "../store/AppContext";
+import DictionaryPairSelector from "../components/DictionaryPairSelector";
 import * as bridge from "../lib/bridge";
-import { isMobile, downloadFile } from "../lib/platform";
-import type { AiSettings, WhisperModelInfo, DictionarySource } from "../types";
-
-// ---------------------------------------------------------------------------
-// Toggle switch component
-// ---------------------------------------------------------------------------
-function Toggle({
-  checked,
-  onChange,
-  disabled = false,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed ${
-        checked ? "bg-amber-500" : "bg-gray-300 dark:bg-gray-600"
-      }`}
-    >
-      <span
-        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-          checked ? "translate-x-5" : "translate-x-0"
-        }`}
-      />
-    </button>
-  );
-}
+import { isMobile } from "../lib/platform";
+import type { AiSettings } from "../types";
 
 // ---------------------------------------------------------------------------
 // Section card wrapper
@@ -128,28 +87,13 @@ const AI_PRESETS = [
   { label: "\uD83C\uDFE0 Offline", provider: "ollama", model: "llama3.2", description: "Local Ollama" },
 ];
 
-const LEVELS = ["A1", "A2", "B1", "B2"];
-
-const LANG_NAMES: Record<string, string> = {
-  en: "English",
-  fr: "Français",
-  es: "Español",
-  de: "Deutsch",
-  it: "Italiano",
-  pt: "Português",
-  ja: "日本語",
-  zh: "中文",
-  ko: "한국어",
-  ru: "Русский",
-  ar: "العربية",
-};
 
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 export default function Settings() {
   const { t } = useTranslation();
-  const { settings, activePair, languagePairs, switchPair, updateSetting, reloadSettings } = useApp();
+  const { settings, languagePairs, updateSetting, reloadSettings } = useApp();
   const mobile = isMobile();
 
   // Filter out local providers on mobile (CLI/Ollama not available)
@@ -161,15 +105,8 @@ export default function Settings() {
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
-  const [whisperModels, setWhisperModels] = useState<WhisperModelInfo[]>([]);
-  const [dictSources, setDictSources] = useState<DictionarySource[]>([]);
-  const [dictSearch, setDictSearch] = useState("");
-  const [wordCount, setWordCount] = useState(0);
-  const [grammarCount, setGrammarCount] = useState(0);
-  const [verbCount, setVerbCount] = useState(0);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [downloading, setDownloading] = useState<string | null>(null);
-  const [downloadingWhisper, setDownloadingWhisper] = useState<string | null>(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [newApiKey, setNewApiKey] = useState("");
   const [newModel, setNewModel] = useState("claude-sonnet-4-6");
   const [newProvider, setNewProvider] = useState("claude-code");
@@ -177,22 +114,18 @@ export default function Settings() {
   const [loadingData, setLoadingData] = useState(true);
   const [clearingCache, setClearingCache] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
-  const [uiLang, setUiLang] = useState(getUILanguage());
-  const [translateTarget, setTranslateTarget] = useState("");
-  const [translateCode, setTranslateCode] = useState("");
-  const [translatingUi, setTranslatingUi] = useState(false);
   const [ollamaStatus, setOllamaStatus] = useState<{ available: boolean; models: string[] }>({ available: false, models: [] });
   const [modelCatalog, setModelCatalog] = useState<Record<string, string[]>>({});
+  const [localTheme, setLocalTheme] = useState<string | null>(null);
 
   // Load all data on mount
   useEffect(() => {
     const load = async () => {
       try {
-        const [ai, whisper, dicts, ollama] = await Promise.all([
+        const [ai, ollama] = await Promise.all([
           bridge.getAiSettings().catch(() => null),
-          bridge.getWhisperModels().catch(() => []),
-          bridge.getAvailableDictionaries().catch(() => []),
           bridge.detectOllama().catch(() => ({ available: false, models: [] })),
         ]);
         if (ai) {
@@ -208,8 +141,6 @@ export default function Settings() {
           }
           setNewApiKey(ai.api_key);
         }
-        setWhisperModels(whisper);
-        setDictSources(dicts);
         setOllamaStatus(ollama);
         // Load model catalog from models.dev
         bridge.fetchModelCatalog().then(setModelCatalog).catch(() => {});
@@ -221,20 +152,6 @@ export default function Settings() {
     };
     load();
   }, []);
-
-  // Load stats when activePair changes
-  useEffect(() => {
-    if (!activePair) return;
-    Promise.all([
-      bridge.getWordCount(activePair.id).catch(() => 0),
-      bridge.getGrammarTopics(activePair.id).catch(() => []),
-      bridge.getVerbs(activePair.id).catch(() => []),
-    ]).then(([wc, topics, verbs]) => {
-      setWordCount(wc);
-      setGrammarCount(topics.length);
-      setVerbCount(verbs.length);
-    });
-  }, [activePair]);
 
   const showStatus = useCallback((msg: string) => {
     setStatus(msg);
@@ -301,28 +218,16 @@ export default function Settings() {
     }
   };
 
-  const handleSwitchPair = async (pairId: number) => {
-    await switchPair(pairId);
-    showStatus(t("settings.languagePairChanged"));
-  };
-
-  const handleLevelChange = async (level: string) => {
-    await updateSetting("level", level);
-    showStatus(t("settings.levelChanged", { level }));
-  };
-
-  const handleWordsPerDayChange = async (value: number) => {
-    await updateSetting("words_per_day", String(value));
-    showStatus(t("settings.wordsPerDayChanged", { value }));
-  };
-
   const handleSetTheme = async (theme: string) => {
-    await updateSetting("dark_mode", theme);
-  };
-
-  const handleToggleAudio = async (v: boolean) => {
-    await updateSetting("audio_enabled", v ? "true" : "false");
-    showStatus(v ? t("settings.audioEnabled") : t("settings.audioDisabled"));
+    // Apply immediately for instant feedback
+    const applyDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", applyDark);
+    setLocalTheme(theme);
+    try {
+      await updateSetting("dark_mode", theme);
+    } finally {
+      setLocalTheme(null);
+    }
   };
 
   const handleSaveAi = async () => {
@@ -344,41 +249,6 @@ export default function Settings() {
     setNewProvider(provider);
     const p = availableProviders.find((pr) => pr.value === provider);
     if (p) setNewModel(p.defaultModel);
-  };
-
-  const handleDownloadWhisper = async (modelName: string) => {
-    setDownloadingWhisper(modelName);
-    try {
-      await bridge.downloadWhisperModel(modelName);
-      const models = await bridge.getWhisperModels();
-      setWhisperModels(models);
-      showStatus(t("settings.modelDownloaded", { name: modelName }));
-    } catch (err) {
-      showStatus(`${t("settings.downloadError")}: ${err}`);
-    } finally {
-      setDownloadingWhisper(null);
-    }
-  };
-
-  const handleDownloadDict = async (dict: DictionarySource) => {
-    const key = `${dict.source_lang}-${dict.target_lang}`;
-    setDownloading(key);
-    try {
-      await bridge.downloadDictionary(
-        dict.source_lang,
-        dict.target_lang,
-        dict.url,
-        dict.source_name,
-        dict.target_name,
-        dict.format,
-      );
-      showStatus(t("settings.dictDownloaded", { name: `${dict.source_name}-${dict.target_name}` }));
-      await reloadSettings();
-    } catch (err) {
-      showStatus(`${t("common.error")}: ${err}`);
-    } finally {
-      setDownloading(null);
-    }
   };
 
   const handleClearCache = async () => {
@@ -407,17 +277,25 @@ export default function Settings() {
     }
   };
 
-  // ---- Filter dictionaries ----
-  const filteredDicts = dictSources.filter((d) => {
-    if (!dictSearch.trim()) return true;
-    const q = dictSearch.toLowerCase();
-    return (
-      d.source_name.toLowerCase().includes(q) ||
-      d.target_name.toLowerCase().includes(q) ||
-      d.source_lang.toLowerCase().includes(q) ||
-      d.target_lang.toLowerCase().includes(q)
-    );
-  });
+  const handleDeleteAllData = async () => {
+    setDeletingAll(true);
+    try {
+      const result = await bridge.deleteAllData();
+      // Clear per-feature localStorage
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith("omnilingo-pair-") || key.startsWith("omnilingo-favs-")) {
+          localStorage.removeItem(key);
+        }
+      }
+      showStatus(result);
+      await reloadSettings();
+      setShowDeleteAllConfirm(false);
+    } catch (err) {
+      showStatus(`${t("common.error")}: ${err}`);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
 
   // Map provider to catalog key
   const providerToCatalog: Record<string, string> = {
@@ -515,85 +393,18 @@ export default function Settings() {
         </div>
       </Section>}
 
-      {/* ================= 1. LANGUE ================= */}
-      <Section icon={Globe} title={t("settings.language")} iconColor="text-blue-500 dark:text-blue-400">
+      {/* ================= 1. DICTIONARIES ================= */}
+      <Section icon={BookOpen} title={t("settings.language")} iconColor="text-blue-500 dark:text-blue-400">
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {t("settings.chooseLanguagePair")}
         </p>
-        <div className="flex flex-wrap gap-2">
-          {languagePairs.map((pair) => (
-            <button
-              key={pair.id}
-              onClick={() => handleSwitchPair(pair.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${
-                activePair?.id === pair.id
-                  ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
-                  : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500"
-              }`}
-            >
-              <span className="text-lg">{pair.target_flag}</span>
-              <span>{pair.target_name}</span>
-              <span className="text-gray-400 dark:text-gray-500">→</span>
-              <span className="text-lg">{pair.source_flag}</span>
-              <span>{pair.source_name}</span>
-              {activePair?.id === pair.id && <Check size={16} className="ml-1 text-amber-500" />}
-            </button>
-          ))}
-        </div>
-        {languagePairs.length === 0 && (
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-            {t("settings.noLanguagePairs")}
-          </p>
-        )}
+        <DictionaryPairSelector
+          pairs={languagePairs}
+          onDictionaryDownloaded={reloadSettings}
+        />
       </Section>
 
-      {/* ================= 2. APPRENTISSAGE ================= */}
-      <Section icon={Brain} title={t("settings.learning")} iconColor="text-emerald-500 dark:text-emerald-400">
-        {/* Level selector */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t("settings.cefrLevel")}
-          </label>
-          <div className="flex gap-2">
-            {LEVELS.map((level) => (
-              <button
-                key={level}
-                onClick={() => handleLevelChange(level)}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all ${
-                  settings?.level === level
-                    ? "bg-amber-500 border-amber-500 text-white shadow-sm"
-                    : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-amber-300 dark:hover:border-amber-700"
-                }`}
-              >
-                {level}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Words per day */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t("settings.wordsPerDay")}: <span className="text-amber-600 dark:text-amber-400 font-bold">{settings?.words_per_day ?? 10}</span>
-          </label>
-          <input
-            type="range"
-            min={3}
-            max={30}
-            step={1}
-            value={settings?.words_per_day ?? 10}
-            onChange={(e) => handleWordsPerDayChange(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
-          />
-          <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
-            <span>3</span>
-            <span>15</span>
-            <span>30</span>
-          </div>
-        </div>
-      </Section>
-
-      {/* ================= 3. INTELLIGENCE ARTIFICIELLE ================= */}
+      {/* ================= 2. INTELLIGENCE ARTIFICIELLE ================= */}
       <Section icon={Zap} title={t("settings.ai")} iconColor="text-purple-500 dark:text-purple-400">
         <div className="space-y-4">
           {/* Presets */}
@@ -664,10 +475,7 @@ export default function Settings() {
           {!availableProviders.find(p => p.value === newProvider)?.noKey && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                <span className="flex items-center gap-1.5">
-                  <Key size={14} />
-                  {t("settings.apiKey")}
-                </span>
+                {t("settings.apiKey")}
               </label>
               <input
                 type="password"
@@ -737,464 +545,40 @@ export default function Settings() {
           {aiSettings && (
             <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
               {t("settings.currentConfig")}: <span className="font-medium text-gray-700 dark:text-gray-300">{aiSettings.provider}</span> / <span className="font-mono text-gray-700 dark:text-gray-300">{aiSettings.model}</span>
-              {aiSettings.api_key ? ` — ${t("settings.keyConfigured")}` : ` — ${t("settings.noKey")}`}
+              {aiSettings.api_key ? ` \u2014 ${t("settings.keyConfigured")}` : ` \u2014 ${t("settings.noKey")}`}
             </div>
           )}
         </div>
       </Section>
 
-      {/* ================= 4. APPARENCE ================= */}
+      {/* ================= 3. APPARENCE ================= */}
       <Section icon={Palette} title={t("settings.appearance")} iconColor="text-pink-500 dark:text-pink-400">
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <Moon size={18} className="text-gray-500 dark:text-gray-400" />
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{t("settings.darkMode")}</p>
-            </div>
-            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-              {[
-                { value: "light", label: t("settings.themeLight") },
-                { value: "system", label: t("settings.themeSystem") },
-                { value: "dark", label: t("settings.themeDark") },
-              ].map((opt) => {
-                const current = settings?.dark_mode || "system";
-                return (
-                  <button key={opt.value} onClick={() => handleSetTheme(opt.value)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                      current === opt.value ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                    }`}>{opt.label}</button>
-                );
-              })}
-            </div>
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <Moon size={18} className="text-gray-500 dark:text-gray-400" />
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{t("settings.darkMode")}</p>
           </div>
-
-          <div className="border-t border-gray-100 dark:border-gray-700/50" />
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Volume2 size={18} className="text-gray-500 dark:text-gray-400" />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{t("settings.audio")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t("settings.audioDescription")}</p>
-              </div>
-            </div>
-            <Toggle
-              checked={settings?.audio_enabled ?? true}
-              onChange={handleToggleAudio}
-            />
-          </div>
-        </div>
-      </Section>
-
-      {/* ================= 4b. UI LANGUAGE ================= */}
-      <Section icon={Languages} title={t("settings.uiLanguage")} iconColor="text-indigo-500 dark:text-indigo-400">
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {t("settings.uiLanguageDescription")}
-        </p>
-
-        {/* Language selector */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {getAvailableLanguages().map((code) => (
-            <button
-              key={code}
-              onClick={() => {
-                setUILanguage(code);
-                setUiLang(code);
-              }}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${
-                uiLang === code
-                  ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
-                  : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500"
-              }`}
-            >
-              {LANG_NAMES[code] ?? code}
-              {uiLang === code && <Check size={16} className="ml-2 inline text-amber-500" />}
-            </button>
-          ))}
-        </div>
-
-        {/* AI Translate */}
-        <div className="border-t border-gray-100 dark:border-gray-700/50 pt-4">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            {t("settings.translateWithAi")}
-          </p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            <input
-              type="text"
-              value={translateTarget}
-              onChange={(e) => setTranslateTarget(e.target.value)}
-              placeholder={t("settings.languageNamePlaceholder")}
-              className="flex-1 min-w-[160px] rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            />
-            <input
-              type="text"
-              value={translateCode}
-              onChange={(e) => setTranslateCode(e.target.value)}
-              placeholder={t("settings.codePlaceholder")}
-              className="w-28 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
-            />
-          </div>
-          <button
-            onClick={async () => {
-              if (!translateTarget.trim() || !translateCode.trim()) return;
-              setTranslatingUi(true);
-              try {
-                const jsonContent = JSON.stringify(en, null, 2);
-                const prompt = `Translate the following JSON translation file from English to ${translateTarget}.\nTranslate ONLY the values, keep all keys exactly as-is.\nReturn ONLY valid JSON, no markdown, no explanation.\n${jsonContent}`;
-                const response = await bridge.askAi(prompt);
-                // Extract JSON from the response (handle possible markdown wrapping)
-                let jsonStr = response.trim();
-                if (jsonStr.startsWith("```")) {
-                  jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-                }
-                const parsed = JSON.parse(jsonStr);
-                saveCustomTranslation(translateCode.trim().toLowerCase(), parsed);
-                const code = translateCode.trim().toLowerCase();
-                setUILanguage(code);
-                setUiLang(code);
-                setTranslateTarget("");
-                setTranslateCode("");
-                showStatus(t("settings.translationSaved"));
-              } catch (err) {
-                showStatus(`${t("settings.translationError")}: ${err}`);
-              } finally {
-                setTranslatingUi(false);
-              }
-            }}
-            disabled={translatingUi || !translateTarget.trim() || !translateCode.trim()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {translatingUi ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                {t("settings.translating")}
-              </>
-            ) : (
-              <>
-                <Languages size={16} />
-                {t("settings.translateWithAi")}
-              </>
-            )}
-          </button>
-        </div>
-      </Section>
-
-      {/* ================= 5. WHISPER (STT) ================= */}
-      <Section icon={Mic} title={t("settings.whisperModels")} iconColor="text-orange-500 dark:text-orange-400">
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {t("settings.whisperDescription")}
-        </p>
-        {whisperModels.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-            {t("settings.noModelsAvailable")}
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {whisperModels.map((model) => (
-              <div
-                key={model.name}
-                className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">
-                    {model.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {model.size_mb} {t("settings.mb")}
-                  </p>
-                </div>
-                {model.downloaded ? (
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                      <Check size={14} />
-                      {t("common.installed")}
-                    </span>
-                    <button
-                      onClick={async () => {
-                        await bridge.deleteWhisperModel(model.name);
-                        const models = await bridge.getWhisperModels();
-                        setWhisperModels(models);
-                        showStatus(t("settings.modelDeleted", { name: model.name }));
-                      }}
-                      className="p-1 text-gray-400 hover:text-rose-500 transition-colors"
-                      title={t("common.delete")}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleDownloadWhisper(model.name)}
-                    disabled={downloadingWhisper !== null}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {downloadingWhisper === model.name ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        {t("common.downloading")}
-                      </>
-                    ) : (
-                      <>
-                        <Download size={14} />
-                        {t("common.download")}
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
-
-      {/* ================= 6. DICTIONNAIRES ================= */}
-      <Section icon={BookOpen} title={t("settings.dictionaries")} iconColor="text-blue-500 dark:text-blue-400">
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {t("settings.dictionariesDescription")}
-        </p>
-
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={dictSearch}
-            onChange={(e) => setDictSearch(e.target.value)}
-            placeholder={t("settings.searchByLanguage")}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-          />
-        </div>
-
-        {filteredDicts.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 italic text-center py-4">
-            {dictSources.length === 0 ? t("settings.noDictionaries") : t("common.noResults")}
-          </p>
-        ) : (
-          <div className="space-y-2 max-h-80 overflow-y-auto">
-            {filteredDicts.slice(0, 50).map((dict) => {
-              const key = `${dict.source_lang}-${dict.target_lang}`;
+          <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+            {[
+              { value: "light", label: t("settings.themeLight") },
+              { value: "system", label: t("settings.themeSystem") },
+              { value: "dark", label: t("settings.themeDark") },
+            ].map((opt) => {
+              const current = localTheme ?? settings?.dark_mode ?? "system";
               return (
-                <div
-                  key={key}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-lg">
-                      <span>{dict.source_flag}</span>
-                      <span className="text-xs text-gray-400">→</span>
-                      <span>{dict.target_flag}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {dict.source_name} → {dict.target_name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {dict.provider}
-                        {dict.word_count ? ` — ${dict.word_count.toLocaleString()} ${t("common.words").toLowerCase()}` : ""}
-                        {dict.size_mb ? ` — ${dict.size_mb} ${t("settings.mb")}` : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDownloadDict(dict)}
-                    disabled={downloading !== null}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                  >
-                    {downloading === key ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        <span className="hidden sm:inline">{t("common.downloading")}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download size={14} />
-                        <span className="hidden sm:inline">{t("common.download")}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button key={opt.value} onClick={() => handleSetTheme(opt.value)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                    current === opt.value ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}>{opt.label}</button>
               );
             })}
-            {filteredDicts.length > 50 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
-                {t("settings.moreDictionaries", { count: filteredDicts.length - 50 })}
-              </p>
-            )}
-          </div>
-        )}
-      </Section>
-
-      {/* ================= 7. DONNEES ================= */}
-      <Section icon={Database} title={t("settings.data")} iconColor="text-gray-500 dark:text-gray-400">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{wordCount.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("common.words")}</p>
-          </div>
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{grammarCount}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("common.grammar")}</p>
-          </div>
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{verbCount}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("common.verbs")}</p>
           </div>
         </div>
+      </Section>
 
-        {/* Action buttons */}
+      {/* ================= 4. DONNEES ================= */}
+      <Section icon={Database} title={t("settings.data")} iconColor="text-gray-500 dark:text-gray-400">
         <div className="space-y-3">
-          {/* Export progress */}
-          <button
-            onClick={async () => {
-              if (!activePair) return;
-              try {
-                const data = await bridge.exportProgress(activePair.id);
-                const json = JSON.stringify(data, null, 2);
-                const blob = new Blob([json], { type: "application/json" });
-                await downloadFile(blob, `omnilingo-progress-${new Date().toISOString().split("T")[0]}.json`);
-                showStatus(t("settings.exportSuccess"));
-              } catch (err) {
-                showStatus(`${t("common.error")}: ${err}`);
-              }
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
-          >
-            <Download size={18} className="text-blue-500" />
-            <div className="text-left">
-              <p>{t("settings.exportProgress")}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.exportDescription")}</p>
-            </div>
-          </button>
-
-          {/* Import progress */}
-          <button
-            onClick={() => {
-              const input = document.createElement("input");
-              input.type = "file";
-              input.accept = ".json";
-              input.onchange = async (e) => {
-                const file = (e.target as HTMLInputElement).files?.[0];
-                if (!file || !activePair) return;
-                try {
-                  const text = await file.text();
-                  const data = JSON.parse(text);
-                  const result = await bridge.importProgress(activePair.id, data);
-                  showStatus(result);
-                  await reloadSettings();
-                } catch (err) {
-                  showStatus(`${t("common.error")}: ${err}`);
-                }
-              };
-              input.click();
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
-          >
-            <Upload size={18} className="text-emerald-500" />
-            <div className="text-left">
-              <p>{t("settings.importProgress")}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.importDescription")}</p>
-            </div>
-          </button>
-
-          {/* Import dictionary file */}
-          <button
-            onClick={() => {
-              const input = document.createElement("input");
-              input.type = "file";
-              input.accept = ".csv,.tsv,.json,.txt,.tab,.df";
-              input.onchange = async (ev) => {
-                const file = (ev.target as HTMLInputElement).files?.[0];
-                if (!file || !activePair) return;
-                try {
-                  const text = await file.text();
-                  const ext = file.name.split(".").pop()?.toLowerCase() || "";
-                  let fmt = "tsv";
-                  if (ext === "csv") fmt = "csv";
-                  else if (ext === "json") fmt = "json";
-                  else if (["tsv", "tab", "txt", "df"].includes(ext)) fmt = "tsv";
-                  const result = await bridge.importFromFile(activePair.id, text, fmt);
-                  showStatus(result);
-                  const wc = await bridge.getWordCount(activePair.id);
-                  setWordCount(wc);
-                } catch (err) {
-                  showStatus(`${t("common.error")}: ${err}`);
-                }
-              };
-              input.click();
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-sm font-medium text-gray-900 dark:text-white transition-colors"
-          >
-            <BookOpen size={18} className="text-indigo-500" />
-            <div className="text-left">
-              <p>{t("settings.importFile")}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                {t("settings.importFileDescription")}
-              </p>
-            </div>
-          </button>
-
-          {/* Delete all words */}
-          <button
-            onClick={async () => {
-              if (!activePair) return;
-              if (!confirm(t("settings.deleteWordsWarning"))) return;
-              try {
-                await bridge.clearCache();
-                await bridge.resetProgress();
-                showStatus(t("settings.wordsDeleted"));
-                const wc = await bridge.getWordCount(activePair.id);
-                setWordCount(wc);
-                await reloadSettings();
-              } catch (err) {
-                showStatus(`${t("common.error")}: ${err}`);
-              }
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-sm font-medium text-orange-700 dark:text-orange-400 transition-colors"
-          >
-            <Trash2 size={18} />
-            <div className="text-left">
-              <p>{t("settings.deleteWords")}</p>
-              <p className="text-xs text-orange-500 dark:text-orange-400/70 font-normal">{t("settings.deleteWordsDescription")}</p>
-            </div>
-          </button>
-
-          {/* Delete all Whisper models */}
-          {whisperModels.some(m => m.downloaded) && (
-            <button
-              onClick={async () => {
-                for (const m of whisperModels.filter(m => m.downloaded)) {
-                  await bridge.deleteWhisperModel(m.name);
-                }
-                const models = await bridge.getWhisperModels();
-                setWhisperModels(models);
-                showStatus(t("settings.allModelsDeleted"));
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
-            >
-              <Trash2 size={18} className="text-orange-500" />
-              <div className="text-left">
-                <p>{t("settings.deleteAllModels")}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.deleteAllModelsDescription")}</p>
-              </div>
-            </button>
-          )}
-
-          {/* Clear custom translations */}
-          <button
-            onClick={() => {
-              localStorage.removeItem("omnilingo-custom-translations");
-              showStatus(t("settings.translationsCleared"));
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors"
-          >
-            <Trash2 size={18} className="text-gray-500" />
-            <div className="text-left">
-              <p>{t("settings.clearTranslations")}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">{t("settings.clearTranslationsDescription")}</p>
-            </div>
-          </button>
-
           {/* Clear cache */}
           <button
             onClick={handleClearCache}
@@ -1250,6 +634,50 @@ export default function Settings() {
                 </button>
                 <button
                   onClick={() => setShowResetConfirm(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Delete all data */}
+          {!showDeleteAllConfirm ? (
+            <button
+              onClick={() => setShowDeleteAllConfirm(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-red-300 dark:border-red-700 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-sm font-bold text-red-700 dark:text-red-400 transition-colors"
+            >
+              <Trash2 size={18} />
+              <div className="text-left">
+                <p>{t("settings.deleteAll")}</p>
+                <p className="text-xs text-red-500 dark:text-red-400/70 font-normal">
+                  {t("settings.deleteAllDescription")}
+                </p>
+              </div>
+            </button>
+          ) : (
+            <div className="rounded-lg border-2 border-red-400 dark:border-red-600 bg-red-100 dark:bg-red-900/30 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                  {t("settings.areYouSure")}
+                </p>
+              </div>
+              <p className="text-xs text-red-600 dark:text-red-400/80 mb-4">
+                {t("settings.deleteAllWarning")}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeleteAllData}
+                  disabled={deletingAll}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {deletingAll ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  {t("settings.confirmDeleteAll")}
+                </button>
+                <button
+                  onClick={() => setShowDeleteAllConfirm(false)}
                   className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   {t("common.cancel")}

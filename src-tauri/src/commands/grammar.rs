@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use tauri::State;
 
 use crate::{DbState, BaseDirState};
@@ -113,4 +113,115 @@ pub fn mark_grammar_completed(
     let _ = std::fs::write(&log_path, content);
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GrammarSrsState {
+    pub topic_id: String,
+    pub language_pair_id: i64,
+    pub repetitions: i64,
+    pub ease_factor: f64,
+    pub interval_days: i64,
+    pub next_review: String,
+    pub last_score: Option<i64>,
+}
+
+#[tauri::command]
+pub fn get_due_grammar_topics(
+    state: State<'_, DbState>,
+    pair_id: i64,
+) -> Result<Vec<GrammarSrsState>, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = db
+        .prepare(
+            "SELECT topic_id, language_pair_id, repetitions, ease_factor, interval_days, next_review, last_score
+             FROM grammar_srs
+             WHERE language_pair_id = ?1 AND next_review <= date('now')
+             ORDER BY next_review",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let topics = stmt
+        .query_map([pair_id], |row| {
+            Ok(GrammarSrsState {
+                topic_id: row.get(0)?,
+                language_pair_id: row.get(1)?,
+                repetitions: row.get(2)?,
+                ease_factor: row.get(3)?,
+                interval_days: row.get(4)?,
+                next_review: row.get(5)?,
+                last_score: row.get(6)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(topics)
+}
+
+#[tauri::command]
+pub fn review_grammar_topic(
+    state: State<'_, DbState>,
+    topic_id: String,
+    pair_id: i64,
+    quality: i64,
+) -> Result<GrammarSrsState, String> {
+    if !(0..=5).contains(&quality) {
+        return Err(format!("Invalid quality: {}", quality));
+    }
+
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+
+    // Get or create grammar_srs entry
+    let existing: Option<(i64, f64, i64)> = db
+        .query_row(
+            "SELECT repetitions, ease_factor, interval_days FROM grammar_srs WHERE topic_id = ?1 AND language_pair_id = ?2",
+            rusqlite::params![topic_id, pair_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .ok();
+
+    let (reps, ef, interval) = existing.unwrap_or((0, 2.5, 0));
+
+    // SM-2 algorithm
+    let (new_reps, new_interval) = if quality < 3 {
+        (0_i64, 0_i64)
+    } else {
+        let new_reps = reps + 1;
+        let new_interval = match new_reps {
+            1 => 1,
+            2 => 3,
+            _ => (interval as f64 * ef).round() as i64,
+        };
+        (new_reps, new_interval)
+    };
+
+    let q = quality as f64;
+    let new_ef = ef + (0.1 - (5.0 - q) * (0.08 + (5.0 - q) * 0.02));
+    let new_ef = if new_ef < 1.3 { 1.3 } else { new_ef };
+
+    let days_to_add = if new_interval > 0 { new_interval } else { 1 };
+    let next_review = (chrono::Local::now().date_naive() + chrono::naive::Days::new(days_to_add as u64))
+        .format("%Y-%m-%d")
+        .to_string();
+
+    db.execute(
+        "INSERT INTO grammar_srs (topic_id, language_pair_id, repetitions, ease_factor, interval_days, next_review, last_score)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         ON CONFLICT(topic_id, language_pair_id)
+         DO UPDATE SET repetitions = ?3, ease_factor = ?4, interval_days = ?5, next_review = ?6, last_score = ?7",
+        rusqlite::params![topic_id, pair_id, new_reps, new_ef, new_interval, next_review, quality],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(GrammarSrsState {
+        topic_id,
+        language_pair_id: pair_id,
+        repetitions: new_reps,
+        ease_factor: new_ef,
+        interval_days: new_interval,
+        next_review,
+        last_score: Some(quality),
+    })
 }
