@@ -61,6 +61,13 @@ export const SrsStatsSchema = z.object({
   average_accuracy: z.number(),
 });
 
+export const DeckInfoSchema = z.object({
+  name: z.string(),
+  card_count: z.number(),
+  due_count: z.number(),
+});
+export type DeckInfo = z.infer<typeof DeckInfoSchema>;
+
 export const GrammarTopicSchema = z.object({
   id: z.string(),
   language_pair_id: z.number(),

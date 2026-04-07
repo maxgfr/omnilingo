@@ -45,8 +45,6 @@ interface Evaluation {
 
 type PresetMode = "correct" | "grammar" | "free" | "exercises" | "translate";
 
-type Screen = "home" | "chat" | "evaluation";
-
 const EXCHANGE_LIMIT = 8;
 
 // ---------------------------------------------------------------------------
@@ -158,7 +156,7 @@ export default function Conversation() {
   const builtinScenarios = useBuiltinScenarios();
 
   // ---- Screen state ----
-  const [screen, setScreen] = useState<Screen>("home");
+  const [screen, setScreen] = useState<"home" | "chat" | "evaluation">("home");
 
   // ---- Home data ----
   const [customScenarios, setCustomScenarios] = useState<ConversationScenario[]>([]);
@@ -665,7 +663,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
   // ===================================================================
   if (screen === "home") {
     return (
-      <div className="max-w-3xl mx-auto">
+      <div>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 dark:bg-teal-900/30 mb-4">

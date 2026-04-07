@@ -1,13 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   BookOpen, BookText, Languages, Layers, MessageSquare,
   RefreshCw, SpellCheck, ArrowRightLeft, FileSearch,
-  Settings as SettingsIcon, Menu, X,
+  Settings as SettingsIcon, Menu, X, ChevronDown,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../store/AppContext";
 import * as bridge from "../lib/bridge";
+
+const FEATURE_KEYS = [
+  "dictionary", "grammar", "conjugation", "flashcards", "conversation",
+  "rephrase", "corrector", "synonyms", "text-analysis",
+];
 
 const navSections = [
   {
@@ -36,6 +41,33 @@ export default function Layout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
+
+  // Global language pair selector
+  const [globalPairId, setGlobalPairId] = useState<number | null>(() => {
+    try {
+      const raw = localStorage.getItem("omnilingo-pair-dictionary");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Resolve actual pair id (fallback to first available)
+  const resolvedPairId = globalPairId && languagePairs.some((p) => p.id === globalPairId)
+    ? globalPairId
+    : languagePairs[0]?.id ?? null;
+
+  const handleGlobalSwitch = useCallback(
+    (pairId: number) => {
+      setGlobalPairId(pairId);
+      for (const key of FEATURE_KEYS) {
+        localStorage.setItem(`omnilingo-pair-${key}`, JSON.stringify(pairId));
+      }
+      // Dispatch storage event so useFeaturePair hooks in mounted views react
+      window.dispatchEvent(new StorageEvent("storage", { key: "omnilingo-global-pair" }));
+    },
+    [],
+  );
 
   useEffect(() => {
     if (languagePairs.length === 0) return;
@@ -83,6 +115,29 @@ export default function Layout() {
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{t("app.name")}</h1>
         </div>
+
+        {/* Global language pair selector */}
+        {languagePairs.length > 0 && (
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+            <div className="relative">
+              <select
+                value={resolvedPairId ?? ""}
+                onChange={(e) => handleGlobalSwitch(Number(e.target.value))}
+                className="w-full appearance-none rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 pr-8 text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all cursor-pointer"
+              >
+                {languagePairs.map((pair) => (
+                  <option key={pair.id} value={pair.id}>
+                    {pair.source_flag} {pair.source_name} → {pair.target_flag} {pair.target_name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+            </div>
+          </div>
+        )}
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {navSections.map((section, si) => (

@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
   SettingsSchema, LanguagePairSchema, WordSchema, SrsCardSchema,
-  SrsStatsSchema, AiSettingsSchema, DictionarySourceSchema,
+  SrsStatsSchema, DeckInfoSchema, AiSettingsSchema, DictionarySourceSchema,
   FavoriteWordSchema, GrammarSrsStateSchema,
   ConversationScenarioSchema, ConversationSessionSchema,
 } from "../types";
@@ -49,15 +49,18 @@ export const addCustomWord = (pairId: number, sourceWord: string, targetWord: st
   safeInvoke<number>("add_custom_word", { pairId, sourceWord, targetWord, gender: gender ?? null, level: level ?? null, category: category ?? null });
 
 // SRS
-export const addWordToSrs = (wordId: number, cardType?: string, deck?: string, clozeSentence?: string) =>
-  invokeAndParse("add_word_to_srs", SrsCardSchema, { wordId, cardType: cardType ?? null, deck: deck ?? null, clozeSentence: clozeSentence ?? null });
-export const getDueCards = (pairId: number) => invokeAndParseArray("get_due_cards", SrsCardSchema, { pairId });
+export const addWordToSrs = (wordId: number, deck?: string) =>
+  invokeAndParse("add_word_to_srs", SrsCardSchema, { wordId, deck: deck ?? null });
+export const getDueCards = (pairId: number, deck?: string) =>
+  invokeAndParseArray("get_due_cards", SrsCardSchema, { pairId, deck: deck ?? null });
 export const getAllSrsCards = (pairId: number, deck?: string) =>
   invokeAndParseArray("get_all_srs_cards", SrsCardSchema, { pairId, deck: deck ?? null });
 export const getDueCount = (pairId: number) => safeInvoke<number>("get_due_count", { pairId });
 export const reviewCard = (cardId: number, quality: number) => invokeAndParse("review_card", SrsCardSchema, { cardId, quality });
 export const deleteSrsCard = (cardId: number) => safeInvoke<void>("delete_srs_card", { cardId });
 export const getSrsStats = (pairId: number) => invokeAndParse("get_srs_stats", SrsStatsSchema, { pairId });
+export const getDecks = (pairId: number) => invokeAndParseArray("get_decks", DeckInfoSchema, { pairId });
+export const deleteDeck = (pairId: number, deck: string) => safeInvoke<void>("delete_deck", { pairId, deck });
 
 // Grammar
 export const getGrammarTopics = (pairId: number) => safeInvoke<GrammarTopic[]>("get_grammar_topics", { pairId });

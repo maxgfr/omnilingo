@@ -89,7 +89,10 @@ export default function Grammar() {
 
   // Load topics and due SRS topics
   useEffect(() => {
-    if (!activePair) return;
+    if (!activePair) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     Promise.all([
       bridge.getGrammarTopics(activePair.id),
@@ -269,7 +272,7 @@ Return ONLY valid JSON, no markdown fences.`;
   // Empty state
   if (topics.length === 0 && !aiLesson) {
     return (
-      <div className="max-w-2xl mx-auto py-6 px-4">
+      <div className="space-y-6">
         <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
         <div className="flex flex-col items-center justify-center py-16 space-y-6">
           <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
@@ -292,7 +295,7 @@ Return ONLY valid JSON, no markdown fences.`;
     const passed = scorePercent >= 70;
 
     return (
-      <div className="max-w-2xl mx-auto py-6 px-4">
+      <div className="space-y-6">
         {/* Back button and title */}
         <button
           onClick={() => {
@@ -510,9 +513,9 @@ Return ONLY valid JSON, no markdown fences.`;
 
   // Topic list view
   return (
-    <div className="max-w-2xl mx-auto py-6 px-4">
+    <div className="space-y-6">
       <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-      <div className="mb-6">
+      <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("grammar.title")}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })}

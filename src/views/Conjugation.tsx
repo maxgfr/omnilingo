@@ -18,8 +18,6 @@ import LanguagePairBar from "../components/LanguagePairBar";
 import * as bridge from "../lib/bridge";
 import type { Verb } from "../types";
 
-type Mode = "random" | "byTense" | "byVerb";
-
 export default function Conjugation() {
   const { t } = useTranslation();
   const { languagePairs } = useApp();
@@ -29,7 +27,7 @@ export default function Conjugation() {
   const [loading, setLoading] = useState(true);
 
   // Mode & navigation
-  const [mode, setMode] = useState<Mode>("random");
+  const [mode, setMode] = useState<"random" | "byTense" | "byVerb">("random");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTense, setSelectedTense] = useState<string>("");
   const [currentVerb, setCurrentVerb] = useState<Verb | null>(null);
@@ -103,7 +101,10 @@ export default function Conjugation() {
   }, [currentVerb, currentTense]);
 
   useEffect(() => {
-    if (!activePair) return;
+    if (!activePair) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     bridge
       .getVerbs(activePair.id)

@@ -89,8 +89,8 @@ pub fn add_word_to_srs(
 
     let card = db
         .query_row(
-            &format!("{} WHERE sc.word_id = ?1 AND sc.card_type = ?2", CARD_SELECT),
-            rusqlite::params![word_id, ct],
+            &format!("{} WHERE sc.word_id = ?1", CARD_SELECT),
+            rusqlite::params![word_id],
             row_to_card,
         )
         .map_err(|e| e.to_string())?;
@@ -99,21 +99,36 @@ pub fn add_word_to_srs(
 }
 
 #[tauri::command]
-pub fn get_due_cards(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<SrsCard>, String> {
+pub fn get_due_cards(state: State<'_, DbState>, pair_id: i64, deck: Option<String>) -> Result<Vec<SrsCard>, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = db
-        .prepare(&format!(
-            "{} WHERE sc.language_pair_id = ?1 AND sc.next_review <= date('now') ORDER BY sc.next_review",
-            CARD_SELECT
-        ))
-        .map_err(|e| e.to_string())?;
 
-    let cards = stmt
-        .query_map([pair_id], row_to_card)
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
-    Ok(cards)
+    if let Some(dk) = deck {
+        let mut stmt = db
+            .prepare(&format!(
+                "{} WHERE sc.language_pair_id = ?1 AND sc.deck = ?2 AND sc.next_review <= date('now') ORDER BY sc.next_review",
+                CARD_SELECT
+            ))
+            .map_err(|e| e.to_string())?;
+        let cards = stmt
+            .query_map(rusqlite::params![pair_id, dk], row_to_card)
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(cards)
+    } else {
+        let mut stmt = db
+            .prepare(&format!(
+                "{} WHERE sc.language_pair_id = ?1 AND sc.next_review <= date('now') ORDER BY sc.next_review",
+                CARD_SELECT
+            ))
+            .map_err(|e| e.to_string())?;
+        let cards = stmt
+            .query_map([pair_id], row_to_card)
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        Ok(cards)
+    }
 }
 
 #[tauri::command]
@@ -290,6 +305,50 @@ pub fn compute_accuracy(db: &Connection, pair_id: i64) -> i64 {
         .unwrap_or(0);
 
     ((correct as f64 / total_scored as f64) * 100.0).round() as i64
+}
+
+#[derive(Serialize)]
+pub struct DeckInfo {
+    pub name: String,
+    pub card_count: i64,
+    pub due_count: i64,
+}
+
+#[tauri::command]
+pub fn get_decks(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<DeckInfo>, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = db
+        .prepare(
+            "SELECT deck, COUNT(*) as card_count,
+                    SUM(CASE WHEN next_review <= date('now') THEN 1 ELSE 0 END) as due_count
+             FROM srs_cards WHERE language_pair_id = ?1
+             GROUP BY deck ORDER BY deck",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let decks = stmt
+        .query_map([pair_id], |row| {
+            Ok(DeckInfo {
+                name: row.get(0)?,
+                card_count: row.get(1)?,
+                due_count: row.get(2)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    Ok(decks)
+}
+
+#[tauri::command]
+pub fn delete_deck(state: State<'_, DbState>, pair_id: i64, deck: String) -> Result<(), String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    db.execute(
+        "DELETE FROM srs_cards WHERE language_pair_id = ?1 AND deck = ?2",
+        rusqlite::params![pair_id, deck],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn sync_vocabulary_markdown(db: &Connection, pair_id: i64, base_dir: &std::path::Path) -> Result<(), String> {

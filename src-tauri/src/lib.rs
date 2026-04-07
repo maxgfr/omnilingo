@@ -100,6 +100,8 @@ pub fn run() {
             commands::srs::review_card,
             commands::srs::delete_srs_card,
             commands::srs::get_srs_stats,
+            commands::srs::get_decks,
+            commands::srs::delete_deck,
             // Grammar
             commands::grammar::get_grammar_topics,
             commands::grammar::mark_grammar_completed,

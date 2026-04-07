@@ -65,7 +65,10 @@ export default function Dictionary() {
 
   // Initial load
   useEffect(() => {
-    if (!activePair) return;
+    if (!activePair) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     Promise.all([
@@ -82,6 +85,7 @@ export default function Dictionary() {
         setHasMore(w.length >= PAGE_SIZE);
         setFavoriteIds(new Set(favs.map((f: { word_id: number }) => f.word_id)));
       })
+      .catch((err) => console.error("Failed to load dictionary:", err))
       .finally(() => setLoading(false));
   }, [activePair]);
 

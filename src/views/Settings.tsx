@@ -481,7 +481,7 @@ export default function Settings() {
                 type="password"
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.target.value)}
-                placeholder="sk-..."
+                placeholder=""
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
               />
             </div>
@@ -528,7 +528,7 @@ export default function Settings() {
                   if (response.includes("OK")) {
                     showStatus(t("settings.connectionSuccess"));
                   } else {
-                    showStatus(t("settings.connectionSuccess"));
+                    showStatus(`${t("settings.connectionFailed")}: unexpected response`);
                   }
                 } catch (err) {
                   showStatus(`${t("settings.connectionFailed")}: ${err}`);

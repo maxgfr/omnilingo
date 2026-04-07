@@ -37,8 +37,19 @@ export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    return fuse.search(searchQuery).slice(0, 20).map((r) => r.item);
-  }, [fuse, searchQuery]);
+    const q = searchQuery.trim().toLowerCase();
+    // Exact prefix match on lang codes and names first (handles "fr", "de", "en", etc.)
+    const prefixMatches = dictSources.filter(
+      (d) =>
+        d.source_lang.toLowerCase().startsWith(q) ||
+        d.target_lang.toLowerCase().startsWith(q) ||
+        d.source_name.toLowerCase().startsWith(q) ||
+        d.target_name.toLowerCase().startsWith(q),
+    );
+    if (prefixMatches.length > 0) return prefixMatches;
+    // Fallback to fuzzy search
+    return fuse.search(searchQuery).map((r) => r.item);
+  }, [fuse, searchQuery, dictSources]);
 
   const existingKeys = new Set(pairs.map((p) => `${p.source_lang}-${p.target_lang}`));
   const filteredResults = searchResults.filter(
@@ -141,7 +152,7 @@ export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }
           />
 
           {filteredResults.length > 0 && (
-            <div className="max-h-48 overflow-y-auto space-y-1">
+            <div className="max-h-72 overflow-y-auto space-y-1">
               {filteredResults.map((dict) => {
                 const key = `${dict.source_lang}-${dict.target_lang}`;
                 const isDownloading = downloading === key;

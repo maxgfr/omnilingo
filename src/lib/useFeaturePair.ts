@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useApp } from "../store/AppContext";
 import type { LanguagePair } from "../types";
 
@@ -16,6 +16,23 @@ export function useFeaturePair(feature: string) {
     }
   });
 
+  // Listen for global pair changes dispatched by the sidebar selector
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      // Only react to the global pair change event, not every storage event
+      if (e.key !== "omnilingo-global-pair") return;
+      try {
+        const raw = localStorage.getItem(pairKey);
+        const newId = raw ? JSON.parse(raw) : null;
+        setSelectedId(newId);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, [pairKey]);
+
   // Resolve active pair: selected > first available
   const resolve = (): LanguagePair | null => {
     if (selectedId != null) {
@@ -27,10 +44,13 @@ export function useFeaturePair(feature: string) {
 
   const activePair = resolve();
 
-  const switchPair = (pairId: number) => {
-    setSelectedId(pairId);
-    localStorage.setItem(pairKey, JSON.stringify(pairId));
-  };
+  const switchPair = useCallback(
+    (pairId: number) => {
+      setSelectedId(pairId);
+      localStorage.setItem(pairKey, JSON.stringify(pairId));
+    },
+    [pairKey],
+  );
 
   return { activePair, switchPair };
 }
