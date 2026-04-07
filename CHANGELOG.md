@@ -1,3 +1,10 @@
+## [2.13.1](https://github.com/maxgfr/omnilingo/compare/v2.13.0...v2.13.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* remove STT, stats, and unused UI components ([e8b160e](https://github.com/maxgfr/omnilingo/commit/e8b160eb6f50fb1e4cbd60798d28c0ede843e615))
+
 # [2.13.0](https://github.com/maxgfr/omnilingo/compare/v2.12.1...v2.13.0) (2026-04-05)
 
 
