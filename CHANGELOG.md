@@ -1,3 +1,10 @@
+## [2.13.2](https://github.com/maxgfr/omnilingo/compare/v2.13.1...v2.13.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* add zustand state management and improve error handling ([3fe65d5](https://github.com/maxgfr/omnilingo/commit/3fe65d5a4e5e3e332eeaa365780152ccb0203eca))
+
 ## [2.13.1](https://github.com/maxgfr/omnilingo/compare/v2.13.0...v2.13.1) (2026-04-07)
 
 
