@@ -16,7 +16,7 @@ pub struct FavoriteWord {
 
 #[tauri::command]
 pub fn toggle_favorite(state: State<'_, DbState>, word_id: i64) -> Result<bool, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     let exists: bool = db
         .query_row(
@@ -49,7 +49,7 @@ pub fn toggle_favorite(state: State<'_, DbState>, word_id: i64) -> Result<bool, 
 
 #[tauri::command]
 pub fn get_favorites(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<FavoriteWord>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let mut stmt = db
         .prepare(
             "SELECT f.id, f.word_id, w.source_word, w.target_word, w.gender, w.level, w.category
@@ -81,7 +81,7 @@ pub fn get_favorites(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<Favo
 
 #[tauri::command]
 pub fn is_favorite(state: State<'_, DbState>, word_id: i64) -> Result<bool, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.query_row(
         "SELECT COUNT(*) > 0 FROM favorites WHERE word_id = ?1",
         [word_id],

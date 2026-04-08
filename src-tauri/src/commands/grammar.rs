@@ -22,7 +22,7 @@ pub struct GrammarTopic {
 
 #[tauri::command]
 pub fn get_grammar_topics(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<GrammarTopic>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let mut stmt = db
         .prepare(
             "SELECT gt.id, gt.language_pair_id, gt.level, gt.display_order, gt.title, gt.title_source,
@@ -73,7 +73,7 @@ pub fn mark_grammar_completed(
     correct: i64,
     total: i64,
 ) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
 
     db.execute(
@@ -131,12 +131,12 @@ pub fn get_due_grammar_topics(
     state: State<'_, DbState>,
     pair_id: i64,
 ) -> Result<Vec<GrammarSrsState>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let mut stmt = db
         .prepare(
             "SELECT topic_id, language_pair_id, repetitions, ease_factor, interval_days, next_review, last_score
              FROM grammar_srs
-             WHERE language_pair_id = ?1 AND next_review <= date('now')
+             WHERE language_pair_id = ?1 AND next_review <= date('now','localtime')
              ORDER BY next_review",
         )
         .map_err(|e| e.to_string())?;
@@ -171,7 +171,7 @@ pub fn review_grammar_topic(
         return Err(format!("Invalid quality: {}", quality));
     }
 
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     // Get or create grammar_srs entry
     let existing: Option<(i64, f64, i64)> = db

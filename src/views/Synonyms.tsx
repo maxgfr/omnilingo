@@ -1,26 +1,28 @@
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowRightLeft } from "lucide-react";
-import { useApp } from "../store/AppContext";
+import { AlertTriangle } from "lucide-react";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import LanguagePairBar from "../components/LanguagePairBar";
+import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
+import PageHeader from "../components/ui/PageHeader";
 import SynonymsTool from "../components/tools/SynonymsTool";
 
 export default function Synonyms() {
   const { t } = useTranslation();
-  const { languagePairs } = useApp();
-  const { activePair, switchPair } = useFeaturePair("synonyms");
+  const { activePair } = useFeaturePair("synonyms");
+  const isAiConfigured = useAppStore(selectIsAiConfigured);
+  const cachedInput = useAppStore.getState().toolInputCache["synonyms"] || "";
+  const onInputChange = useCallback((v: string) => useAppStore.getState().setToolInput("synonyms", v), []);
 
   return (
     <div className="space-y-6">
-      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <ArrowRightLeft size={24} className="text-indigo-500" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("nav.synonyms")}</h1>
+      <PageHeader title={t("nav.synonyms")} subtitle={t("tools.synonyms.subtitle")} />
+      {!isAiConfigured && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi", "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.")}</p>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{t("tools.synonyms.inputPlaceholder")}</p>
-      </div>
-      <SynonymsTool activePair={activePair} />
+      )}
+      <SynonymsTool activePair={activePair} initialWord={cachedInput} onInputChange={onInputChange} />
     </div>
   );
 }

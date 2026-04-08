@@ -8,18 +8,19 @@ mod db;
 pub struct DbState(pub Mutex<rusqlite::Connection>);
 pub struct BaseDirState(pub PathBuf);
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+impl DbState {
+    /// Acquire the DB lock, recovering from a poisoned mutex if a previous holder panicked.
+    pub fn db(&self) -> std::sync::MutexGuard<'_, rusqlite::Connection> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
+
 pub fn run() {
     let mut builder = tauri::Builder::default()
-        .plugin(tauri_plugin_notification::init());
+        .plugin(tauri_plugin_process::init());
 
-    // Desktop-only plugins (process & updater are not available on mobile)
-    #[cfg(not(mobile))]
-    {
-        builder = builder.plugin(tauri_plugin_process::init());
-        if !cfg!(debug_assertions) {
-            builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-        }
+    if !cfg!(debug_assertions) {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
     // MCP Bridge for E2E testing (debug builds only, requires --features mcp)
@@ -38,15 +39,11 @@ pub fn run() {
                 )?;
             }
 
-            let base_dir = if cfg!(debug_assertions) && !cfg!(mobile) {
+            let base_dir = if cfg!(debug_assertions) {
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .parent()
                     .expect("Failed to get project root")
                     .to_path_buf()
-            } else if cfg!(mobile) {
-                app.path()
-                    .app_data_dir()
-                    .unwrap_or_else(|_| PathBuf::from("."))
             } else {
                 app.path()
                     .resource_dir()
@@ -71,6 +68,7 @@ pub fn run() {
             commands::settings::get_language_pairs,
             commands::settings::set_active_language_pair,
             commands::settings::delete_language_pair,
+            commands::settings::export_data,
             // Memory
             commands::memory::read_memory_file,
             commands::memory::write_memory_file,
@@ -79,6 +77,8 @@ pub fn run() {
             commands::ai::ask_ai_conversation,
             commands::ai::get_ai_settings_cmd,
             commands::ai::set_ai_provider,
+            commands::ai::test_ai_connection,
+            commands::ai::set_ai_custom_url,
             commands::ai::generate_vocabulary,
             commands::ai::generate_grammar,
             commands::ai::generate_verbs,
@@ -148,7 +148,7 @@ fn log_session(
     session_type: String,
     session_data: serde_json::Value,
 ) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "INSERT INTO sessions (language_pair_id, session_type, session_data) VALUES (?1, ?2, ?3)",
         rusqlite::params![pair_id, session_type, session_data.to_string()],
@@ -194,7 +194,7 @@ fn reset_progress(
     state: tauri::State<'_, DbState>,
     base_dir: tauri::State<'_, BaseDirState>,
 ) -> Result<String, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     db.execute("DELETE FROM srs_cards", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
@@ -227,21 +227,24 @@ fn delete_all_data(
     state: tauri::State<'_, DbState>,
     base_dir: tauri::State<'_, BaseDirState>,
 ) -> Result<String, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
+    // Delete in FK-safe order: children before parents
     db.execute("DELETE FROM srs_cards", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM favorites", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_srs", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_topics", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM verbs", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM words", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM favorites", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM sessions", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM errors", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM chat_messages", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM conversation_sessions", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM conversation_scenarios WHERE is_builtin = 0", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM daily_stats", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM errors", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM sessions", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM verbs", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM words", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM dictionary_packs", []).map_err(|e| e.to_string())?;
+    db.execute("UPDATE settings SET active_language_pair_id = NULL", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM language_pairs", []).map_err(|e| e.to_string())?;
 
     // Clear downloads
@@ -268,40 +271,29 @@ fn delete_all_data(
 /// Detect if Ollama is running locally and list available models
 #[tauri::command]
 async fn detect_ollama() -> Result<serde_json::Value, String> {
-    #[cfg(mobile)]
-    {
-        return Ok(serde_json::json!({
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    match client.get("http://localhost:11434/api/tags").send().await {
+        Ok(resp) if resp.status().is_success() => {
+            let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+            let models: Vec<String> = json["models"]
+                .as_array()
+                .unwrap_or(&vec![])
+                .iter()
+                .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
+                .collect();
+            Ok(serde_json::json!({
+                "available": true,
+                "models": models,
+            }))
+        }
+        _ => Ok(serde_json::json!({
             "available": false,
             "models": [],
-        }));
-    }
-
-    #[cfg(not(mobile))]
-    {
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(3))
-            .build()
-            .map_err(|e| e.to_string())?;
-
-        match client.get("http://localhost:11434/api/tags").send().await {
-            Ok(resp) if resp.status().is_success() => {
-                let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-                let models: Vec<String> = json["models"]
-                    .as_array()
-                    .unwrap_or(&vec![])
-                    .iter()
-                    .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
-                    .collect();
-                Ok(serde_json::json!({
-                    "available": true,
-                    "models": models,
-                }))
-            }
-            _ => Ok(serde_json::json!({
-                "available": false,
-                "models": [],
-            })),
-        }
+        })),
     }
 }
 

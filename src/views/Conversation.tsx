@@ -17,10 +17,13 @@ import {
   Languages,
   X,
   Eye,
+  AlertTriangle,
 } from "lucide-react";
-import { useApp } from "../store/AppContext";
+import PageHeader from "../components/ui/PageHeader";
+import ExamplePreview from "../components/ui/ExamplePreview";
+import { CONVERSATION_EXAMPLE } from "../lib/exampleData";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import LanguagePairBar from "../components/LanguagePairBar";
+import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
 import * as bridge from "../lib/bridge";
 import { formatMessage } from "../lib/markdown";
 import { useStreamingResponse } from "../lib/useStreamingResponse";
@@ -150,13 +153,16 @@ function useBuiltinScenarios() {
 
 export default function Conversation() {
   const { t } = useTranslation();
-  const { languagePairs } = useApp();
-  const { activePair, switchPair } = useFeaturePair("conversation");
+  const { activePair } = useFeaturePair("conversation");
+  const isAiConfigured = useAppStore(selectIsAiConfigured);
 
   const builtinScenarios = useBuiltinScenarios();
 
+  // Restore cached state
+  const cachedConv = useAppStore.getState().conversationCache;
+
   // ---- Screen state ----
-  const [screen, setScreen] = useState<"home" | "chat" | "evaluation">("home");
+  const [screen, setScreen] = useState<"home" | "chat" | "evaluation">((cachedConv?.screen as "home" | "chat" | "evaluation") ?? "home");
 
   // ---- Home data ----
   const [customScenarios, setCustomScenarios] = useState<ConversationScenario[]>([]);
@@ -165,8 +171,8 @@ export default function Conversation() {
   const [newScenario, setNewScenario] = useState({ name: "", icon: "\uD83D\uDCAC", description: "", systemPrompt: "" });
 
   // ---- Chat state ----
-  const [chatMode, setChatMode] = useState<PresetMode | "scenario" | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatMode, setChatMode] = useState<PresetMode | "scenario" | null>((cachedConv?.chatMode as PresetMode | "scenario" | null) ?? null);
+  const [messages, setMessages] = useState<Message[]>((cachedConv?.messages as Message[]) ?? []);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -212,6 +218,15 @@ export default function Conversation() {
   useEffect(() => {
     loadHomeData();
   }, [loadHomeData]);
+
+  // Sync view state to Zustand cache
+  useEffect(() => {
+    useAppStore.getState().setConversationCache({
+      screen,
+      chatMode,
+      messages,
+    });
+  }, [screen, chatMode, messages]);
 
   // ---- Auto-scroll ----
   useEffect(() => {
@@ -663,19 +678,16 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
   // ===================================================================
   if (screen === "home") {
     return (
-      <div>
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 dark:bg-teal-900/30 mb-4">
-            <MessageSquare size={32} className="text-teal-600 dark:text-teal-400" />
+      <div className="space-y-6">
+
+      <PageHeader title={t("conversation.title")} subtitle={t("conversation.subtitle")} />
+
+        {!isAiConfigured && (
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 flex items-center gap-3">
+            <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+            <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi", "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.")}</p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t("conversation.title")}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            {t("conversation.subtitle")}
-          </p>
-        </div>
+        )}
 
         {/* Preset modes */}
         <section className="mb-8">
@@ -689,10 +701,10 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                 <button
                   key={preset.mode}
                   onClick={() => startPresetMode(preset.mode)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-teal-400 dark:hover:border-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all text-center"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-center"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                    <Icon size={20} className="text-teal-600 dark:text-teal-400" />
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Icon size={20} className="text-amber-600 dark:text-amber-400" />
                   </div>
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-tight">
                     {t(preset.labelKey)}
@@ -713,7 +725,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
               <button
                 key={scenario.id}
                 onClick={() => startBuiltinScenario(scenario.id)}
-                className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-teal-400 dark:hover:border-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all text-left"
+                className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-left"
               >
                 <span className="text-2xl flex-shrink-0 mt-0.5">{scenario.icon}</span>
                 <div className="min-w-0">
@@ -731,7 +743,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
             {customScenarios.map((scenario) => (
               <div
                 key={scenario.id}
-                className="relative group flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-teal-400 dark:hover:border-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all text-left cursor-pointer"
+                className="relative group flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-left cursor-pointer"
                 onClick={() => startCustomScenario(scenario)}
               >
                 <span className="text-2xl flex-shrink-0 mt-0.5">{scenario.icon}</span>
@@ -756,7 +768,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
             {/* Add custom scenario button */}
             <button
               onClick={() => setShowNewScenarioForm(true)}
-              className="flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-teal-400 dark:hover:border-teal-600 hover:text-teal-600 dark:hover:text-teal-400 transition-all"
+              className="flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 dark:hover:border-amber-600 hover:text-amber-600 dark:hover:text-amber-400 transition-all"
             >
               <Plus size={18} />
               <span className="text-sm font-medium">{t("common.add")}</span>
@@ -785,7 +797,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                     type="text"
                     value={newScenario.icon}
                     onChange={(e) => setNewScenario((s) => ({ ...s, icon: e.target.value }))}
-                    className="w-14 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-2 py-2 text-center text-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-14 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-2 py-2 text-center text-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
                     maxLength={4}
                   />
                   <input
@@ -793,7 +805,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                     value={newScenario.name}
                     onChange={(e) => setNewScenario((s) => ({ ...s, name: e.target.value }))}
                     placeholder="Scenario name"
-                    className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
                   />
                 </div>
                 <input
@@ -801,14 +813,14 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                   value={newScenario.description}
                   onChange={(e) => setNewScenario((s) => ({ ...s, description: e.target.value }))}
                   placeholder="Short description"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
                 />
                 <textarea
                   value={newScenario.systemPrompt}
                   onChange={(e) => setNewScenario((s) => ({ ...s, systemPrompt: e.target.value }))}
                   placeholder="System prompt (instructions for the AI)"
                   rows={4}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-none"
                 />
                 <div className="flex gap-2 pt-1">
                   <button
@@ -820,7 +832,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                   <button
                     onClick={createCustomScenario}
                     disabled={!newScenario.name.trim() || !newScenario.systemPrompt.trim()}
-                    className="flex-1 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {t("common.save")}
                   </button>
@@ -842,7 +854,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                 <div
                   key={session.id}
                   onClick={() => viewSession(session)}
-                  className="group flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-teal-400 dark:hover:border-teal-600 cursor-pointer transition-all"
+                  className="group flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-amber-400 dark:hover:border-amber-600 cursor-pointer transition-all"
                 >
                   <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
                     <Eye size={16} className="text-gray-500 dark:text-gray-400" />
@@ -867,6 +879,21 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
             </div>
           </section>
         )}
+
+          {sessions.length === 0 && (
+            <ExamplePreview onClick={() => startPresetMode("free")}>
+              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {CONVERSATION_EXAMPLE.map((msg, i) => (
+                    <div key={i} className={`px-4 py-3 ${msg.role === "user" ? "bg-amber-50 dark:bg-amber-900/10" : ""}`}>
+                      <p className="text-xs font-medium text-gray-400 mb-1">{msg.role === "assistant" ? "AI" : "You"}</p>
+                      <p className="text-sm text-gray-900 dark:text-white">{msg.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </ExamplePreview>
+          )}
       </div>
     );
   }
@@ -884,8 +911,8 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
     return (
       <div className="max-w-lg mx-auto py-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-teal-100 dark:bg-teal-900/30 mb-4">
-            <Star size={40} className="text-teal-500 fill-teal-500" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-4">
+            <Star size={40} className="text-amber-500 fill-amber-500" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t("conversation.evaluation")}
@@ -946,7 +973,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
         {/* Try again */}
         <button
           onClick={resetToHome}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-semibold transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold transition-colors"
         >
           <RotateCcw size={18} />
           {t("conversation.tryAgain")}
@@ -978,7 +1005,6 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3rem)] -m-6">
       <div className="px-6 pt-4">
-        <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
       </div>
       {/* Header */}
       <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 py-4">
@@ -994,8 +1020,8 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
               {chatIcon ? (
                 <span className="text-xl">{chatIcon}</span>
               ) : ChatHeaderIcon ? (
-                <div className="w-9 h-9 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                  <ChatHeaderIcon size={18} className="text-teal-600 dark:text-teal-400" />
+                <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <ChatHeaderIcon size={18} className="text-amber-600 dark:text-amber-400" />
                 </div>
               ) : null}
               <div>
@@ -1022,7 +1048,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
               <button
                 onClick={endAndEvaluate}
                 disabled={isProcessing}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors disabled:opacity-50"
               >
                 <Star size={14} />
                 <span className="hidden sm:inline">{t("conversation.endConversation")}</span>
@@ -1034,7 +1060,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
               <button
                 onClick={newConversation}
                 disabled={isProcessing}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors disabled:opacity-50"
               >
                 <RotateCcw size={14} />
                 <span className="hidden sm:inline">{t("chat.clear")}</span>
@@ -1047,7 +1073,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
         {isScenario && !isViewOnly && (
           <div className="mt-3 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-teal-500 rounded-full transition-all duration-300"
+              className="h-full bg-amber-500 rounded-full transition-all duration-300"
               style={{ width: `${(userExchanges / EXCHANGE_LIMIT) * 100}%` }}
             />
           </div>
@@ -1059,8 +1085,8 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
         {/* Empty state for preset modes */}
         {messages.length === 0 && !isViewOnly && !isScenario && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 rounded-2xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center mb-4">
-              <MessageSquare size={32} className="text-teal-500 dark:text-teal-400" />
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
+              <MessageSquare size={32} className="text-amber-500 dark:text-amber-400" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               {t("chat.hello")}
@@ -1079,7 +1105,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
             <div
               className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                 msg.role === "user"
-                  ? "bg-teal-500 text-white rounded-br-md"
+                  ? "bg-amber-500 text-white rounded-br-md"
                   : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md"
               }`}
             >
@@ -1101,10 +1127,9 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                 </div>
               ) : (
                 <div>
-                  <div
-                    className="text-sm leading-relaxed text-gray-900 dark:text-gray-100"
-                    dangerouslySetInnerHTML={{ __html: formatMessage(displayedText) }}
-                  />
+                  <pre className="text-sm leading-relaxed text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-sans">
+                    {displayedText}
+                  </pre>
                   <button
                     onClick={stopStream}
                     className="mt-1 flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600"
@@ -1145,7 +1170,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                 placeholder={t("chat.typePlaceholder")}
                 disabled={isProcessing}
                 rows={1}
-                className="w-full resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-3 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:opacity-50 transition-colors"
+                className="w-full resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-3 pr-4 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 disabled:opacity-50 transition-colors"
                 style={{ maxHeight: "120px" }}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
@@ -1157,7 +1182,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
             <button
               onClick={sendMessage}
               disabled={!input.trim() || isProcessing}
-              className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-teal-500 hover:bg-teal-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-teal-500 shadow-sm"
+              className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-500 shadow-sm"
             >
               {isProcessing ? (
                 <Loader2 size={18} className="animate-spin" />

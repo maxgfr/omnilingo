@@ -12,12 +12,15 @@ import {
   Moon,
   Zap,
   BookOpen,
+  Eye,
+  EyeOff,
+  XCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../store/AppContext";
+import { useAppStore } from "../store/useAppStore";
 import DictionaryPairSelector from "../components/DictionaryPairSelector";
 import * as bridge from "../lib/bridge";
-import { isMobile } from "../lib/platform";
 import type { AiSettings } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -48,15 +51,16 @@ function Section({
 // ---------------------------------------------------------------------------
 // Notification toast
 // ---------------------------------------------------------------------------
-function StatusToast({ message, onClose }: { message: string; onClose: () => void }) {
+function StatusToast({ message, variant = "success", onClose }: { message: string; variant?: "success" | "error"; onClose: () => void }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
     return () => clearTimeout(t);
   }, [onClose]);
 
+  const isError = variant === "error";
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-in slide-in-from-bottom-4">
-      <Check size={16} />
+    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 ${isError ? "bg-red-600" : "bg-emerald-600"} text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-in slide-in-from-bottom-4`}>
+      {isError ? <XCircle size={16} /> : <Check size={16} />}
       {message}
     </div>
   );
@@ -71,20 +75,13 @@ const AI_PROVIDERS = [
   { value: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini", placeholder: "gpt-4o-mini, gpt-4o, gpt-4.1, o3-mini", group: "api" },
   { value: "gemini", label: "Google Gemini", defaultModel: "gemini-2.0-flash", placeholder: "gemini-2.0-flash, gemini-2.5-pro", group: "api" },
   { value: "mistral", label: "Mistral AI", defaultModel: "mistral-small-latest", placeholder: "mistral-small-latest, mistral-large-latest, codestral-latest", group: "api" },
-  { value: "glm", label: "GLM (Zhipu)", defaultModel: "glm-4-flash", placeholder: "glm-4-flash, glm-4-plus, codegeex-4", group: "api" },
+  { value: "glm", label: "GLM (Z.ai)", defaultModel: "glm-4.7-flash", placeholder: "glm-4.7-flash, glm-4.7, glm-5, glm-4.5-flash", group: "api" },
+  { value: "custom", label: "Custom (OpenAI-compatible)", defaultModel: "", placeholder: "your-model-name", group: "api" },
   // Local CLI tools (no API key)
   { value: "claude-code", label: "Claude Code (local CLI)", defaultModel: "claude-sonnet-4-6", placeholder: "claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-6", noKey: true, group: "local" },
   { value: "codex", label: "Codex CLI (OpenAI)", defaultModel: "codex-mini-latest", placeholder: "codex-mini-latest", noKey: true, group: "local" },
-  { value: "ollama", label: "Ollama (local LLM)", defaultModel: "llama3.2", placeholder: "llama3.2, mistral, gemma2, phi3, qwen2.5", noKey: true, group: "local" },
-];
-
-const AI_PRESETS = [
-  { label: "\u26A1 Fast", provider: "anthropic", model: "claude-haiku-4-5", description: "Quick, low cost" },
-  { label: "\u2696\uFE0F Balanced", provider: "anthropic", model: "claude-sonnet-4-6", description: "Good quality" },
-  { label: "\uD83E\uDDE0 Best", provider: "anthropic", model: "claude-opus-4-6", description: "Highest quality" },
-  { label: "\uD83D\uDCBB Claude Code", provider: "claude-code", model: "claude-sonnet-4-6", description: "Local CLI, no key" },
-  { label: "\uD83D\uDE80 Codex", provider: "codex", model: "codex-mini-latest", description: "OpenAI Codex CLI" },
-  { label: "\uD83C\uDFE0 Offline", provider: "ollama", model: "llama3.2", description: "Local Ollama" },
+  { value: "ollama", label: "Ollama (local)", defaultModel: "", placeholder: "llama3.2, mistral, gemma3, qwen3, deepseek-r1", noKey: true, group: "local" },
+  { value: "lmstudio", label: "LM Studio (local)", defaultModel: "", placeholder: "nom du modèle chargé dans LM Studio", noKey: true, group: "local" },
 ];
 
 
@@ -94,29 +91,26 @@ const AI_PRESETS = [
 export default function Settings() {
   const { t } = useTranslation();
   const { settings, languagePairs, updateSetting, reloadSettings } = useApp();
-  const mobile = isMobile();
 
-  // Filter out local providers on mobile (CLI/Ollama not available)
-  const availableProviders = mobile ? AI_PROVIDERS.filter(p => p.group === "api") : AI_PROVIDERS;
-  const availablePresets = mobile ? AI_PRESETS.filter(p => !["claude-code", "codex", "ollama"].includes(p.provider)) : AI_PRESETS;
+  const availableProviders = AI_PROVIDERS;
 
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'upToDate' | 'error'>('idle');
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [newApiKey, setNewApiKey] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
   const [newModel, setNewModel] = useState("claude-sonnet-4-6");
   const [newProvider, setNewProvider] = useState("claude-code");
-  const [status, setStatus] = useState<string | null>(null);
+  const [newCustomUrl, setNewCustomUrl] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const storeSetAiConfig = useAppStore((s) => s.setAiConfig);
+  const [status, setStatus] = useState<{ message: string; variant: "success" | "error" } | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [clearingCache, setClearingCache] = useState(false);
-  const [resetting, setResetting] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
-  const [ollamaStatus, setOllamaStatus] = useState<{ available: boolean; models: string[] }>({ available: false, models: [] });
   const [modelCatalog, setModelCatalog] = useState<Record<string, string[]>>({});
   const [localTheme, setLocalTheme] = useState<string | null>(null);
 
@@ -124,24 +118,13 @@ export default function Settings() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [ai, ollama] = await Promise.all([
-          bridge.getAiSettings().catch(() => null),
-          bridge.detectOllama().catch(() => ({ available: false, models: [] })),
-        ]);
+        const ai = await bridge.getAiSettings().catch(() => null);
         if (ai) {
           setAiSettings(ai);
-          // On mobile, if the stored provider is local-only, default to Anthropic API
-          const isLocalProvider = ["claude-code", "claude-cli", "codex", "ollama"].includes(ai.provider);
-          if (mobile && isLocalProvider) {
-            setNewProvider("anthropic");
-            setNewModel("claude-sonnet-4-6");
-          } else {
-            setNewProvider(ai.provider);
-            setNewModel(ai.model);
-          }
+          setNewProvider(ai.provider);
+          setNewModel(ai.model);
           setNewApiKey(ai.api_key);
         }
-        setOllamaStatus(ollama);
         // Load model catalog from models.dev
         bridge.fetchModelCatalog().then(setModelCatalog).catch(() => {});
       } catch {
@@ -153,13 +136,12 @@ export default function Settings() {
     load();
   }, []);
 
-  const showStatus = useCallback((msg: string) => {
-    setStatus(msg);
+  const showStatus = useCallback((msg: string, variant: "success" | "error" = "success") => {
+    setStatus({ message: msg, variant });
   }, []);
 
-  // ---- Auto-update check on mount (desktop only) ----
+  // ---- Auto-update check on mount ----
   useEffect(() => {
-    if (mobile) return;
     (async () => {
       try {
         setUpdateStatus('checking');
@@ -176,12 +158,11 @@ export default function Settings() {
         setUpdateStatus('idle');
       }
     })();
-  }, [mobile]);
+  }, []);
 
   // ---- Handlers ----
 
   const handleCheckUpdate = async () => {
-    if (mobile) return;
     setUpdateStatus('checking');
     setUpdateError(null);
     try {
@@ -200,7 +181,6 @@ export default function Settings() {
   };
 
   const handleInstallUpdate = async () => {
-    if (mobile) return;
     setUpdateStatus('downloading');
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
@@ -234,12 +214,15 @@ export default function Settings() {
     if (!newProvider) return;
     setSavingAi(true);
     try {
-      await bridge.setAiProvider(newProvider, newApiKey, newModel);
+      await storeSetAiConfig(newProvider, newApiKey, newModel, newCustomUrl);
+      if (newProvider === "custom") {
+        await bridge.setAiCustomUrl(newCustomUrl);
+      }
       const ai = await bridge.getAiSettings();
       setAiSettings(ai);
       showStatus(t("settings.aiConfigSaved"));
     } catch (err) {
-      showStatus(`${t("common.error")}: ${err}`);
+      showStatus(`${t("common.error")}: ${err}`, "error");
     } finally {
       setSavingAi(false);
     }
@@ -249,32 +232,6 @@ export default function Settings() {
     setNewProvider(provider);
     const p = availableProviders.find((pr) => pr.value === provider);
     if (p) setNewModel(p.defaultModel);
-  };
-
-  const handleClearCache = async () => {
-    setClearingCache(true);
-    try {
-      const result = await bridge.clearCache();
-      showStatus(result);
-    } catch (err) {
-      showStatus(`${t("common.error")}: ${err}`);
-    } finally {
-      setClearingCache(false);
-    }
-  };
-
-  const handleResetProgress = async () => {
-    setResetting(true);
-    try {
-      const result = await bridge.resetProgress();
-      showStatus(result);
-      await reloadSettings();
-      setShowResetConfirm(false);
-    } catch (err) {
-      showStatus(`${t("common.error")}: ${err}`);
-    } finally {
-      setResetting(false);
-    }
   };
 
   const handleDeleteAllData = async () => {
@@ -291,7 +248,7 @@ export default function Settings() {
       await reloadSettings();
       setShowDeleteAllConfirm(false);
     } catch (err) {
-      showStatus(`${t("common.error")}: ${err}`);
+      showStatus(`${t("common.error")}: ${err}`, "error");
     } finally {
       setDeletingAll(false);
     }
@@ -324,8 +281,8 @@ export default function Settings() {
         </p>
       </div>
 
-      {/* ================= 0. MISE A JOUR (desktop only) ================= */}
-      {!mobile && <Section icon={RefreshCw} title={t("settings.update")} iconColor="text-cyan-500 dark:text-cyan-400">
+      {/* ================= 0. MISE A JOUR ================= */}
+      <Section icon={RefreshCw} title={t("settings.update")} iconColor="text-cyan-500 dark:text-cyan-400">
         <div className="flex items-center justify-between">
           <div>
             {updateStatus === 'idle' && (
@@ -391,7 +348,7 @@ export default function Settings() {
             )}
           </div>
         </div>
-      </Section>}
+      </Section>
 
       {/* ================= 1. DICTIONARIES ================= */}
       <Section icon={BookOpen} title={t("settings.language")} iconColor="text-blue-500 dark:text-blue-400">
@@ -407,41 +364,6 @@ export default function Settings() {
       {/* ================= 2. INTELLIGENCE ARTIFICIELLE ================= */}
       <Section icon={Zap} title={t("settings.ai")} iconColor="text-purple-500 dark:text-purple-400">
         <div className="space-y-4">
-          {/* Presets */}
-          <div className="mb-4">
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-              {t("settings.presets")}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {availablePresets.map((preset) => (
-                <button
-                  key={preset.label}
-                  onClick={() => {
-                    setNewProvider(preset.provider);
-                    setNewModel(preset.model);
-                  }}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
-                  title={preset.description}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Ollama status (desktop only) */}
-          {!mobile && <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
-            ollamaStatus.available
-              ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-              : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${ollamaStatus.available ? "bg-emerald-500" : "bg-gray-400"}`} />
-            {ollamaStatus.available
-              ? `Ollama: ${ollamaStatus.models.length} model${ollamaStatus.models.length !== 1 ? "s" : ""} (${ollamaStatus.models.slice(0, 3).join(", ")}${ollamaStatus.models.length > 3 ? "..." : ""})`
-              : "Ollama: not detected"
-            }
-          </div>}
-
           {/* Provider */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -458,11 +380,11 @@ export default function Settings() {
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
                 </optgroup>
-                {!mobile && <optgroup label="Local (no key needed)">
+                <optgroup label="Local (no key needed)">
                   {availableProviders.filter(p => p.group === "local").map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
-                </optgroup>}
+                </optgroup>
               </select>
               <ChevronDown
                 size={16}
@@ -477,11 +399,36 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 {t("settings.apiKey")}
               </label>
+              <div className="relative">
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  value={newApiKey}
+                  onChange={(e) => setNewApiKey(e.target.value)}
+                  placeholder=""
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 pr-10 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Custom provider URL */}
+          {newProvider === "custom" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Endpoint URL
+              </label>
               <input
-                type="password"
-                value={newApiKey}
-                onChange={(e) => setNewApiKey(e.target.value)}
-                placeholder=""
+                type="url"
+                value={newCustomUrl}
+                onChange={(e) => setNewCustomUrl(e.target.value)}
+                placeholder="https://api.example.com/v1/chat/completions"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
               />
             </div>
@@ -524,14 +471,19 @@ export default function Settings() {
               onClick={async () => {
                 showStatus(t("settings.testingConnection"));
                 try {
-                  const response = await bridge.askAi("Reply with exactly: OK");
+                  const response = await bridge.testAiConnection(
+                    newProvider,
+                    newApiKey,
+                    newModel,
+                    newProvider === "custom" ? newCustomUrl : undefined,
+                  );
                   if (response.includes("OK")) {
                     showStatus(t("settings.connectionSuccess"));
                   } else {
-                    showStatus(`${t("settings.connectionFailed")}: unexpected response`);
+                    showStatus(`${t("settings.connectionFailed")}: unexpected response`, "error");
                   }
                 } catch (err) {
-                  showStatus(`${t("settings.connectionFailed")}: ${err}`);
+                  showStatus(`${t("settings.connectionFailed")}: ${err}`, "error");
                 }
               }}
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -579,68 +531,77 @@ export default function Settings() {
       {/* ================= 4. DONNEES ================= */}
       <Section icon={Database} title={t("settings.data")} iconColor="text-gray-500 dark:text-gray-400">
         <div className="space-y-3">
-          {/* Clear cache */}
+          {/* Export data */}
           <button
-            onClick={handleClearCache}
-            disabled={clearingCache}
+            onClick={async () => {
+              setExporting(true);
+              try {
+                const data = await bridge.exportData();
+                const blob = new Blob([data], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `omnilingo-export-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showStatus(t("settings.exportSuccess", "Export terminé"));
+              } catch (err) {
+                showStatus(`${t("common.error")}: ${err}`, "error");
+              } finally {
+                setExporting(false);
+              }
+            }}
+            disabled={exporting}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {clearingCache ? (
+            {exporting ? (
               <Loader2 size={18} className="animate-spin text-gray-500" />
             ) : (
-              <Trash2 size={18} className="text-gray-500" />
+              <Download size={18} className="text-gray-500" />
             )}
             <div className="text-left">
-              <p>{t("settings.clearCache")}</p>
+              <p>{t("settings.exportData", "Exporter les données")}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                {t("settings.clearCacheDescription")}
+                {t("settings.exportDescription", "Mots, progression SRS, favoris — format JSON")}
               </p>
             </div>
           </button>
 
-          {/* Reset progress */}
-          {!showResetConfirm ? (
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-sm font-medium text-red-700 dark:text-red-400 transition-colors"
-            >
-              <AlertTriangle size={18} />
-              <div className="text-left">
-                <p>{t("settings.resetProgress")}</p>
-                <p className="text-xs text-red-500 dark:text-red-400/70 font-normal">
-                  {t("settings.resetDescription")}
-                </p>
-              </div>
-            </button>
-          ) : (
-            <div className="rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
-                <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                  {t("settings.areYouSure")}
-                </p>
-              </div>
-              <p className="text-xs text-red-600 dark:text-red-400/80 mb-4">
-                {t("settings.resetWarning")}
+          {/* Import data */}
+          <label className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors cursor-pointer">
+            <Download size={18} className="text-gray-500 rotate-180" />
+            <div className="text-left">
+              <p>{t("settings.importData", "Importer des données")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                {t("settings.importDescription", "CSV, TSV ou JSON — vers la paire active")}
               </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleResetProgress}
-                  disabled={resetting}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {resetting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  {t("settings.confirmReset")}
-                </button>
-                <button
-                  onClick={() => setShowResetConfirm(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  {t("common.cancel")}
-                </button>
-              </div>
             </div>
-          )}
+            <input
+              type="file"
+              accept=".csv,.tsv,.json,.txt"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const activePairId = useAppStore.getState().activePairId;
+                if (!activePairId) {
+                  showStatus(t("common.error") + ": No active language pair", "error");
+                  return;
+                }
+                try {
+                  const content = await file.text();
+                  const ext = file.name.split(".").pop()?.toLowerCase() ?? "csv";
+                  const format = ext === "tsv" || ext === "txt" ? "tsv" : ext === "json" ? "json" : "csv";
+                  const result = await bridge.importFromFile(activePairId, content, format);
+                  showStatus(result);
+                  await reloadSettings();
+                } catch (err) {
+                  showStatus(`${t("common.error")}: ${err}`, "error");
+                }
+                e.target.value = "";
+              }}
+            />
+          </label>
 
           {/* Delete all data */}
           {!showDeleteAllConfirm ? (
@@ -689,7 +650,7 @@ export default function Settings() {
       </Section>
 
       {/* Status toast */}
-      {status && <StatusToast message={status} onClose={() => setStatus(null)} />}
+      {status && <StatusToast message={status.message} variant={status.variant} onClose={() => setStatus(null)} />}
     </div>
   );
 }

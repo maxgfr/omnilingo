@@ -39,7 +39,7 @@ export async function cachedAskAi(tool: string, input: string, pairId: number, p
 // ── Search History ───────────────────────────────────────────────────
 
 const HISTORY_KEY = "omnilingo-tool-history";
-const MAX_HISTORY = 20;
+const MAX_HISTORY = 50;
 
 export interface HistoryEntry {
   tool: string;
@@ -49,7 +49,7 @@ export interface HistoryEntry {
 
 export function getSearchHistory(pairId: number): HistoryEntry[] {
   try {
-    const raw = sessionStorage.getItem(`${HISTORY_KEY}-${pairId}`);
+    const raw = localStorage.getItem(`${HISTORY_KEY}-${pairId}`);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -63,7 +63,7 @@ export function addToHistory(pairId: number, tool: string, query: string): void 
   );
   filtered.unshift({ tool, query, timestamp: Date.now() });
   try {
-    sessionStorage.setItem(`${HISTORY_KEY}-${pairId}`, JSON.stringify(filtered.slice(0, MAX_HISTORY)));
+    localStorage.setItem(`${HISTORY_KEY}-${pairId}`, JSON.stringify(filtered.slice(0, MAX_HISTORY)));
   } catch { /* ignore */ }
 }
 

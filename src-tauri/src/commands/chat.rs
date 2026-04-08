@@ -17,7 +17,7 @@ pub fn get_chat_history(
     pair_id: i64,
     limit: Option<i64>,
 ) -> Result<Vec<ChatMessageRow>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let limit = limit.unwrap_or(100);
 
     let mut stmt = db
@@ -55,7 +55,7 @@ pub fn save_chat_message(
     role: String,
     content: String,
 ) -> Result<i64, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "INSERT INTO chat_messages (language_pair_id, role, content) VALUES (?1, ?2, ?3)",
         rusqlite::params![pair_id, role, content],
@@ -69,7 +69,7 @@ pub fn clear_chat_history(
     state: State<'_, DbState>,
     pair_id: i64,
 ) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "DELETE FROM chat_messages WHERE language_pair_id = ?1",
         [pair_id],

@@ -6,11 +6,6 @@
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
-/* Safe area insets for mobile (iOS notch, Android gesture bar) */
-html {
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-}
-
 /* Flashcard 3D transforms */
 .perspective-1000 {
   perspective: 1000px;

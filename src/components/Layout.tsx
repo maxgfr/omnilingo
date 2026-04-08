@@ -1,18 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, Outlet } from "react-router-dom";
 import {
   BookOpen, BookText, Languages, Layers, MessageSquare,
   RefreshCw, SpellCheck, ArrowRightLeft, FileSearch,
   Settings as SettingsIcon, Menu, X, ChevronDown,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useApp } from "../store/AppContext";
-import * as bridge from "../lib/bridge";
-
-const FEATURE_KEYS = [
-  "dictionary", "grammar", "conjugation", "flashcards", "conversation",
-  "rephrase", "corrector", "synonyms", "text-analysis",
-];
+import { useAppStore } from "../store/useAppStore";
 
 const navSections = [
   {
@@ -20,7 +14,7 @@ const navSections = [
       { to: "/dictionary", icon: BookOpen, labelKey: "nav.dictionary" },
       { to: "/grammar", icon: BookText, labelKey: "nav.grammar" },
       { to: "/conjugation", icon: Languages, labelKey: "nav.conjugation" },
-      { to: "/flashcards", icon: Layers, labelKey: "nav.flashcards", badge: true },
+      { to: "/flashcards", icon: Layers, labelKey: "nav.flashcards" },
       { to: "/conversation", icon: MessageSquare, labelKey: "nav.conversation" },
     ],
   },
@@ -34,65 +28,60 @@ const navSections = [
   },
 ];
 
+// Group reverse pairs: if both fr->de and de->fr exist, show as one bidirectional entry
+function groupPairs(pairs: ReturnType<typeof useAppStore.getState>["languagePairs"]) {
+  const seen = new Set<number>();
+  const groups: Array<{
+    ids: number[];
+    label: string;
+    primaryId: number;
+  }> = [];
+
+  for (const pair of pairs) {
+    if (seen.has(pair.id)) continue;
+    seen.add(pair.id);
+
+    const reverse = pairs.find(
+      (p) => p.source_lang === pair.target_lang && p.target_lang === pair.source_lang && !seen.has(p.id),
+    );
+
+    if (reverse) {
+      seen.add(reverse.id);
+      groups.push({
+        ids: [pair.id, reverse.id],
+        label: `${pair.source_flag} ${pair.source_name} ↔ ${pair.target_flag} ${pair.target_name}`,
+        primaryId: pair.id,
+      });
+    } else {
+      groups.push({
+        ids: [pair.id],
+        label: `${pair.source_flag} ${pair.source_name} → ${pair.target_flag} ${pair.target_name}`,
+        primaryId: pair.id,
+      });
+    }
+  }
+
+  return groups;
+}
+
 export default function Layout() {
   const { t } = useTranslation();
-  const { languagePairs, loading } = useApp();
-  const location = useLocation();
+  const languagePairs = useAppStore((s) => s.languagePairs);
+  const loading = useAppStore((s) => s.loading);
+  const activePairId = useAppStore((s) => s.activePairId);
+  const switchPair = useAppStore((s) => s.switchPair);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [dueCount, setDueCount] = useState(0);
 
-  // Global language pair selector
-  const [globalPairId, setGlobalPairId] = useState<number | null>(() => {
-    try {
-      const raw = localStorage.getItem("omnilingo-pair-dictionary");
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
+  const pairGroups = groupPairs(languagePairs);
 
-  // Resolve actual pair id (fallback to first available)
-  const resolvedPairId = globalPairId && languagePairs.some((p) => p.id === globalPairId)
-    ? globalPairId
-    : languagePairs[0]?.id ?? null;
+  // Find the group that contains the active pair
+  const activeGroup = pairGroups.find((g) => g.ids.includes(activePairId ?? -1));
+  const resolvedGroupPrimaryId = activeGroup?.primaryId ?? pairGroups[0]?.primaryId ?? null;
 
-  const handleGlobalSwitch = useCallback(
-    (pairId: number) => {
-      setGlobalPairId(pairId);
-      for (const key of FEATURE_KEYS) {
-        localStorage.setItem(`omnilingo-pair-${key}`, JSON.stringify(pairId));
-      }
-      // Dispatch storage event so useFeaturePair hooks in mounted views react
-      window.dispatchEvent(new StorageEvent("storage", { key: "omnilingo-global-pair" }));
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (languagePairs.length === 0) return;
-
-    const refresh = async () => {
-      try {
-        const counts = await Promise.all(
-          languagePairs.map((p) => bridge.getDueCount(p.id).catch(() => 0)),
-        );
-        setDueCount(counts.reduce((a, b) => a + b, 0));
-      } catch { /* ignore */ }
-    };
-
-    refresh();
-    const interval = setInterval(refresh, 30_000);
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [languagePairs]);
+  const handleGlobalSwitch = (primaryId: number) => {
+    switchPair(primaryId);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
@@ -117,17 +106,17 @@ export default function Layout() {
         </div>
 
         {/* Global language pair selector */}
-        {languagePairs.length > 0 && (
+        {pairGroups.length > 0 && (
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
             <div className="relative">
               <select
-                value={resolvedPairId ?? ""}
+                value={resolvedGroupPrimaryId ?? ""}
                 onChange={(e) => handleGlobalSwitch(Number(e.target.value))}
                 className="w-full appearance-none rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 pr-8 text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all cursor-pointer"
               >
-                {languagePairs.map((pair) => (
-                  <option key={pair.id} value={pair.id}>
-                    {pair.source_flag} {pair.source_name} → {pair.target_flag} {pair.target_name}
+                {pairGroups.map((group) => (
+                  <option key={group.primaryId} value={group.primaryId}>
+                    {group.label}
                   </option>
                 ))}
               </select>
@@ -158,11 +147,6 @@ export default function Layout() {
                 >
                   <item.icon size={20} />
                   <span>{t(item.labelKey)}</span>
-                  {item.badge && dueCount > 0 && (
-                    <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
-                      {dueCount}
-                    </span>
-                  )}
                 </NavLink>
               ))}
             </div>
@@ -189,7 +173,7 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
-        <div className="max-w-5xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex flex-col items-center gap-3">
@@ -198,7 +182,7 @@ export default function Layout() {
               </div>
             </div>
           ) : (
-            <div key={location.pathname} className="animate-fadeIn">
+            <div className="animate-fadeIn">
               <Outlet />
             </div>
           )}

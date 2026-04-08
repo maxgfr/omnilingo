@@ -1,23 +1,28 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import Fuse from "fuse.js";
+import { useEffect, useState, useCallback, useDeferredValue } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Search,
-  Plus,
-  Filter,
-  BookOpen,
-  Check,
-  ChevronDown,
   Loader2,
-  Heart,
+  Download,
+  X,
+  Sparkles,
+  Volume2,
+  AlertTriangle,
 } from "lucide-react";
+import { Search } from "lucide-react";
+import Spinner from "../components/ui/Spinner";
+import PageHeader from "../components/ui/PageHeader";
+import ExamplePreview from "../components/ui/ExamplePreview";
+import { FLASHCARD_EXAMPLE } from "../lib/exampleData";
 import { useApp } from "../store/AppContext";
+import { useAppStore, selectIsAiConfigured, selectReversePairId } from "../store/useAppStore";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import LanguagePairBar from "../components/LanguagePairBar";
+import LanguagePackDownloader from "../components/LanguagePackDownloader";
+import FavoriteButton from "../components/FavoriteButton";
+import DeckPopover from "../components/DeckPopover";
+import { formatMessage } from "../lib/markdown";
 import * as bridge from "../lib/bridge";
-import type { Word } from "../types";
+import type { Word, DeckInfo, FavoriteWord } from "../types";
 
-const LEVELS = ["A1", "A2", "B1", "B2"];
 const PAGE_SIZE = 50;
 
 const levelColors: Record<string, string> = {
@@ -33,430 +38,467 @@ const genderBadges: Record<string, { label: string; color: string }> = {
   n: { label: "das", color: "bg-emerald-500 text-white" },
 };
 
+function formatDefinition(text: string): string[] {
+  const parts = text.split(/\s*;\s*/).filter((p) => p.trim());
+  return parts.length > 1 ? parts : [text];
+}
+
+/** Parse target_word to separate IPA, POS, and clean translation */
+function parseTargetWord(text: string, category?: string | null, tags?: string | null) {
+  let remaining = text;
+  let ipa: string | null = null;
+
+  // Extract IPA: / ... / (with unicode phonetic chars)
+  const ipaMatch = remaining.match(/\/\s*[^/]+\s*\//);
+  if (ipaMatch) {
+    ipa = ipaMatch[0].trim();
+    remaining = remaining.replace(ipaMatch[0], "");
+  }
+
+  // Clean up leading separators
+  remaining = remaining.replace(/^[;\s]+/, "").trim();
+
+  // Strip gender artifacts from Kaikki data (e.g. ", female", ", masculine")
+  remaining = remaining.replace(/^,?\s*(female|male|masculine|feminine|neuter)\s*/i, "").trim();
+
+  // Extract POS if at start and not already in category
+  let pos: string | null = null;
+  const posMatch = remaining.match(
+    /^(verb|noun|adjective|adverb|preposition|conjunction|pronoun|interjection|article|determiner|particle|name|adjectif|nom|verbe)\s*/i,
+  );
+  if (posMatch) {
+    pos = posMatch[1].toLowerCase();
+    remaining = remaining.slice(posMatch[0].length).trim();
+  }
+
+  // Use category as POS fallback
+  if (!pos && category && category !== "dictionary" && category !== "sentence") {
+    pos = category;
+  }
+
+  // Use tags as IPA fallback (Kaikki stores IPA in tags)
+  if (!ipa && tags && /\/.*\//.test(tags)) {
+    ipa = tags;
+  }
+
+  return { clean: remaining, ipa, pos };
+}
+
 export default function Dictionary() {
   const { t } = useTranslation();
-  const { languagePairs } = useApp();
-  const { activePair, switchPair } = useFeaturePair("dictionary");
+  const { languagePairs, reloadSettings } = useApp();
+  const { activePair } = useFeaturePair("dictionary");
+  const isAiConfigured = useAppStore(selectIsAiConfigured);
+
+  const cachedState = useAppStore.getState().dictionaryCache;
 
   const [words, setWords] = useState<Word[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterLevel, setFilterLevel] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(cachedState?.searchQuery ?? "");
+  const deferredQuery = useDeferredValue(searchQuery);
 
-  // Favorites
+  const [decks, setDecks] = useState<DeckInfo[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // SRS tracking
-  const [addedToSrs, setAddedToSrs] = useState<Set<number>>(new Set());
-  const [addingToSrs, setAddingToSrs] = useState<Set<number>>(new Set());
+  const [selectedWord, setSelectedWord] = useState<Word | null>(null);
+  const [aiContent, setAiContent] = useState<string | null>(cachedState?.aiContent ?? null);
+  const [aiLoading, setAiLoading] = useState(false);
 
-  // Debounce ref
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Initial load
+  // Sync view state to Zustand cache
   useEffect(() => {
+    useAppStore.getState().setDictionaryCache({
+      searchQuery,
+      selectedWordId: selectedWord?.id ?? null,
+      aiContent,
+    });
+  }, [searchQuery, selectedWord, aiContent]);
+
+  // Track whether metadata (decks/favorites) has been loaded for current pair
+  const [metaLoaded, setMetaLoaded] = useState(false);
+
+  // Load metadata (decks, favorites, count) once per pair change
+  useEffect(() => {
+    const cache = useAppStore.getState().dictionaryCache;
+    if (!cache) {
+      setSelectedWord(null);
+      setAiContent(null);
+      setFavoriteIds(new Set());
+      setSearchQuery("");
+    }
+
     if (!activePair) {
       setLoading(false);
       return;
     }
-    setLoading(true);
 
+    setMetaLoaded(false);
     Promise.all([
-      bridge.getWords(activePair.id, undefined, PAGE_SIZE, 0),
-      bridge.getCategories(activePair.id),
       bridge.getWordCount(activePair.id),
+      bridge.getDecks(activePair.id),
       bridge.getFavorites(activePair.id),
     ])
-      .then(([w, c, count, favs]) => {
-        setWords(w);
-        setCategories(c);
+      .then(([count, d, favs]) => {
         setTotalCount(count);
-        setOffset(PAGE_SIZE);
-        setHasMore(w.length >= PAGE_SIZE);
-        setFavoriteIds(new Set(favs.map((f: { word_id: number }) => f.word_id)));
+        setDecks(d);
+        setFavoriteIds(new Set((favs as FavoriteWord[]).map((f) => f.word_id)));
+        setMetaLoaded(true);
       })
-      .catch((err) => console.error("Failed to load dictionary:", err))
-      .finally(() => setLoading(false));
+      .catch((err) => console.error("Failed to load dictionary metadata:", err));
   }, [activePair]);
 
-  // Debounced search
-  const performSearch = useCallback(
-    (query: string, level: string | null, category: string | null) => {
-      if (!activePair) return;
-
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-
-      debounceRef.current = setTimeout(() => {
-        setLoading(true);
-        if (query.trim()) {
-          bridge
-            .searchWords(
-              activePair.id,
-              query.trim(),
-              level ?? undefined,
-              category ?? undefined,
-            )
-            .then((results) => {
-              setWords(results);
-              setHasMore(false);
-              setOffset(0);
-            })
-            .finally(() => setLoading(false));
-        } else {
-          bridge
-            .getWords(activePair.id, level ?? undefined, PAGE_SIZE, 0)
-            .then((results) => {
-              setWords(results);
-              setOffset(PAGE_SIZE);
-              setHasMore(results.length >= PAGE_SIZE);
-            })
-            .finally(() => setLoading(false));
-        }
-      }, 300);
-    },
-    [activePair],
-  );
-
-  // Trigger search on filter changes
+  // Load words: either paginated browse or server-side search
   useEffect(() => {
-    performSearch(searchQuery, filterLevel, filterCategory);
+    if (!activePair || !metaLoaded) return;
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [searchQuery, filterLevel, filterCategory, performSearch]);
+    const query = deferredQuery.trim();
+    let cancelled = false;
 
-  // Load more
-  function loadMore() {
-    if (!activePair || loadingMore || !hasMore || searchQuery.trim()) return;
-    setLoadingMore(true);
-    bridge
-      .getWords(activePair.id, filterLevel ?? undefined, PAGE_SIZE, offset)
-      .then((moreWords) => {
-        setWords((prev) => [...prev, ...moreWords]);
-        setOffset((prev) => prev + PAGE_SIZE);
-        setHasMore(moreWords.length >= PAGE_SIZE);
+    setLoading(true);
+
+    const reversePairId = selectReversePairId(useAppStore.getState()) ?? undefined;
+    const promise = query
+      ? bridge.searchWords(activePair.id, query, undefined, undefined, reversePairId)
+      : bridge.getWords(activePair.id, undefined, PAGE_SIZE, 0);
+
+    promise
+      .then((w) => {
+        if (cancelled) return;
+        setWords(w);
+        setHasMore(!query && w.length >= PAGE_SIZE);
+
+        // Restore selected word from cache on first load
+        const cache = useAppStore.getState().dictionaryCache;
+        if (cache?.selectedWordId != null) {
+          const restored = w.find((word: Word) => word.id === cache.selectedWordId);
+          if (restored) setSelectedWord(restored);
+        }
       })
-      .finally(() => setLoadingMore(false));
-  }
+      .catch((err) => { if (!cancelled) console.error("Failed to load words:", err); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-  // Add to SRS
-  async function handleAddToSrs(wordId: number) {
-    if (addedToSrs.has(wordId) || addingToSrs.has(wordId)) return;
-    setAddingToSrs((prev) => new Set(prev).add(wordId));
+    return () => { cancelled = true; };
+  }, [activePair, deferredQuery, metaLoaded]);
+
+  // Load more (pagination)
+  const loadMore = useCallback(async () => {
+    if (!activePair || loadingMore || !hasMore || deferredQuery.trim()) return;
+    setLoadingMore(true);
     try {
-      await bridge.addWordToSrs(wordId);
-      setAddedToSrs((prev) => new Set(prev).add(wordId));
-    } catch {
-      // Word may already be in SRS
-      setAddedToSrs((prev) => new Set(prev).add(wordId));
+      const more = await bridge.getWords(activePair.id, undefined, PAGE_SIZE, words.length);
+      if (more.length < PAGE_SIZE) setHasMore(false);
+      setWords((prev) => [...prev, ...more]);
+    } catch (err) {
+      console.error("Failed to load more:", err);
     } finally {
-      setAddingToSrs((prev) => {
-        const next = new Set(prev);
-        next.delete(wordId);
-        return next;
-      });
+      setLoadingMore(false);
     }
-  }
+  }, [activePair, loadingMore, hasMore, words.length, deferredQuery]);
 
-  // Toggle level filter
-  function toggleLevel(level: string) {
-    setFilterLevel((prev) => (prev === level ? null : level));
-  }
+  const toggleFavorite = useCallback((wordId: number) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(wordId)) next.delete(wordId);
+      else next.add(wordId);
+      return next;
+    });
+  }, []);
 
-  // Fuzzy reranking of search results
-  const rerankedWords = useMemo(() => {
-    if (!searchQuery.trim() || words.length === 0) return words;
-    const fuse = new Fuse(words, { keys: ["source_word", "target_word"], threshold: 0.4 });
-    return fuse.search(searchQuery.trim()).map((r) => r.item);
-  }, [words, searchQuery]);
+  const handleAskAi = useCallback(async (word: Word) => {
+    if (!activePair) return;
+    setAiLoading(true);
+    setAiContent(null);
+    try {
+      const sourceLang = activePair.source_name;
+      const targetLang = activePair.target_name;
+      const prompt = `You are a language learning assistant. Give detailed information about this word.
 
-  // Filtered words for favorites
-  const displayWords = showFavoritesOnly
-    ? (searchQuery.trim() ? rerankedWords : words).filter(w => favoriteIds.has(w.id))
-    : searchQuery.trim() ? rerankedWords : words;
+Word: "${word.source_word}" (${sourceLang})
+${word.target_word ? `Known translation: ${word.target_word}` : ""}
+${word.gender ? `Gender: ${word.gender}` : ""}
+${word.category ? `Category: ${word.category}` : ""}
 
-  // Save custom word
+Please provide in ${targetLang}:
+1. **Translation** — precise translation(s) in ${targetLang}
+2. **Grammar** — gender, plural form, part of speech, declension/conjugation notes
+3. **Example sentences** — 3 example sentences with ${targetLang} translation
+4. **Usage notes** — common expressions, collocations, register
+5. **Related words** — synonyms, antonyms, word family
+
+Format with markdown. Be concise but thorough. Answer in ${targetLang}.`;
+
+      const result = await bridge.askAi(prompt);
+      setAiContent(result);
+    } catch (err) {
+      setAiContent(`Erreur: ${err}`);
+    } finally {
+      setAiLoading(false);
+    }
+  }, [activePair]);
+
+  const openWordDetail = useCallback((word: Word) => {
+    setSelectedWord(word);
+    setAiContent(null);
+    setAiLoading(false);
+  }, []);
+
+  const closeWordDetail = useCallback(() => {
+    setSelectedWord(null);
+    setAiContent(null);
+    setAiLoading(false);
+  }, []);
+
+  const speak = useCallback((text: string, lang?: string) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (lang) utterance.lang = lang;
+    speechSynthesis.speak(utterance);
+  }, []);
+
   if (loading && words.length === 0) {
+    return <Spinner fullPage />;
+  }
+
+  if (languagePairs.length === 0) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="w-6 h-6 border-2 border-gray-300 border-t-amber-500 rounded-full animate-spin" />
+      <div className="space-y-6">
+        <PageHeader title={t("dictionary.title")} />
+        <div className="text-center py-10 space-y-6">
+          <Download size={48} className="mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+          <p className="text-lg font-medium text-gray-900 dark:text-white">
+            {t("dictionary.noPacksYet")}
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t("dictionary.noPacksDescription")}
+          </p>
+          <div className="max-w-md mx-auto">
+            <LanguagePackDownloader
+              existingPairs={languagePairs}
+              onDownloaded={async () => { await reloadSettings(); }}
+            />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {t("dictionary.title")}
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {t("dictionary.wordsAvailable", { count: totalCount })}
-        </p>
-      </div>
+      <PageHeader title={t("dictionary.title")} subtitle={t("dictionary.wordsAvailable", { count: totalCount })} />
 
       {/* Search bar */}
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search
-            size={18}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("dictionary.searchPlaceholder")}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
-          />
-        </div>
-        <button
-          onClick={() => setShowFavoritesOnly(prev => !prev)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-            showFavoritesOnly
-              ? "bg-rose-50 dark:bg-rose-900/20 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400"
-              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
-          }`}
-          title={t("dictionary.favoritesOnly")}
-        >
-          <Heart size={16} fill={showFavoritesOnly ? "currentColor" : "none"} />
-        </button>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-            showFilters || filterLevel || filterCategory
-              ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
-              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
-          }`}
-        >
-          <Filter size={16} />
-          {t("dictionary.filters")}
-          {(filterLevel || filterCategory) && (
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-          )}
-        </button>
+      <div className="relative">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("dictionary.searchPlaceholder")}
+          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+        />
       </div>
 
-      {/* Filters */}
-      {showFilters && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-4">
-          {/* Level filter */}
-          <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">
-              {t("common.level")}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {LEVELS.map((level) => (
-                <button
-                  key={level}
-                  onClick={() => toggleLevel(level)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                    filterLevel === level
-                      ? "bg-amber-500 text-white shadow-sm"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  {level}
-                </button>
-              ))}
-              {filterLevel && (
-                <button
-                  onClick={() => setFilterLevel(null)}
-                  className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                >
-                  {t("common.clear")}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Category filter */}
-          {categories.length > 0 && (
-            <div>
-              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">
-                Category
-              </label>
-              <div className="relative">
-                <select
-                  value={filterCategory || ""}
-                  onChange={(e) =>
-                    setFilterCategory(e.target.value || null)
-                  }
-                  className="w-full appearance-none px-3 py-2 pr-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
-                >
-                  <option value="">{t("dictionary.allCategories")}</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Results count */}
-      {searchQuery.trim() && (
+      {deferredQuery.trim() && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {t("dictionary.resultsFor", { count: words.length, query: searchQuery })}
+          {t("dictionary.resultsFor", { count: words.length, query: deferredQuery })}
         </p>
       )}
 
       {/* Word list */}
-      {displayWords.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 dark:text-gray-400 space-y-4">
-          <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
+      {words.length === 0 && !loading ? (
+        <div className="text-center py-16 text-gray-500 dark:text-gray-400 space-y-6">
           <p className="text-lg font-medium">{t("dictionary.noWordsFound")}</p>
+          <ExamplePreview onClick={() => setSearchQuery(FLASHCARD_EXAMPLE.front)}>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center gap-3 text-left">
+              <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase flex-shrink-0">die</span>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-gray-900 dark:text-white text-sm">{FLASHCARD_EXAMPLE.front}</span>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{FLASHCARD_EXAMPLE.back}</p>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">A1</span>
+            </div>
+          </ExamplePreview>
         </div>
       ) : (
         <div className="space-y-2">
-          {displayWords.map((word) => {
+          {words.map((word) => {
             const gender = word.gender ? genderBadges[word.gender] : null;
-            const isAdded = addedToSrs.has(word.id);
-            const isAdding = addingToSrs.has(word.id);
+            const isSelected = selectedWord?.id === word.id;
+            const parsed = parseTargetWord(word.target_word, word.category, word.tags);
 
             return (
-              <div
-                key={word.id}
-                className="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center gap-3 transition-all hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600"
-              >
-                {/* Gender badge */}
-                {activePair?.source_lang === "de" && gender && (
-                  <span
-                    className={`${gender.color} text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 uppercase`}
-                  >
-                    {gender.label}
-                  </span>
-                )}
+              <div key={word.id}>
+                {/* Word card */}
+                <button
+                  onClick={() => isSelected ? closeWordDetail() : openWordDetail(word)}
+                  className={`w-full text-left rounded-xl border px-4 py-3 flex items-center gap-3 transition-all ${
+                    isSelected
+                      ? "border-amber-400 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-900/10 shadow-sm"
+                      : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-600"
+                  }`}
+                >
+                  {gender && (
+                    <span className={`${gender.color} text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 uppercase`}>
+                      {gender.label}
+                    </span>
+                  )}
 
-                {/* Source word */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-gray-900 dark:text-white text-sm">
                       {word.source_word}
                     </span>
-                    {word.plural && (
-                      <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                        pl. {word.plural}
+                    {parsed.clean && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                        {parsed.clean}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {parsed.pos && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 italic">
+                        {parsed.pos}
+                      </span>
+                    )}
+                    {word.level && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${levelColors[word.level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}>
+                        {word.level}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                    {word.target_word}
-                  </p>
-                </div>
-
-                {/* Level tag */}
-                {word.level && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded font-semibold flex-shrink-0 ${levelColors[word.level] || "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"}`}
-                  >
-                    {word.level}
-                  </span>
-                )}
-
-                {/* Category */}
-                {word.category && (
-                  <span className="hidden sm:inline text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex-shrink-0">
-                    {word.category}
-                  </span>
-                )}
-
-                {/* Favorite button */}
-                <button
-                  onClick={async () => {
-                    const isFav = await bridge.toggleFavorite(word.id);
-                    setFavoriteIds(prev => {
-                      const next = new Set(prev);
-                      isFav ? next.add(word.id) : next.delete(word.id);
-                      return next;
-                    });
-                  }}
-                  className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
-                    favoriteIds.has(word.id)
-                      ? "text-rose-500 hover:text-rose-600"
-                      : "text-gray-300 dark:text-gray-600 hover:text-rose-400"
-                  }`}
-                  title={t("favorites.title")}
-                >
-                  <Heart size={16} fill={favoriteIds.has(word.id) ? "currentColor" : "none"} />
                 </button>
 
-                {/* Add to SRS button */}
-                <button
-                  onClick={() => handleAddToSrs(word.id)}
-                  disabled={isAdded || isAdding}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
-                    isAdded
-                      ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 cursor-default"
-                      : isAdding
-                        ? "bg-gray-100 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-700 cursor-wait"
-                        : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 hover:border-amber-400 dark:hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400"
-                  }`}
-                  title={isAdded ? t("dictionary.alreadyAdded") : t("dictionary.addToSrs")}
-                >
-                  {isAdded ? (
-                    <>
-                      <Check size={14} />
-                      <span className="hidden sm:inline">{t("common.added")}</span>
-                    </>
-                  ) : isAdding ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <>
-                      <Plus size={14} />
-                      <span className="hidden sm:inline">SRS</span>
-                    </>
-                  )}
-                </button>
+                {/* Detail panel */}
+                {isSelected && (
+                  <div className="rounded-b-xl border border-t-0 border-amber-400 dark:border-amber-600 bg-white dark:bg-gray-800 px-5 py-4 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                            {word.source_word}
+                          </h3>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); speak(word.source_word, activePair?.source_lang); }}
+                            className="p-1 rounded-full text-gray-400 hover:text-amber-500 transition-colors"
+                          >
+                            <Volume2 size={16} />
+                          </button>
+                          {gender && (
+                            <span className={`${gender.color} text-xs px-2 py-0.5 rounded font-bold uppercase`}>
+                              {gender.label}
+                            </span>
+                          )}
+                          {parsed.pos && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 italic">
+                              {parsed.pos}
+                            </span>
+                          )}
+                        </div>
+                        {/* Translation / definition */}
+                        {parsed.clean && (
+                          <div className="mt-2 space-y-1">
+                            {formatDefinition(parsed.clean).map((def, i) => (
+                              <p key={i} className="text-sm text-gray-600 dark:text-gray-300">
+                                {formatDefinition(parsed.clean).length > 1 && (
+                                  <span className="text-gray-400 mr-1">{i + 1}.</span>
+                                )}
+                                {def}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {word.plural && (
+                          <p className="text-xs text-gray-400 mt-1">Pluriel : {word.plural}</p>
+                        )}
+                        {word.example_source && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
+                            &laquo; {word.example_source} &raquo;
+                            {word.example_target && (
+                              <span className="not-italic text-gray-400 dark:text-gray-500 ml-2">
+                                — {word.example_target}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {/* IPA phonetics */}
+                        {parsed.ipa && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 font-mono">
+                            {parsed.ipa}
+                          </p>
+                        )}
+                      </div>
+                      <button onClick={closeWordDetail} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleAskAi(word); }}
+                        disabled={aiLoading || !isAiConfigured}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        {aiLoading ? t("common.loading") : t("dictionary.exploreWithAi")}
+                      </button>
+                      <FavoriteButton
+                        wordId={word.id}
+                        isFavorite={favoriteIds.has(word.id)}
+                        onToggle={() => toggleFavorite(word.id)}
+                      />
+                      <DeckPopover
+                        wordId={word.id}
+                        pairId={activePair!.id}
+                        decks={decks}
+                        onDecksChanged={() => bridge.getDecks(activePair!.id).then(setDecks).catch(console.error)}
+                      />
+                    </div>
+
+                    {!isAiConfigured && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
+                        <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
+                        <p className="text-xs text-amber-700 dark:text-amber-400">{t("settings.configureAi")}</p>
+                      </div>
+                    )}
+
+                    {(aiContent || aiLoading) && (
+                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                        {aiLoading ? (
+                          <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                            <Loader2 size={16} className="animate-spin" />
+                            {t("common.loading")}
+                          </div>
+                        ) : aiContent && (
+                          <div
+                            className="prose prose-sm dark:prose-invert max-w-none text-sm [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>p]:my-1.5 [&>ul]:my-1.5 [&>ol]:my-1.5"
+                            dangerouslySetInnerHTML={{ __html: formatMessage(aiContent) }}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
-        </div>
-      )}
 
-      {/* Load more */}
-      {hasMore && !searchQuery.trim() && !showFavoritesOnly && words.length > 0 && (
-        <div className="flex justify-center pt-2 pb-4">
-          <button
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium hover:border-amber-400 dark:hover:border-amber-500 hover:text-amber-600 dark:hover:text-amber-400 transition-all disabled:opacity-50"
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                {t("common.loading")}
-              </>
-            ) : (
-              <>
-                <ChevronDown size={16} />
-                {t("dictionary.loadMore")}
-              </>
-            )}
-          </button>
+          {/* Load more */}
+          {hasMore && !deferredQuery.trim() && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50"
+            >
+              {loadingMore ? (
+                <Loader2 size={16} className="inline animate-spin" />
+              ) : (
+                `${t("dictionary.loadMore")} — ${words.length}/${totalCount}`
+              )}
+            </button>
+          )}
         </div>
       )}
     </div>

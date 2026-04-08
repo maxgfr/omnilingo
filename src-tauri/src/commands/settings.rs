@@ -25,13 +25,13 @@ pub struct LanguagePair {
 
 #[tauri::command]
 pub fn get_settings(state: State<'_, DbState>) -> Result<Settings, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     read_settings_from_db(&db)
 }
 
 #[tauri::command]
 pub fn update_setting(state: State<'_, DbState>, key: String, value: String) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let allowed = [
         "dark_mode", "active_language_pair_id",
         "ai_provider", "ai_api_key", "ai_model",
@@ -47,7 +47,7 @@ pub fn update_setting(state: State<'_, DbState>, key: String, value: String) -> 
 
 #[tauri::command]
 pub fn get_language_pairs(state: State<'_, DbState>) -> Result<Vec<LanguagePair>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let mut stmt = db
         .prepare(
             "SELECT id, source_lang, target_lang, source_name, target_name,
@@ -77,7 +77,7 @@ pub fn get_language_pairs(state: State<'_, DbState>) -> Result<Vec<LanguagePair>
 
 #[tauri::command]
 pub fn set_active_language_pair(state: State<'_, DbState>, pair_id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute("UPDATE language_pairs SET is_active = 0", [])
         .map_err(|e| e.to_string())?;
     db.execute("UPDATE language_pairs SET is_active = 1 WHERE id = ?1", [pair_id])
@@ -92,7 +92,7 @@ pub fn set_active_language_pair(state: State<'_, DbState>, pair_id: i64) -> Resu
 
 #[tauri::command]
 pub fn delete_language_pair(state: State<'_, DbState>, pair_id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     // Clear active pair reference in settings first
     db.execute(
         "UPDATE settings SET active_language_pair_id = NULL WHERE active_language_pair_id = ?1",
@@ -118,6 +118,88 @@ pub fn delete_language_pair(state: State<'_, DbState>, pair_id: i64) -> Result<(
         db.execute(sql, [pair_id]).map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+/// Export all user data as JSON
+#[tauri::command]
+pub fn export_data(state: State<'_, DbState>) -> Result<String, String> {
+    let db = state.db();
+
+    let mut export = serde_json::Map::new();
+
+    // Export language pairs
+    {
+        let mut stmt = db.prepare("SELECT id, source_lang, target_lang, source_name, target_name FROM language_pairs").map_err(|e| e.to_string())?;
+        let pairs: Vec<serde_json::Value> = stmt.query_map([], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, i64>(0)?,
+                "source_lang": row.get::<_, String>(1)?,
+                "target_lang": row.get::<_, String>(2)?,
+                "source_name": row.get::<_, String>(3)?,
+                "target_name": row.get::<_, String>(4)?,
+            }))
+        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+        export.insert("language_pairs".into(), serde_json::Value::Array(pairs));
+    }
+
+    // Export words
+    {
+        let mut stmt = db.prepare(
+            "SELECT language_pair_id, source_word, target_word, gender, level, category FROM words"
+        ).map_err(|e| e.to_string())?;
+        let words: Vec<serde_json::Value> = stmt.query_map([], |row| {
+            Ok(serde_json::json!({
+                "language_pair_id": row.get::<_, i64>(0)?,
+                "source_word": row.get::<_, String>(1)?,
+                "target_word": row.get::<_, String>(2)?,
+                "gender": row.get::<_, Option<String>>(3)?,
+                "level": row.get::<_, Option<String>>(4)?,
+                "category": row.get::<_, Option<String>>(5)?,
+            }))
+        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+        export.insert("words".into(), serde_json::Value::Array(words));
+    }
+
+    // Export SRS cards
+    {
+        let mut stmt = db.prepare(
+            "SELECT sc.language_pair_id, w.source_word, w.target_word, sc.repetitions, sc.ease_factor, sc.interval_days, sc.next_review, sc.deck, sc.card_type
+             FROM srs_cards sc JOIN words w ON w.id = sc.word_id"
+        ).map_err(|e| e.to_string())?;
+        let cards: Vec<serde_json::Value> = stmt.query_map([], |row| {
+            Ok(serde_json::json!({
+                "language_pair_id": row.get::<_, i64>(0)?,
+                "source_word": row.get::<_, String>(1)?,
+                "target_word": row.get::<_, String>(2)?,
+                "repetitions": row.get::<_, i64>(3)?,
+                "ease_factor": row.get::<_, f64>(4)?,
+                "interval_days": row.get::<_, i64>(5)?,
+                "next_review": row.get::<_, String>(6)?,
+                "deck": row.get::<_, String>(7)?,
+                "card_type": row.get::<_, String>(8)?,
+            }))
+        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+        export.insert("srs_cards".into(), serde_json::Value::Array(cards));
+    }
+
+    // Export favorites
+    {
+        let mut stmt = db.prepare(
+            "SELECT f.word_id, w.source_word, w.target_word, w.language_pair_id
+             FROM favorites f JOIN words w ON w.id = f.word_id"
+        ).map_err(|e| e.to_string())?;
+        let favs: Vec<serde_json::Value> = stmt.query_map([], |row| {
+            Ok(serde_json::json!({
+                "word_id": row.get::<_, i64>(0)?,
+                "source_word": row.get::<_, String>(1)?,
+                "target_word": row.get::<_, String>(2)?,
+                "language_pair_id": row.get::<_, i64>(3)?,
+            }))
+        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+        export.insert("favorites".into(), serde_json::Value::Array(favs));
+    }
+
+    serde_json::to_string_pretty(&export).map_err(|e| e.to_string())
 }
 
 pub fn read_settings_from_db(db: &rusqlite::Connection) -> Result<Settings, String> {

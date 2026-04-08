@@ -41,7 +41,7 @@ pub fn get_verbs(
     pair_id: i64,
     query: Option<String>,
 ) -> Result<Vec<Verb>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     if let Some(q) = query {
         let pattern = format!("%{}%", q);
@@ -85,7 +85,7 @@ pub fn log_conjugation_session(
     correct: bool,
     errors: Vec<String>,
 ) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     let data = serde_json::json!({
         "verb": verb,

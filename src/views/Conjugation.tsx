@@ -1,8 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Fuse from "fuse.js";
 import { useTranslation } from "react-i18next";
 import {
-  Search,
   Shuffle,
   BookOpen,
   Check,
@@ -11,25 +10,36 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
+  Wand2,
+  Loader2,
 } from "lucide-react";
-import { useApp } from "../store/AppContext";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import LanguagePairBar from "../components/LanguagePairBar";
+import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
+import { addToHistory } from "../lib/ai-cache";
 import * as bridge from "../lib/bridge";
 import type { Verb } from "../types";
+import Spinner from "../components/ui/Spinner";
+import PageHeader from "../components/ui/PageHeader";
+import SearchInput from "../components/ui/SearchInput";
+import ExamplePreview from "../components/ui/ExamplePreview";
+import RecentSearches from "../components/ui/RecentSearches";
+import { CONJUGATION_EXAMPLE } from "../lib/exampleData";
 
 export default function Conjugation() {
   const { t } = useTranslation();
-  const { languagePairs } = useApp();
-  const { activePair, switchPair } = useFeaturePair("conjugation");
+  const { activePair } = useFeaturePair("conjugation");
+  const isAiConfigured = useAppStore(selectIsAiConfigured);
+
+  // Restore cached state
+  const cachedState = useAppStore.getState().conjugationCache;
 
   const [verbs, setVerbs] = useState<Verb[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Mode & navigation
-  const [mode, setMode] = useState<"random" | "byTense" | "byVerb">("random");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTense, setSelectedTense] = useState<string>("");
+  const [mode, setMode] = useState<"random" | "byTense" | "byVerb">((cachedState?.mode as "random" | "byTense" | "byVerb") ?? "random");
+  const [searchQuery, setSearchQuery] = useState(cachedState?.searchQuery ?? "");
+  const [selectedTense, setSelectedTense] = useState<string>(cachedState?.selectedTense ?? "");
   const [currentVerb, setCurrentVerb] = useState<Verb | null>(null);
   const [currentTense, setCurrentTense] = useState<string>("");
 
@@ -42,8 +52,57 @@ export default function Conjugation() {
   const [correctCount, setCorrectCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
-  // AI generation
+  // AI verb generation
+  const [aiVerbInput, setAiVerbInput] = useState("");
+  const [generatingVerb, setGeneratingVerb] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
+  const handleGenerateVerb = useCallback(async () => {
+    if (!activePair || !aiVerbInput.trim() || generatingVerb) return;
+    setGeneratingVerb(true);
+    try {
+      addToHistory(activePair.id, "conjugation", aiVerbInput.trim());
+      const sourceName = activePair.source_name;
+      const targetName = activePair.target_name;
+      const prompt = `Generate the conjugation for the ${sourceName} verb "${aiVerbInput.trim()}".
+Return a JSON object with this exact structure:
+{
+  "id": -1,
+  "language_pair_id": ${activePair.id},
+  "infinitive": "the verb infinitive in ${sourceName}",
+  "translation": "translation in ${targetName}",
+  "verb_type": "regular/irregular/modal",
+  "auxiliary": "auxiliary verb if applicable or null",
+  "is_separable": false,
+  "level": "A1",
+  "conjugations": {
+    "present": {"ich": "form", "du": "form", "er/sie/es": "form", "wir": "form", "ihr": "form", "sie/Sie": "form"},
+    "past": {"ich": "form", "du": "form", ...},
+    "perfect": {"ich": "form", ...}
+  },
+  "examples": [{"source": "example sentence in ${sourceName}", "target": "translation in ${targetName}"}]
+}
+Include as many tenses as you know for this verb. Use the appropriate person labels for ${sourceName}.
+Return ONLY valid JSON, no markdown fences.`;
+      const response = await bridge.askAi(prompt);
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/^```\w*\n?/, "").replace(/```\s*$/, "").trim();
+      }
+      const parsed = JSON.parse(jsonStr) as Verb;
+      const tenses = Object.keys(parsed.conjugations).filter(
+        (k) => parsed.conjugations[k] && Object.keys(parsed.conjugations[k]).length > 0,
+      );
+      if (tenses.length > 0) {
+        startPractice(parsed, tenses[0]);
+      }
+      setAiVerbInput("");
+    } catch (err) {
+      console.error("Failed to generate AI verb:", err);
+    } finally {
+      setGeneratingVerb(false);
+    }
+  }, [activePair, aiVerbInput, generatingVerb]);
 
   // Dynamically extract all available tense keys from loaded verbs
   const allTenseKeys = useMemo(() => {
@@ -100,7 +159,30 @@ export default function Conjugation() {
     return currentVerb.conjugations[currentTense];
   }, [currentVerb, currentTense]);
 
+  // Sync view state to Zustand cache
   useEffect(() => {
+    useAppStore.getState().setConjugationCache({
+      searchQuery,
+      currentVerbId: currentVerb?.id ?? null,
+      mode,
+      selectedTense,
+      aiVerb: currentVerb && currentVerb.id < 0 ? JSON.stringify(currentVerb) : null,
+    });
+  }, [searchQuery, currentVerb, mode, selectedTense]);
+
+  useEffect(() => {
+    const cache = useAppStore.getState().conjugationCache;
+    const isRestoringCache = cache !== null;
+
+    if (!isRestoringCache) {
+      // Clear stale state from previous pair
+      setCurrentVerb(null);
+      setAnswers({});
+      setChecked(false);
+      setRevealed(false);
+      setSearchQuery("");
+    }
+
     if (!activePair) {
       setLoading(false);
       return;
@@ -110,6 +192,32 @@ export default function Conjugation() {
       .getVerbs(activePair.id)
       .then((v) => {
         setVerbs(v);
+
+        // Restore verb from cache
+        if (isRestoringCache && cache.currentVerbId != null) {
+          // Check for AI-generated verb (id < 0)
+          if (cache.currentVerbId < 0 && cache.aiVerb) {
+            try {
+              const aiVerb = JSON.parse(cache.aiVerb) as Verb;
+              const tenses = getVerbTenses(aiVerb);
+              const tense = cache.selectedTense && tenses.includes(cache.selectedTense)
+                ? cache.selectedTense
+                : tenses[0] || "";
+              startPractice(aiVerb, tense);
+              return;
+            } catch { /* ignore */ }
+          }
+          const restored = v.find((verb) => verb.id === cache.currentVerbId);
+          if (restored) {
+            const tenses = getVerbTenses(restored);
+            const tense = cache.selectedTense && tenses.includes(cache.selectedTense)
+              ? cache.selectedTense
+              : tenses[0] || "";
+            startPractice(restored, tense);
+            return;
+          }
+        }
+
         if (v.length > 0) {
           const tenses = getVerbTenses(v[0]);
           const firstTense = tenses[0] || "";
@@ -244,55 +352,91 @@ export default function Conjugation() {
   // ------ Render ------
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-6 h-6 border-2 border-gray-300 border-t-amber-500 rounded-full animate-spin" />
-      </div>
-    );
+    return <Spinner fullPage />;
   }
 
   if (verbs.length === 0) {
     return (
       <div className="space-y-6">
-        <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-        <div className="max-w-lg mx-auto flex flex-col items-center justify-center py-16 space-y-6">
-          <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
-          <div className="text-center space-y-2">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("conjugation.noVerbsAvailable")}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("conjugation.emptyDescription")}</p>
+        <PageHeader title={t("conjugation.title")} />
+
+        {/* AI Verb Generator */}
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 p-4">
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">
+            {t("conjugation.generateVerb", "Conjuguer un verbe avec l'IA")}
+          </p>
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <input
+                placeholder={t("conjugation.verbPlaceholder", "Tapez un verbe...")}
+                value={aiVerbInput}
+                onChange={(e) => setAiVerbInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleGenerateVerb()}
+                onFocus={() => !aiVerbInput.trim() && setShowHistory(true)}
+                onBlur={() => setTimeout(() => setShowHistory(false), 150)}
+                autoComplete="off"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+              />
+              {activePair && <RecentSearches tool="conjugation" pairId={activePair.id} visible={showHistory && !aiVerbInput.trim()} onSelect={(q) => { setAiVerbInput(q); setShowHistory(false); }} />}
+            </div>
+            <button
+              onClick={handleGenerateVerb}
+              disabled={!aiVerbInput.trim() || generatingVerb}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingVerb ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t("grammar.generating", "Génération...")}
+                </>
+              ) : (
+                <>
+                  <Wand2 size={16} />
+                  {t("grammar.generate", "Générer")}
+                </>
+              )}
+            </button>
           </div>
         </div>
+
+        <ExamplePreview onClick={() => setAiVerbInput(CONJUGATION_EXAMPLE.infinitive)}>
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{CONJUGATION_EXAMPLE.infinitive}</h3>
+              <span className="text-sm text-gray-500">{CONJUGATION_EXAMPLE.translation} — {CONJUGATION_EXAMPLE.tense}</span>
+            </div>
+            <div className="p-4 space-y-2">
+              {CONJUGATION_EXAMPLE.persons.map((person, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="w-16 text-right text-sm font-medium text-gray-500 dark:text-gray-400">{person}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">{CONJUGATION_EXAMPLE.forms[i]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ExamplePreview>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t("conjugation.title")}
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {t("conjugation.verbsAvailable", { count: verbs.length })}
-          </p>
-        </div>
-        {totalCount > 0 && (
+      <PageHeader
+        title={t("conjugation.title")}
+        subtitle={t("conjugation.verbsAvailable", { count: verbs.length })}
+        rightSlot={totalCount > 0 ? (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <Check size={16} className="text-emerald-500" />
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               {correctCount}/{totalCount}
             </span>
             <span className="text-xs text-gray-400">
-              ({totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0}
-              %)
+              ({Math.round((correctCount / totalCount) * 100)}%)
             </span>
           </div>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Mode selector */}
       <div className="flex flex-wrap gap-2">
@@ -370,22 +514,51 @@ export default function Conjugation() {
         </div>
       )}
 
-      {/* Verb search (byVerb mode) */}
-      {mode === "byVerb" && (
-        <div className="space-y-3">
-          <div className="relative">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("conjugation.searchVerb")}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
-            />
+      {/* AI Verb Generator */}
+      {isAiConfigured && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 p-4">
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">
+            {t("conjugation.generateVerb", "Conjuguer un verbe avec l'IA")}
+          </p>
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <input
+                placeholder={t("conjugation.verbPlaceholder", "Tapez un verbe...")}
+                value={aiVerbInput}
+                onChange={(e) => setAiVerbInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleGenerateVerb()}
+                onFocus={() => !aiVerbInput.trim() && setShowHistory(true)}
+                onBlur={() => setTimeout(() => setShowHistory(false), 150)}
+                autoComplete="off"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+              />
+              {activePair && <RecentSearches tool="conjugation" pairId={activePair.id} visible={showHistory && !aiVerbInput.trim()} onSelect={(q) => { setAiVerbInput(q); setShowHistory(false); }} />}
+            </div>
+            <button
+              onClick={handleGenerateVerb}
+              disabled={!aiVerbInput.trim() || generatingVerb}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingVerb ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t("grammar.generating", "Génération...")}
+                </>
+              ) : (
+                <>
+                  <Wand2 size={16} />
+                  {t("grammar.generate", "Générer")}
+                </>
+              )}
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Verb search - always visible */}
+      <div className="space-y-3">
+        <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder={t("conjugation.searchVerb")} />
+        {(mode === "byVerb" || searchQuery.trim()) && (
           <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
             {filteredVerbs.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-gray-400">
@@ -434,8 +607,8 @@ export default function Conjugation() {
               ))
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Conjugation form */}
       {currentVerb && (
@@ -498,8 +671,7 @@ export default function Conjugation() {
               const userAnswer = answers[person] || "";
               const expected = correctAnswers[person] || "";
               const isCorrect = checked ? isAnswerCorrect(person) : null;
-              const showCorrection =
-                checked && !isCorrect && (checked || revealed);
+              const showCorrection = (checked || revealed) && !isCorrect;
 
               return (
                 <div key={person} className="flex items-center gap-3">

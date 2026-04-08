@@ -33,7 +33,8 @@
     "listen": "Listen",
     "shortcuts": "Shortcuts",
     "navigate": "navigate",
-    "speak": "speak"
+    "speak": "speak",
+    "example": "Example"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -195,7 +196,18 @@
     "generateAi": "Generate with AI",
     "theme": "Theme (e.g. travel, food, work...)",
     "generating": "Generating...",
-    "wordsGenerated": "{{count}} words generated!"
+    "wordsGenerated": "{{count}} words generated!",
+    "selectSourceLang": "Source language",
+    "selectTargetLang": "Target language",
+    "downloadPack": "Download",
+    "downloadingPack": "Downloading...",
+    "downloadBothDirections": "Download (both directions)",
+    "packDownloaded": "Dictionary downloaded!",
+    "noPairAvailable": "No dictionary available for this combination",
+    "addLanguagePack": "Add a language pack",
+    "noPacksYet": "No language packs installed",
+    "noPacksDescription": "Download a dictionary to start learning vocabulary.",
+    "exploreWithAi": "Explore with AI"
   },
   "chat": {
     "title": "AI Chat",
@@ -231,6 +243,7 @@
     "currentConfig": "Current config",
     "keyConfigured": "Key configured",
     "noKey": "No key",
+    "configureAi": "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.",
     "appearance": "Appearance",
     "darkMode": "Theme",
     "darkModeDescription": "Dark theme interface",
@@ -509,6 +522,7 @@
     },
     "corrector": {
       "inputPlaceholder": "Write a sentence to correct...",
+      "subtitle": "Check your writing for grammar and spelling errors",
       "correct": "Correct",
       "correcting": "Correcting...",
       "correctedVersion": "Corrected version",
@@ -517,6 +531,7 @@
     },
     "rephrase": {
       "inputPlaceholder": "Write a sentence or text to rephrase...",
+      "subtitle": "Rewrite sentences in different styles and tones",
       "rephrase": "Rephrase",
       "rephrasing": "Rephrasing..."
     },
@@ -529,6 +544,7 @@
     },
     "synonyms": {
       "inputPlaceholder": "Type a word...",
+      "subtitle": "Find alternative words and expressions",
       "search": "Search",
       "searching": "Searching..."
     },
@@ -580,6 +596,7 @@
     },
     "mining": {
       "inputPlaceholder": "Paste a text to extract sentences from...",
+      "subtitle": "Extract useful sentences and vocabulary from any text",
       "mine": "Extract sentences",
       "mining": "Extracting...",
       "saved": "Saved",

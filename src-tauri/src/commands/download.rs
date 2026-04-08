@@ -128,7 +128,7 @@ pub async fn download_dictionary(
         .map_err(|e| format!("Failed to save: {}", e))?;
 
     // Create or get language pair
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     db.execute(
         "INSERT OR IGNORE INTO language_pairs (source_lang, target_lang, source_name, target_name, source_flag, target_flag)
@@ -165,7 +165,7 @@ pub async fn download_dictionary(
     let word_count = match format.as_str() {
         "stardict" => parse_stardict(&db, pair_id, pack_id, &bytes)?,
         "tatoeba-tsv" => parse_tatoeba_tsv(&db, pair_id, pack_id, &bytes)?,
-        "kaikki-jsonl" => parse_kaikki_jsonl(&db, pair_id, pack_id, &bytes)?,
+        "kaikki-jsonl" => parse_kaikki_jsonl(&db, pair_id, pack_id, &bytes, &target_lang)?,
         other => return Err(format!("Unknown dictionary format: {}", other)),
     };
 
@@ -274,8 +274,8 @@ fn parse_stardict(
     {
         let mut stmt = db
             .prepare(
-                "INSERT OR IGNORE INTO words (language_pair_id, source_word, target_word, pack_id, category)
-                 VALUES (?1, ?2, ?3, ?4, 'dictionary')",
+                "INSERT OR IGNORE INTO words (language_pair_id, source_word, target_word, gender, pack_id, category)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 'dictionary')",
             )
             .map_err(|e| e.to_string())?;
 
@@ -287,15 +287,14 @@ fn parse_stardict(
             }
             let definition_raw = &dict_bytes[off..off + sz];
             let definition = String::from_utf8_lossy(definition_raw);
-            // Clean HTML tags and extract first definition
-            let clean = strip_html_tags(&definition);
-            let target = extract_first_definition(&clean);
+
+            let (target, gender) = extract_stardict_entry(&definition, word);
             if target.is_empty() || word.is_empty() {
                 continue;
             }
 
             if stmt
-                .execute(rusqlite::params![pair_id, word, target, pack_id])
+                .execute(rusqlite::params![pair_id, word, target, gender, pack_id])
                 .is_ok()
             {
                 count += 1;
@@ -338,50 +337,147 @@ fn parse_idx(data: &[u8]) -> Result<Vec<(String, u32, u32)>, String> {
     Ok(entries)
 }
 
-/// Strip HTML tags from a string
+/// Extract structured data from a StarDict/FreeDict definition entry.
+///
+/// FreeDict entries often use XML-like markup:
+///   `<k>word</k><dtrn>translation</dtrn><abr>m</abr>`
+///
+/// This function:
+/// 1. Extracts `<dtrn>` (direct translation) content first
+/// 2. Extracts gender from `<abr>` or `<gr>` tags
+/// 3. Falls back to HTML-stripping if no `<dtrn>` found
+/// 4. Skips lines matching the source keyword
+/// 5. Collects all definition lines (not just the first)
+fn extract_stardict_entry(raw: &str, keyword: &str) -> (String, Option<String>) {
+    let mut gender: Option<String> = None;
+    let mut definitions = Vec::new();
+
+    // --- Try to extract <dtrn> (direct translation) tags ---
+    let lower = raw.to_lowercase();
+    let mut search_from = 0;
+    while let Some(start) = lower[search_from..].find("<dtrn>") {
+        let abs_start = search_from + start + 6; // skip "<dtrn>"
+        if let Some(end) = lower[abs_start..].find("</dtrn>") {
+            let content = strip_html_tags(&raw[abs_start..abs_start + end]);
+            let content = content.trim().to_string();
+            if !content.is_empty() {
+                definitions.push(content);
+            }
+            search_from = abs_start + end + 7;
+        } else {
+            break;
+        }
+    }
+
+    // --- Extract gender from <abr> or <gr> tags ---
+    for tag in &["<abr>", "<gr>"] {
+        let mut pos = 0;
+        let close_tag = tag.replace('<', "</");
+        while let Some(start) = lower[pos..].find(tag) {
+            let abs_start = pos + start + tag.len();
+            if let Some(end) = lower[abs_start..].find(&close_tag) {
+                let abr = raw[abs_start..abs_start + end].trim().to_lowercase();
+                match abr.as_str() {
+                    "m" | "m." | "masc" | "masc." => gender = Some("m".to_string()),
+                    "f" | "f." | "fem" | "fem." | "fém" | "fém." => {
+                        gender = Some("f".to_string())
+                    }
+                    "n" | "n." | "nt" | "nt." | "neut" | "neut." => {
+                        gender = Some("n".to_string())
+                    }
+                    _ => {}
+                }
+                pos = abs_start + end + close_tag.len();
+            } else {
+                break;
+            }
+        }
+    }
+
+    // --- Fallback: strip all HTML and collect meaningful lines ---
+    if definitions.is_empty() {
+        let clean = strip_html_tags(raw);
+        let keyword_lower = keyword.to_lowercase();
+        for line in clean.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            // Skip lines that are just the keyword
+            if line.to_lowercase() == keyword_lower {
+                continue;
+            }
+            // Strip leading numbering like "1. " or "1) "
+            let cleaned = line
+                .trim_start_matches(|c: char| c.is_ascii_digit() || c == '.' || c == ')' || c == ' ');
+            if cleaned.is_empty() || cleaned.to_lowercase() == keyword_lower {
+                continue;
+            }
+            definitions.push(cleaned.to_string());
+        }
+    }
+
+    // --- Also try to detect gender from plain text patterns ---
+    if gender.is_none() {
+        let joined = definitions.join(" ").to_lowercase();
+        if joined.contains("{m}") || joined.contains("(m)") || joined.contains(" m.") {
+            gender = Some("m".to_string());
+        } else if joined.contains("{f}") || joined.contains("(f)") || joined.contains(" f.") {
+            gender = Some("f".to_string());
+        } else if joined.contains("{n}") || joined.contains("(n)") || joined.contains(" n.") {
+            gender = Some("n".to_string());
+        }
+    }
+
+    // Clean up gender markers from the definition text
+    if gender.is_some() {
+        definitions = definitions
+            .iter()
+            .map(|d| {
+                d.replace("{m}", "")
+                    .replace("{f}", "")
+                    .replace("{n}", "")
+                    .trim()
+                    .to_string()
+            })
+            .filter(|d| !d.is_empty())
+            .collect();
+    }
+
+    let target = definitions.join("; ");
+    let target = truncate_utf8(&target, 400);
+
+    (target, gender)
+}
+
+/// Strip HTML tags from a string, inserting spaces where tags are removed
+/// to avoid concatenating adjacent text nodes.
 fn strip_html_tags(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     let mut in_tag = false;
+    let mut last_was_tag_close = false;
     for ch in s.chars() {
         match ch {
-            '<' => in_tag = true,
-            '>' => in_tag = false,
-            _ if !in_tag => result.push(ch),
+            '<' => {
+                in_tag = true;
+                last_was_tag_close = false;
+            }
+            '>' => {
+                in_tag = false;
+                last_was_tag_close = true;
+            }
+            _ if !in_tag => {
+                // Add a space separator when transitioning from tag close to text
+                if last_was_tag_close && !result.is_empty() && !result.ends_with('\n') && !result.ends_with(' ') {
+                    result.push(' ');
+                }
+                last_was_tag_close = false;
+                result.push(ch);
+            }
             _ => {}
         }
     }
     result
-}
-
-/// Extract the first meaningful definition from a potentially multi-line definition string
-fn extract_first_definition(s: &str) -> String {
-    // Definitions may be separated by newlines, semicolons, or numbered lists
-    let trimmed = s.trim();
-    // Take the first non-empty line
-    for line in trimmed.lines() {
-        let line = line.trim();
-        // Skip empty lines and metadata lines
-        if line.is_empty() {
-            continue;
-        }
-        // Strip leading numbering like "1. " or "1) "
-        let cleaned = line
-            .trim_start_matches(|c: char| c.is_ascii_digit() || c == '.' || c == ')' || c == ' ');
-        if !cleaned.is_empty() {
-            // Limit to reasonable length
-            return if cleaned.len() > 200 {
-                format!("{}...", &cleaned[..197])
-            } else {
-                cleaned.to_string()
-            };
-        }
-    }
-    trimmed
-        .chars()
-        .take(200)
-        .collect::<String>()
-        .trim()
-        .to_string()
 }
 
 // ─── Tatoeba TSV parser (.tsv.bz2) ──────────────────────────────────────────
@@ -447,12 +543,50 @@ fn parse_tatoeba_tsv(
 
 // ─── Kaikki JSONL parser (Wiktextract) ───────────────────────────────────────
 
+/// Normalize ISO 639-3 codes to ISO 639-1 for matching with Kaikki lang_code
+fn normalize_lang_code(code: &str) -> String {
+    match code.to_lowercase().as_str() {
+        "deu" => "de",
+        "fra" | "fre" => "fr",
+        "eng" => "en",
+        "spa" => "es",
+        "ita" => "it",
+        "por" => "pt",
+        "nld" | "dut" => "nl",
+        "rus" => "ru",
+        "jpn" => "ja",
+        "zho" | "chi" => "zh",
+        "kor" => "ko",
+        "ara" => "ar",
+        "tur" => "tr",
+        "pol" => "pl",
+        "swe" => "sv",
+        "dan" => "da",
+        "fin" => "fi",
+        "nor" | "nob" | "nno" => "no",
+        "ell" | "gre" => "el",
+        "ces" | "cze" => "cs",
+        "hun" => "hu",
+        "ron" | "rum" => "ro",
+        "ukr" => "uk",
+        "hin" => "hi",
+        "tha" => "th",
+        "vie" => "vi",
+        "ind" => "id",
+        other => other,
+    }
+    .to_string()
+}
+
 fn parse_kaikki_jsonl(
     db: &rusqlite::Connection,
     pair_id: i64,
     pack_id: i64,
     raw_bytes: &[u8],
+    target_lang: &str,
 ) -> Result<i64, String> {
+    let target_lang_norm = normalize_lang_code(target_lang);
+
     // Kaikki files may be plain JSONL or compressed. Try reading as plain text first.
     // If that fails (binary content), try common compression formats.
     let text = match String::from_utf8(raw_bytes.to_vec()) {
@@ -503,24 +637,26 @@ fn parse_kaikki_jsonl(
                 .unwrap_or("")
                 .to_string();
 
-            // Extract gender from tags if present (for nouns)
             let gender = extract_kaikki_gender(&entry);
-
-            // Extract IPA pronunciation as tags
             let ipa = extract_kaikki_ipa(&entry);
 
-            // Extract definitions from senses
-            let definitions = extract_kaikki_definitions(&entry);
-            if definitions.is_empty() {
+            // 1) Try translations in target language (clean bilingual data)
+            let translations = extract_kaikki_translations(&entry, &target_lang_norm);
+
+            // 2) Fall back to glosses (definitions in the Wiktionary edition language)
+            let target = if !translations.is_empty() {
+                truncate_utf8(&translations.join("; "), 500)
+            } else {
+                let definitions = extract_kaikki_definitions(&entry);
+                if definitions.is_empty() {
+                    continue;
+                }
+                truncate_utf8(&definitions.join("; "), 500)
+            };
+
+            if target.is_empty() {
                 continue;
             }
-
-            let target = definitions.join("; ");
-            let target = if target.len() > 500 {
-                format!("{}...", &target[..497])
-            } else {
-                target
-            };
 
             let category = if pos.is_empty() {
                 "dictionary".to_string()
@@ -541,6 +677,55 @@ fn parse_kaikki_jsonl(
 
     db.execute("COMMIT", []).map_err(|e| e.to_string())?;
     Ok(count)
+}
+
+/// Extract translations matching the target language from Kaikki entry
+fn extract_kaikki_translations(entry: &serde_json::Value, target_lang: &str) -> Vec<String> {
+    let mut result = Vec::new();
+
+    // Top-level translations array
+    if let Some(trans) = entry.get("translations").and_then(|v| v.as_array()) {
+        for t in trans {
+            let lang = t
+                .get("lang_code")
+                .or_else(|| t.get("code"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if lang == target_lang {
+                if let Some(word) = t.get("word").and_then(|v| v.as_str()) {
+                    let word = word.trim();
+                    if !word.is_empty() && !result.contains(&word.to_string()) {
+                        result.push(word.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Per-sense translations
+    if let Some(senses) = entry.get("senses").and_then(|v| v.as_array()) {
+        for sense in senses {
+            if let Some(trans) = sense.get("translations").and_then(|v| v.as_array()) {
+                for t in trans {
+                    let lang = t
+                        .get("lang_code")
+                        .or_else(|| t.get("code"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    if lang == target_lang {
+                        if let Some(word) = t.get("word").and_then(|v| v.as_str()) {
+                            let word = word.trim();
+                            if !word.is_empty() && !result.contains(&word.to_string()) {
+                                result.push(word.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    result
 }
 
 fn extract_kaikki_definitions(entry: &serde_json::Value) -> Vec<String> {
@@ -643,6 +828,18 @@ fn decompress_and_read_xz(data: &[u8]) -> Result<String, String> {
 }
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
+
+/// Truncate a string to at most `max_len` bytes at a valid UTF-8 char boundary.
+fn truncate_utf8(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        return s.to_string();
+    }
+    let mut end = max_len;
+    while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}...", &s[..end])
+}
 
 pub fn lang_to_flag(lang: &str) -> String {
     match lang {

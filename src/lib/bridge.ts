@@ -39,8 +39,8 @@ export const deleteLanguagePair = (pairId: number) => safeInvoke<void>("delete_l
 // Dictionary
 export const getWords = (pairId: number, level?: string, limit?: number, offset?: number) =>
   invokeAndParseArray("get_words", WordSchema, { pairId, level: level ?? null, limit: limit ?? null, offset: offset ?? null });
-export const searchWords = (pairId: number, query: string, level?: string, category?: string) =>
-  invokeAndParseArray("search_words", WordSchema, { pairId, query, level: level ?? null, category: category ?? null });
+export const searchWords = (pairId: number, query: string, level?: string, category?: string, reversePairId?: number) =>
+  invokeAndParseArray("search_words", WordSchema, { pairId, query, level: level ?? null, category: category ?? null, reversePairId: reversePairId ?? null });
 export const getUnlearnedWords = (pairId: number, level?: string, limit?: number) =>
   invokeAndParseArray("get_unlearned_words", WordSchema, { pairId, level: level ?? null, limit: limit ?? null });
 export const getWordCount = (pairId: number) => safeInvoke<number>("get_word_count", { pairId });
@@ -87,6 +87,10 @@ export const askAiConversation = (messages: Array<{ role: string; content: strin
 export const getAiSettings = () => invokeAndParse("get_ai_settings_cmd", AiSettingsSchema);
 export const setAiProvider = (provider: string, apiKey: string, model: string) =>
   safeInvoke<void>("set_ai_provider", { provider, apiKey, model });
+export const testAiConnection = (provider: string, apiKey: string, model: string, customUrl?: string) =>
+  safeInvoke<string>("test_ai_connection", { provider, apiKey, model, customUrl: customUrl ?? null });
+export const setAiCustomUrl = (url: string) =>
+  safeInvoke<void>("set_ai_custom_url", { url });
 export const generateVocabulary = (pairId: number, count: number, level: string, theme?: string) =>
   safeInvoke<number>("generate_vocabulary", { pairId, count, level, theme: theme ?? null });
 export const generateGrammar = (pairId: number, count: number, level: string) =>
@@ -134,6 +138,9 @@ export const downloadDictionary = (sourceLang: string, targetLang: string, url: 
 export const toggleFavorite = (wordId: number) => safeInvoke<boolean>("toggle_favorite", { wordId });
 export const getFavorites = (pairId: number) => invokeAndParseArray("get_favorites", FavoriteWordSchema, { pairId });
 export const isFavorite = (wordId: number) => safeInvoke<boolean>("is_favorite", { wordId });
+
+// Export
+export const exportData = () => safeInvoke<string>("export_data");
 
 // Maintenance
 export const clearCache = () => safeInvoke<string>("clear_cache");

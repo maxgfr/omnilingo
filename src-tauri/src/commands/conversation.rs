@@ -31,7 +31,7 @@ pub fn get_conversation_scenarios(
     state: State<'_, DbState>,
     pair_id: i64,
 ) -> Result<Vec<ConversationScenario>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let mut stmt = db
         .prepare(
             "SELECT id, language_pair_id, name, icon, description, system_prompt, is_builtin, created_at
@@ -70,7 +70,7 @@ pub fn save_conversation_scenario(
     description: String,
     system_prompt: String,
 ) -> Result<i64, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "INSERT INTO conversation_scenarios (language_pair_id, name, icon, description, system_prompt, is_builtin)
          VALUES (?1, ?2, ?3, ?4, ?5, 0)",
@@ -85,7 +85,7 @@ pub fn delete_conversation_scenario(
     state: State<'_, DbState>,
     scenario_id: i64,
 ) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "DELETE FROM conversation_scenarios WHERE id = ?1 AND is_builtin = 0",
         [scenario_id],
@@ -100,7 +100,7 @@ pub fn get_conversation_sessions(
     pair_id: i64,
     limit: Option<i64>,
 ) -> Result<Vec<ConversationSession>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let limit = limit.unwrap_or(50);
     let mut stmt = db
         .prepare(
@@ -140,7 +140,7 @@ pub fn save_conversation_session(
     title: String,
     messages: String,
 ) -> Result<i64, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "INSERT INTO conversation_sessions (language_pair_id, scenario_id, mode, title, messages)
          VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -155,7 +155,7 @@ pub fn delete_conversation_session(
     state: State<'_, DbState>,
     session_id: i64,
 ) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "DELETE FROM conversation_sessions WHERE id = ?1",
         [session_id],

@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import * as bridge from "../lib/bridge";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { useAppStore } from "./useAppStore";
 import type { Settings, LanguagePair } from "../types";
 
 interface AppState {
@@ -13,30 +13,18 @@ interface AppState {
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<Settings | null>(null);
-  const [languagePairs, setLanguagePairs] = useState<LanguagePair[]>([]);
-  const [loading, setLoading] = useState(true);
+  const settings = useAppStore((s) => s.settings);
+  const languagePairs = useAppStore((s) => s.languagePairs);
+  const loading = useAppStore((s) => s.loading);
+  const reloadSettings = useAppStore((s) => s.reloadSettings);
+  const updateSetting = useAppStore((s) => s.updateSetting);
 
-  const reloadSettings = useCallback(async () => {
-    try {
-      const [s, pairs] = await Promise.all([
-        bridge.getSettings(),
-        bridge.getLanguagePairs(),
-      ]);
-      setSettings(s);
-      setLanguagePairs(pairs);
-    } catch (err) {
-      console.error("Failed to load settings:", err);
-    }
-  }, []);
-
-  const updateSettingFn = useCallback(async (key: string, value: string) => {
-    await bridge.updateSetting(key, value);
-    await reloadSettings();
-  }, [reloadSettings]);
-
+  // Initialize on mount ONCE — use ref to avoid re-triggering
+  const initialized = useRef(false);
   useEffect(() => {
-    reloadSettings().then(() => setLoading(false));
+    if (initialized.current) return;
+    initialized.current = true;
+    reloadSettings();
   }, [reloadSettings]);
 
   // Apply theme
@@ -60,7 +48,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ settings, languagePairs, loading, reloadSettings, updateSetting: updateSettingFn }}
+      value={{ settings, languagePairs, loading, reloadSettings, updateSetting }}
     >
       {children}
     </AppContext.Provider>

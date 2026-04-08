@@ -4,6 +4,9 @@ import { Search, Loader2 } from "lucide-react";
 import { cachedAskAi, addToHistory, getPromptContext } from "../../lib/ai-cache";
 import { renderClickable, parseAiJson, formatMessage } from "../../lib/markdown";
 import type { LanguagePair } from "../../types";
+import ExamplePreview from "../ui/ExamplePreview";
+import RecentSearches from "../ui/RecentSearches";
+import { SYNONYMS_EXAMPLE } from "../../lib/exampleData";
 
 interface SynonymEntry { word: string; register: string; definition: string; example: { source: string; target: string }; }
 interface SynonymsResult { synonyms: SynonymEntry[]; }
@@ -17,14 +20,20 @@ const REGISTER_STYLES: Record<string, string> = {
   technical: "bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400",
 };
 
-interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; activePair?: LanguagePair | null; }
+interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; activePair?: LanguagePair | null; onInputChange?: (value: string) => void; }
 
-export default function SynonymsTool({ onWordClick, initialWord, activePair }: ToolProps) {
+export default function SynonymsTool({ onWordClick, initialWord, activePair, onInputChange }: ToolProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState(initialWord || "");
+
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    onInputChange?.(value);
+  };
   const [structured, setStructured] = useState<SynonymsResult | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleSearch = useCallback(async () => {
     if (!input.trim() || loading || !activePair) return;
@@ -57,12 +66,35 @@ ${enriched}`;
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t("tools.synonyms.inputPlaceholder")} className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-10 pr-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors" />
+          <input value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => !input.trim() && setShowHistory(true)} onBlur={() => setTimeout(() => setShowHistory(false), 150)} placeholder={t("tools.synonyms.inputPlaceholder")} autoComplete="off" className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-10 pr-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-colors" />
+          {activePair && <RecentSearches tool="synonyms" pairId={activePair.id} visible={showHistory && !input.trim()} onSelect={(q) => { handleInputChange(q); setShowHistory(false); }} />}
         </div>
-        <button onClick={handleSearch} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <button onClick={handleSearch} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.synonyms.searching")}</> : t("tools.synonyms.search")}
         </button>
       </div>
+
+      {!structured && !fallback && !loading && (
+        <ExamplePreview onClick={() => { handleInputChange(SYNONYMS_EXAMPLE.sampleInput); }}>
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {SYNONYMS_EXAMPLE.synonyms.map((syn, i) => (
+                <div key={i} className="px-5 py-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="font-semibold text-gray-900 dark:text-white">{syn.word}</span>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${REGISTER_STYLES[syn.register] || REGISTER_STYLES.neutral}`}>{syn.register}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 italic ml-auto">{syn.definition}</span>
+                  </div>
+                  <div className="ml-8 border-l-2 border-amber-200 dark:border-amber-800 pl-3">
+                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{syn.example.source}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{syn.example.target}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ExamplePreview>
+      )}
 
       {structured && (
         <div className="space-y-4">
@@ -71,11 +103,11 @@ ${enriched}`;
               {structured.synonyms.map((syn, i) => (
                 <div key={i} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400" onClick={(e) => { e.stopPropagation(); onWordClick?.(syn.word); }}>{syn.word}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-amber-600 dark:hover:text-amber-400" onClick={(e) => { e.stopPropagation(); onWordClick?.(syn.word); }}>{syn.word}</span>
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${REGISTER_STYLES[syn.register] || REGISTER_STYLES.neutral}`}>{syn.register}</span>
                     <span className="text-sm text-gray-500 dark:text-gray-400 italic ml-auto">{syn.definition}</span>
                   </div>
-                  <div className="ml-8 border-l-2 border-indigo-200 dark:border-indigo-800 pl-3">
+                  <div className="ml-8 border-l-2 border-amber-200 dark:border-amber-800 pl-3">
                     <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed" dangerouslySetInnerHTML={{ __html: renderClickable(syn.example.source) }} />
                     <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed" dangerouslySetInnerHTML={{ __html: renderClickable(syn.example.target) }} />
                   </div>

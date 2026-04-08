@@ -1,26 +1,28 @@
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { FileSearch } from "lucide-react";
-import { useApp } from "../store/AppContext";
+import { AlertTriangle } from "lucide-react";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import LanguagePairBar from "../components/LanguagePairBar";
+import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
+import PageHeader from "../components/ui/PageHeader";
 import SentenceMiningTool from "../components/tools/SentenceMiningTool";
 
 export default function TextAnalysis() {
   const { t } = useTranslation();
-  const { languagePairs } = useApp();
-  const { activePair, switchPair } = useFeaturePair("text-analysis");
+  const { activePair } = useFeaturePair("text-analysis");
+  const isAiConfigured = useAppStore(selectIsAiConfigured);
+  const cachedInput = useAppStore.getState().toolInputCache["textAnalysis"] || "";
+  const onInputChange = useCallback((v: string) => useAppStore.getState().setToolInput("textAnalysis", v), []);
 
   return (
     <div className="space-y-6">
-      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <FileSearch size={24} className="text-teal-500" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("nav.textAnalysis")}</h1>
+      <PageHeader title={t("nav.textAnalysis")} subtitle={t("tools.mining.subtitle")} />
+      {!isAiConfigured && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi", "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.")}</p>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{t("tools.mining.inputPlaceholder")}</p>
-      </div>
-      <SentenceMiningTool activePair={activePair} />
+      )}
+      <SentenceMiningTool activePair={activePair} initialWord={cachedInput} onInputChange={onInputChange} />
     </div>
   );
 }

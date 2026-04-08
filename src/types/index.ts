@@ -52,7 +52,7 @@ export const SrsCardSchema = z.object({
   last_score: z.number().nullable(),
   card_type: z.string().default("translation"),
   deck: z.string().default("default"),
-  cloze_sentence: z.string().nullable(),
+  cloze_sentence: z.string().nullable().optional(),
 });
 
 export const SrsStatsSchema = z.object({

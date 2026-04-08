@@ -2,12 +2,15 @@ import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Loader2, Pickaxe, Plus, Check,
-  BookOpenCheck, Trash2, Save,
+  BookOpenCheck, Trash2, Save, AlertTriangle,
 } from "lucide-react";
 import * as bridge from "../../lib/bridge";
-import { cachedAskAi, addToHistory, getPromptContext } from "../../lib/ai-cache";
+import { cachedAskAi, getCachedResult, addToHistory, getPromptContext } from "../../lib/ai-cache";
 import type { LanguagePair } from "../../types";
 import { parseAiJson, renderClickable } from "../../lib/markdown";
+import ExamplePreview from "../ui/ExamplePreview";
+import RecentSearches from "../ui/RecentSearches";
+import { MINING_EXAMPLE, MINING_SAMPLE_INPUT } from "../../lib/exampleData";
 
 interface MinedSentence {
   sentence: string;
@@ -38,26 +41,47 @@ function saveSentences(pairId: number, sentences: SavedSentence[]) {
 interface ToolProps {
   onWordClick?: (word: string) => void;
   activePair?: LanguagePair | null;
+  initialWord?: string;
+  onInputChange?: (value: string) => void;
 }
 
-export default function SentenceMiningTool({ onWordClick, activePair }: ToolProps) {
+export default function SentenceMiningTool({ onWordClick, activePair, initialWord, onInputChange }: ToolProps) {
   const { t } = useTranslation();
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialWord || "");
+
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    onInputChange?.(value);
+  };
   const [result, setResult] = useState<MinedSentence[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [savedSentences, setSavedSentences] = useState<SavedSentence[]>([]);
   const [addedWords, setAddedWords] = useState<Set<string>>(new Set());
   const [savedIndices, setSavedIndices] = useState<Set<number>>(new Set());
   const [showSaved, setShowSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (activePair) setSavedSentences(getSavedSentences(activePair.id));
   }, [activePair]);
 
+  // Restore cached result on mount
+  useEffect(() => {
+    if (initialWord && activePair) {
+      const cached = getCachedResult("mining", initialWord, activePair.id);
+      if (cached) {
+        const parsed = parseAiJson<MinedSentence[]>(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) setResult(parsed);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleMine = useCallback(async () => {
     if (!input.trim() || loading || !activePair) return;
     setLoading(true);
     setResult(null);
+    setError(null);
     setSavedIndices(new Set());
     setAddedWords(new Set());
 
@@ -99,6 +123,7 @@ ${input.trim()}`;
       }
     } catch (err) {
       console.error(err);
+      setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -147,19 +172,25 @@ ${input.trim()}`;
   return (
     <div className="space-y-4">
       {/* Input */}
-      <textarea
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder={t("tools.mining.inputPlaceholder")}
-        rows={6}
-        className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-y"
-      />
+      <div className="relative">
+        <textarea
+          value={input}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onFocus={() => !input.trim() && setShowHistory(true)}
+          onBlur={() => setTimeout(() => setShowHistory(false), 150)}
+          placeholder={t("tools.mining.inputPlaceholder")}
+          rows={6}
+          autoComplete="off"
+          className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-y"
+        />
+        {activePair && <RecentSearches tool="mining" pairId={activePair.id} visible={showHistory && !input.trim()} onSelect={(q) => { handleInputChange(q); setShowHistory(false); }} />}
+      </div>
 
       <div className="flex gap-2">
         <button
           onClick={handleMine}
           disabled={!input.trim() || loading}
-          className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Pickaxe size={16} />}
           {loading ? t("tools.mining.mining") : t("tools.mining.mine")}
@@ -170,7 +201,7 @@ ${input.trim()}`;
             onClick={() => setShowSaved(!showSaved)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border transition-colors ${
               showSaved
-                ? "border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400"
+                ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
                 : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400"
             }`}
           >
@@ -180,10 +211,49 @@ ${input.trim()}`;
         )}
       </div>
 
+      {!result && !loading && !error && (
+        <ExamplePreview onClick={() => { handleInputChange(MINING_SAMPLE_INPUT); }}>
+          <div className="space-y-4">
+            {MINING_EXAMPLE.map((sentence, idx) => (
+              <div key={idx} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">{sentence.sentence}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{sentence.translation}</p>
+                  {sentence.grammar && (
+                    <div className="mt-2 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-700/50">
+                      <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                        <span className="font-semibold">Grammar:</span> {sentence.grammar}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {sentence.keyWords.map((kw, ki) => (
+                    <div key={ki} className="flex items-center gap-3 px-4 py-2">
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{kw.level}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{kw.word}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">— {kw.translation}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ExamplePreview>
+      )}
+
+      {/* Error display */}
+      {error && (
+        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
       {/* Saved sentences panel */}
       {showSaved && savedSentences.length > 0 && (
-        <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-900/10 p-4 space-y-2">
-          <p className="text-xs font-semibold text-teal-700 dark:text-teal-400 uppercase tracking-wider mb-2">
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 space-y-2">
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2">
             {t("tools.mining.savedSentences")}
           </p>
           {savedSentences.map((s, i) => (
@@ -223,7 +293,7 @@ ${input.trim()}`;
                   className={`p-1.5 rounded-lg transition-colors ${
                     savedIndices.has(idx)
                       ? "text-emerald-500"
-                      : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-teal-500"
+                      : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-amber-500"
                   }`}
                 >
                   {savedIndices.has(idx) ? <Check size={14} /> : <Save size={14} />}
@@ -247,7 +317,7 @@ ${input.trim()}`;
                 <div key={ki} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${LEVEL_COLORS[kw.level] || LEVEL_COLORS.B1}`}>{kw.level}</span>
                   <span
-                    className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer hover:text-teal-600 dark:hover:text-teal-400"
+                    className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer hover:text-amber-600 dark:hover:text-amber-400"
                     onClick={() => onWordClick?.(kw.word)}
                   >
                     {kw.word}
@@ -259,7 +329,7 @@ ${input.trim()}`;
                     className={`ml-auto flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition-colors ${
                       addedWords.has(kw.word)
                         ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                        : "bg-teal-600 hover:bg-teal-700 text-white"
+                        : "bg-amber-500 hover:bg-amber-600 text-white"
                     }`}
                   >
                     {addedWords.has(kw.word) ? <Check size={10} /> : <Plus size={10} />}

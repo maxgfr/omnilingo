@@ -1,9 +1,12 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, Copy, Check, AlertTriangle, CheckCircle } from "lucide-react";
-import { cachedAskAi, getPromptContext } from "../../lib/ai-cache";
+import { cachedAskAi, getCachedResult, addToHistory, getPromptContext } from "../../lib/ai-cache";
 import { parseAiJson, formatMessage } from "../../lib/markdown";
 import type { LanguagePair } from "../../types";
+import ExamplePreview from "../ui/ExamplePreview";
+import RecentSearches from "../ui/RecentSearches";
+import { CORRECTOR_EXAMPLE } from "../../lib/exampleData";
 
 interface CorrectorResult {
   corrected: string;
@@ -19,15 +22,34 @@ const SCORE_STYLES: Record<string, { bg: string; text: string; label: string }> 
   poor: { bg: "bg-rose-100 dark:bg-rose-900/30", text: "text-rose-700 dark:text-rose-400", label: "Needs work" },
 };
 
-interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; activePair?: LanguagePair | null; }
+interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string; activePair?: LanguagePair | null; onInputChange?: (value: string) => void; }
 
-export default function CorrectorTool({ initialWord, activePair }: ToolProps) {
+export default function CorrectorTool({ initialWord, activePair, onInputChange }: ToolProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState(initialWord || "");
+
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    onInputChange?.(value);
+  };
   const [structured, setStructured] = useState<CorrectorResult | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const historyRef = useRef<HTMLDivElement>(null);
+
+  // Restore cached result on mount
+  useEffect(() => {
+    if (initialWord && activePair) {
+      const cached = getCachedResult("corrector", initialWord, activePair.id);
+      if (cached) {
+        const parsed = parseAiJson<CorrectorResult>(cached);
+        if (parsed?.corrected) setStructured(parsed);
+        else setFallback(cached);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCorrect = useCallback(async () => {
     if (!input.trim() || loading || !activePair) return;
@@ -42,6 +64,7 @@ export default function CorrectorTool({ initialWord, activePair }: ToolProps) {
 Empty corrections if perfect. ONLY valid JSON.
 ${enriched}
 Text: ${input.trim()}`;
+      addToHistory(activePair.id, "corrector", input.trim());
       const response = await cachedAskAi("corrector", input.trim(), activePair.id, prompt);
       const parsed = parseAiJson<CorrectorResult>(response);
       if (parsed?.corrected) {
@@ -57,10 +80,47 @@ Text: ${input.trim()}`;
 
   return (
     <div className="space-y-4">
-      <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t("tools.corrector.inputPlaceholder")} rows={3} className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none transition-colors" />
-      <button onClick={handleCorrect} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+      <div className="relative" ref={historyRef}>
+        <textarea value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => !input.trim() && setShowHistory(true)} onBlur={() => setTimeout(() => setShowHistory(false), 150)} placeholder={t("tools.corrector.inputPlaceholder")} rows={3} autoComplete="off" className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-none transition-colors" />
+        {activePair && <RecentSearches tool="corrector" pairId={activePair.id} visible={showHistory && !input.trim()} onSelect={(q) => { handleInputChange(q); setShowHistory(false); }} />}
+      </div>
+      <button onClick={handleCorrect} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
         {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.corrector.correcting")}</> : t("tools.corrector.correct")}
       </button>
+
+      {!structured && !fallback && !loading && (
+        <ExamplePreview onClick={() => { handleInputChange(CORRECTOR_EXAMPLE.sampleInput); }}>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Corrected version</span>
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Fair</span>
+              </div>
+              <p className="text-sm leading-relaxed text-gray-900 dark:text-white">{CORRECTOR_EXAMPLE.corrected}</p>
+            </div>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Corrections</span>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                {CORRECTOR_EXAMPLE.corrections.map((c, i) => (
+                  <div key={i} className="px-5 py-3.5">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <span className="text-sm line-through text-rose-600 dark:text-rose-400">{c.wrong}</span>
+                      <span className="text-gray-400">&rarr;</span>
+                      <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{c.right}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{c.explanation}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-gray-800 dark:text-gray-200">{CORRECTOR_EXAMPLE.feedback}</p>
+            </div>
+          </div>
+        </ExamplePreview>
+      )}
 
       {structured && (
         <div className="space-y-4">

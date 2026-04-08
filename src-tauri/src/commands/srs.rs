@@ -71,7 +71,7 @@ pub fn add_word_to_srs(
     deck: Option<String>,
     cloze_sentence: Option<String>,
 ) -> Result<SrsCard, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     let pair_id: i64 = db
         .query_row("SELECT language_pair_id FROM words WHERE id = ?1", [word_id], |row| row.get(0))
@@ -100,12 +100,12 @@ pub fn add_word_to_srs(
 
 #[tauri::command]
 pub fn get_due_cards(state: State<'_, DbState>, pair_id: i64, deck: Option<String>) -> Result<Vec<SrsCard>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     if let Some(dk) = deck {
         let mut stmt = db
             .prepare(&format!(
-                "{} WHERE sc.language_pair_id = ?1 AND sc.deck = ?2 AND sc.next_review <= date('now') ORDER BY sc.next_review",
+                "{} WHERE sc.language_pair_id = ?1 AND sc.deck = ?2 AND sc.next_review <= date('now','localtime') ORDER BY sc.next_review",
                 CARD_SELECT
             ))
             .map_err(|e| e.to_string())?;
@@ -118,7 +118,7 @@ pub fn get_due_cards(state: State<'_, DbState>, pair_id: i64, deck: Option<Strin
     } else {
         let mut stmt = db
             .prepare(&format!(
-                "{} WHERE sc.language_pair_id = ?1 AND sc.next_review <= date('now') ORDER BY sc.next_review",
+                "{} WHERE sc.language_pair_id = ?1 AND sc.next_review <= date('now','localtime') ORDER BY sc.next_review",
                 CARD_SELECT
             ))
             .map_err(|e| e.to_string())?;
@@ -137,7 +137,7 @@ pub fn get_all_srs_cards(
     pair_id: i64,
     deck: Option<String>,
 ) -> Result<Vec<SrsCard>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     if let Some(dk) = deck {
         let mut stmt = db
@@ -170,9 +170,9 @@ pub fn get_all_srs_cards(
 
 #[tauri::command]
 pub fn get_due_count(state: State<'_, DbState>, pair_id: i64) -> Result<i64, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.query_row(
-        "SELECT COUNT(*) FROM srs_cards WHERE language_pair_id = ?1 AND next_review <= date('now')",
+        "SELECT COUNT(*) FROM srs_cards WHERE language_pair_id = ?1 AND next_review <= date('now','localtime')",
         [pair_id],
         |row| row.get(0),
     )
@@ -191,7 +191,7 @@ pub fn review_card(
         return Err(format!("Invalid quality value: {}. Must be between 0 and 5 (SM-2 algorithm).", quality));
     }
 
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     let (reps, ef, interval): (i64, f64, i64) = db
         .query_row(
@@ -248,7 +248,7 @@ pub fn review_card(
 
 #[tauri::command]
 pub fn delete_srs_card(state: State<'_, DbState>, card_id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute("DELETE FROM srs_cards WHERE id = ?1", [card_id])
         .map_err(|e| e.to_string())?;
     Ok(())
@@ -256,7 +256,7 @@ pub fn delete_srs_card(state: State<'_, DbState>, card_id: i64) -> Result<(), St
 
 #[tauri::command]
 pub fn get_srs_stats(state: State<'_, DbState>, pair_id: i64) -> Result<SrsStats, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     let total_cards: i64 = db
         .query_row(
@@ -268,7 +268,7 @@ pub fn get_srs_stats(state: State<'_, DbState>, pair_id: i64) -> Result<SrsStats
 
     let due_count: i64 = db
         .query_row(
-            "SELECT COUNT(*) FROM srs_cards WHERE language_pair_id = ?1 AND next_review <= date('now')",
+            "SELECT COUNT(*) FROM srs_cards WHERE language_pair_id = ?1 AND next_review <= date('now','localtime')",
             [pair_id],
             |row| row.get(0),
         )
@@ -316,11 +316,11 @@ pub struct DeckInfo {
 
 #[tauri::command]
 pub fn get_decks(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<DeckInfo>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let mut stmt = db
         .prepare(
             "SELECT deck, COUNT(*) as card_count,
-                    SUM(CASE WHEN next_review <= date('now') THEN 1 ELSE 0 END) as due_count
+                    SUM(CASE WHEN next_review <= date('now','localtime') THEN 1 ELSE 0 END) as due_count
              FROM srs_cards WHERE language_pair_id = ?1
              GROUP BY deck ORDER BY deck",
         )
@@ -342,7 +342,7 @@ pub fn get_decks(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<DeckInfo
 
 #[tauri::command]
 pub fn delete_deck(state: State<'_, DbState>, pair_id: i64, deck: String) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute(
         "DELETE FROM srs_cards WHERE language_pair_id = ?1 AND deck = ?2",
         rusqlite::params![pair_id, deck],

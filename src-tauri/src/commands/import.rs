@@ -36,7 +36,7 @@ pub fn import_from_file(
     content: String,
     format: String,
 ) -> Result<String, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     let mut stmt = db
         .prepare(

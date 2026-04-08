@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { type ReactElement, useEffect, useState, useCallback, useMemo } from "react";
 import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -8,17 +8,21 @@ import {
   Circle,
   MessageCircle,
   Trophy,
-  BookOpen,
-  Search,
   Wand2,
   Loader2,
   Clock,
 } from "lucide-react";
-import { useApp } from "../store/AppContext";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import LanguagePairBar from "../components/LanguagePairBar";
+import { useAppStore } from "../store/useAppStore";
+import { addToHistory } from "../lib/ai-cache";
 import * as bridge from "../lib/bridge";
 import { QCM, FillBlank, TrueFalse } from "../components/Exercise";
+import Spinner from "../components/ui/Spinner";
+import PageHeader from "../components/ui/PageHeader";
+import SearchInput from "../components/ui/SearchInput";
+import ExamplePreview from "../components/ui/ExamplePreview";
+import RecentSearches from "../components/ui/RecentSearches";
+import { GRAMMAR_EXAMPLE } from "../lib/exampleData";
 import type { GrammarTopic, GrammarSrsState, Exercise } from "../types";
 
 const levelColors: Record<string, string> = {
@@ -32,7 +36,7 @@ const levelColors: Record<string, string> = {
 
 /** Simple inline markdown: **bold** and *italic* */
 function renderMarkdown(text: string) {
-  const parts: (string | React.ReactElement)[] = [];
+  const parts: (string | ReactElement)[] = [];
   // Match **bold** and *italic*
   const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
   let lastIndex = 0;
@@ -68,27 +72,57 @@ function renderMarkdown(text: string) {
 
 export default function Grammar() {
   const { t } = useTranslation();
-  const { languagePairs } = useApp();
-  const { activePair, switchPair } = useFeaturePair("grammar");
+  const { activePair } = useFeaturePair("grammar");
   const navigate = useNavigate();
+
+  // Restore cached state
+  const cachedState = useAppStore.getState().grammarCache;
+
   const [topics, setTopics] = useState<GrammarTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<GrammarTopic | null>(null);
   const [loading, setLoading] = useState(true);
   const [exerciseResults, setExerciseResults] = useState<boolean[]>([]);
   const [exercisesDone, setExercisesDone] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(cachedState?.searchQuery ?? "");
 
   // SRS due topics
   const [dueTopics, setDueTopics] = useState<GrammarSrsState[]>([]);
 
   // AI lesson generator
-  const [showAiLesson, setShowAiLesson] = useState(false);
-  const [aiTopic, setAiTopic] = useState("");
+  const [aiTopic, setAiTopic] = useState(cachedState?.aiTopic ?? "");
   const [aiLesson, setAiLesson] = useState<GrammarTopic | null>(null);
   const [generatingLesson, setGeneratingLesson] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Sync view state to Zustand cache
+  useEffect(() => {
+    useAppStore.getState().setGrammarCache({
+      searchQuery,
+      selectedTopicId: selectedTopic?.id ?? null,
+      aiTopic,
+      aiLesson: aiLesson ? JSON.stringify(aiLesson) : null,
+    });
+  }, [searchQuery, selectedTopic, aiTopic, aiLesson]);
 
   // Load topics and due SRS topics
   useEffect(() => {
+    const cache = useAppStore.getState().grammarCache;
+    const isRestoringCache = cache !== null;
+
+    if (!isRestoringCache) {
+      // Clear stale state from previous pair
+      setSelectedTopic(null);
+      setExerciseResults([]);
+      setExercisesDone(false);
+      setAiLesson(null);
+    } else if (cache?.aiLesson) {
+      // Restore AI-generated lesson from cache
+      try {
+        const restored = JSON.parse(cache.aiLesson) as GrammarTopic;
+        setAiLesson(restored);
+      } catch { /* ignore parse errors */ }
+    }
+
     if (!activePair) {
       setLoading(false);
       return;
@@ -101,6 +135,20 @@ export default function Grammar() {
       .then(([loadedTopics, loadedDue]) => {
         setTopics(loadedTopics);
         setDueTopics(loadedDue);
+
+        // Restore selected topic from cache
+        if (isRestoringCache && cache.selectedTopicId != null) {
+          if (cache.selectedTopicId === "ai-generated" && cache.aiLesson) {
+            try {
+              const restored = JSON.parse(cache.aiLesson) as GrammarTopic;
+              setSelectedTopic(restored);
+              setAiLesson(restored);
+            } catch { /* ignore */ }
+          } else {
+            const restored = loadedTopics.find((tp) => tp.id === cache.selectedTopicId);
+            if (restored) setSelectedTopic(restored);
+          }
+        }
       })
       .catch((err) => console.error("Failed to load grammar topics:", err))
       .finally(() => setLoading(false));
@@ -209,6 +257,7 @@ export default function Grammar() {
     if (!activePair || !aiTopic.trim() || generatingLesson) return;
     setGeneratingLesson(true);
     try {
+      addToHistory(activePair.id, "grammar", aiTopic.trim());
       const sourceName = activePair.source_name;
       const targetName = activePair.target_name;
       const prompt = `Generate a grammar lesson about "${aiTopic.trim()}" for a ${sourceName}-${targetName} learner.
@@ -243,7 +292,6 @@ Return ONLY valid JSON, no markdown fences.`;
       setSelectedTopic(parsed);
       setExerciseResults([]);
       setExercisesDone(false);
-      setShowAiLesson(false);
       setAiTopic("");
     } catch (err) {
       console.error("Failed to generate AI lesson:", err);
@@ -262,25 +310,72 @@ Return ONLY valid JSON, no markdown fences.`;
 
   // Loading state
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent" />
-      </div>
-    );
+    return <Spinner fullPage />;
   }
 
-  // Empty state
+  // Empty state — just show AI generator (no icon/message clutter)
   if (topics.length === 0 && !aiLesson) {
     return (
       <div className="space-y-6">
-        <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-        <div className="flex flex-col items-center justify-center py-16 space-y-6">
-          <BookOpen size={48} className="text-gray-300 dark:text-gray-600" />
-          <div className="text-center space-y-2">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("grammar.noTopics")}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("grammar.emptyDescription")}</p>
+        <PageHeader title={t("grammar.title")} />
+
+        {/* AI Lesson Generator */}
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 p-4">
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">
+            {t("grammar.generateLesson")}
+          </p>
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <input
+                placeholder={t("grammar.topicPlaceholder")}
+                value={aiTopic}
+                onChange={(e) => setAiTopic(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleGenerateLesson()}
+                onFocus={() => !aiTopic.trim() && setShowHistory(true)}
+                onBlur={() => setTimeout(() => setShowHistory(false), 150)}
+                autoComplete="off"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+              />
+              {activePair && <RecentSearches tool="grammar" pairId={activePair.id} visible={showHistory && !aiTopic.trim()} onSelect={(q) => { setAiTopic(q); setShowHistory(false); }} />}
+            </div>
+            <button
+              onClick={handleGenerateLesson}
+              disabled={!aiTopic.trim() || generatingLesson}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingLesson ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t("grammar.generating")}
+                </>
+              ) : (
+                <>
+                  <Wand2 size={16} />
+                  {t("grammar.generate", "Générer")}
+                </>
+              )}
+            </button>
           </div>
         </div>
+
+        <ExamplePreview onClick={() => setAiTopic(GRAMMAR_EXAMPLE.title)}>
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">A2</span>
+            </div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{GRAMMAR_EXAMPLE.title}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">{GRAMMAR_EXAMPLE.explanation}</p>
+            <div className="mt-3 space-y-1">
+              {GRAMMAR_EXAMPLE.examples.map((ex, i) => (
+                <div key={i} className="flex gap-3 text-xs">
+                  <span className="text-gray-900 dark:text-white">{ex.source}</span>
+                  <span className="text-gray-400">—</span>
+                  <span className="text-gray-500">{ex.target}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ExamplePreview>
       </div>
     );
   }
@@ -514,13 +609,7 @@ Return ONLY valid JSON, no markdown fences.`;
   // Topic list view
   return (
     <div className="space-y-6">
-      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("grammar.title")}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })}
-        </p>
-      </div>
+      <PageHeader title={t("grammar.title")} subtitle={t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })} />
 
       {/* Due for review banner */}
       {dueTopics.length > 0 && (
@@ -534,61 +623,40 @@ Return ONLY valid JSON, no markdown fences.`;
         </div>
       )}
 
-      {/* AI Lesson Generator */}
-      <div className="mb-4 space-y-3">
-        <button
-          onClick={() => setShowAiLesson(!showAiLesson)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-            showAiLesson
-              ? "bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400"
-              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
-          }`}
-        >
-          <Wand2 size={16} />
+      {/* AI Lesson Generator - always visible */}
+      <div className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 p-4">
+        <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">
           {t("grammar.generateLesson")}
-        </button>
-
-        {showAiLesson && (
-          <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10 p-4 space-y-3">
-            <div className="flex gap-3">
-              <input
-                placeholder={t("grammar.topicPlaceholder")}
-                value={aiTopic}
-                onChange={(e) => setAiTopic(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all placeholder:text-gray-400"
-              />
-            </div>
-            <button
-              onClick={handleGenerateLesson}
-              disabled={!aiTopic.trim() || generatingLesson}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {generatingLesson ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  {t("grammar.generating")}
-                </>
-              ) : (
-                <>
-                  <Wand2 size={16} />
-                  {t("grammar.generateLesson")}
-                </>
-              )}
-            </button>
-          </div>
-        )}
+        </p>
+        <div className="flex gap-3">
+          <input
+            placeholder={t("grammar.topicPlaceholder")}
+            value={aiTopic}
+            onChange={(e) => setAiTopic(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleGenerateLesson()}
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+          />
+          <button
+            onClick={handleGenerateLesson}
+            disabled={!aiTopic.trim() || generatingLesson}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingLesson ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {t("grammar.generating")}
+              </>
+            ) : (
+              <>
+                <Wand2 size={16} />
+                {t("grammar.generate", "Générer")}
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t("grammar.searchTopics")}
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder:text-gray-400"
-        />
-      </div>
+      <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder={t("grammar.searchTopics")} />
 
       <div className="space-y-8">
         {sortedLevels.map((level) => {

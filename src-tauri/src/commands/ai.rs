@@ -23,9 +23,10 @@ fn default_model(provider: &str) -> &'static str {
         "openai" => "gpt-4o-mini",
         "gemini" => "gemini-2.0-flash",
         "mistral" => "mistral-small-latest",
-        "glm" => "glm-4.5",
+        "glm" => "glm-4.7-flash",
         "claude-cli" | "claude-code" => "claude-sonnet-4-6",
-        "ollama" => "llama3.2",
+        "ollama" => "",
+        "lmstudio" => "",
         "codex" => "codex-mini-latest",
         _ => "gpt-4o-mini",
     }
@@ -51,19 +52,13 @@ pub fn get_ai_settings(db: &rusqlite::Connection) -> Result<AiSettings, String> 
 
 #[tauri::command]
 pub fn get_ai_settings_cmd(state: State<'_, DbState>) -> Result<AiSettings, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let mut settings = get_ai_settings(&db)?;
-    if settings.api_key.len() > 4 {
-        let first2 = &settings.api_key[..2];
-        let last2 = &settings.api_key[settings.api_key.len()-2..];
-        settings.api_key = format!("{}...{}", first2, last2);
-    }
-    Ok(settings)
+    let db = state.db();
+    get_ai_settings(&db)
 }
 
 #[tauri::command]
 pub fn set_ai_provider(state: State<'_, DbState>, provider: String, api_key: String, model: String) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     let final_model = if model.is_empty() { default_model(&provider).to_string() } else { model };
     db.execute(
         "UPDATE settings SET ai_provider = ?1, ai_api_key = ?2, ai_model = ?3 WHERE id = 1",
@@ -97,21 +92,17 @@ pub async fn call_provider(
         .join("\n\n");
 
     match settings.provider.as_str() {
-        #[cfg(not(mobile))]
         "claude-cli" | "claude-code" => call_claude_cli(&settings.model, &single_prompt, cwd).await,
-        #[cfg(not(mobile))]
         "codex" => call_codex_cli(&single_prompt, cwd).await,
-        #[cfg(not(mobile))]
         "ollama" => call_openai_compatible("http://localhost:11434/v1/chat/completions", settings, messages).await,
-        #[cfg(mobile)]
-        "claude-cli" | "claude-code" | "codex" | "ollama" => {
-            Err("Local providers (Claude CLI, Codex, Ollama) are not available on mobile. Configure an API provider in Settings.".into())
-        },
+        "lmstudio" => call_openai_compatible("http://localhost:1234/v1/chat/completions", settings, messages).await,
         "anthropic" => call_anthropic(settings, messages).await,
         "openai" => call_openai_compatible("https://api.openai.com/v1/chat/completions", settings, messages).await,
         "gemini" => call_gemini(settings, messages).await,
         "mistral" => call_openai_compatible("https://api.mistral.ai/v1/chat/completions", settings, messages).await,
-        "glm" => call_openai_compatible("https://open.bigmodel.cn/api/coding/paas/v4/chat/completions", settings, messages).await,
+        "glm" => call_anthropic_compatible("https://api.z.ai/api/anthropic/v1/messages", settings, messages).await,
+        // "custom" is handled in call_ai_with_custom_url which reads the URL from DB
+        "custom" => Err("Custom provider: use call_ai_with_custom_url instead".into()),
         other => Err(format!("Unknown AI provider: {}", other)),
     }
 }
@@ -131,7 +122,8 @@ pub async fn call_ai_with_fallback(
             // Fallback chain: try local providers first (free), then skip the primary
             let fallbacks: Vec<(&str, &str)> = vec![
                 ("claude-code", "claude-sonnet-4-6"),
-                ("ollama", "llama3.2"),
+                ("ollama", ""),
+                ("lmstudio", ""),
             ];
 
             for (provider, model) in &fallbacks {
@@ -156,19 +148,84 @@ pub async fn call_ai_with_fallback(
 
 // ─── Tauri commands ──────────────────────────────────────────────────────────
 
+/// Test a specific AI provider directly — NO fallback.
+/// Used by Settings to verify the selected provider actually works.
+#[tauri::command]
+pub async fn test_ai_connection(
+    provider: String,
+    api_key: String,
+    model: String,
+    custom_url: Option<String>,
+    base_dir: State<'_, BaseDirState>,
+) -> Result<String, String> {
+    let final_model = if model.is_empty() { default_model(&provider).to_string() } else { model };
+    let settings = AiSettings {
+        provider: provider.clone(),
+        api_key,
+        model: final_model,
+    };
+    let cwd = base_dir.0.clone();
+    let messages = vec![ChatMessage { role: "user".into(), content: "Reply with exactly: OK".into() }];
+
+    // For "custom" provider, use the custom URL
+    if provider == "custom" {
+        let url = custom_url.unwrap_or_default();
+        if url.is_empty() {
+            return Err("Custom provider URL is required".into());
+        }
+        return call_openai_compatible(&url, &settings, &messages).await;
+    }
+
+    call_provider(&settings, &messages, &cwd).await
+}
+
+/// Read custom AI URL from settings
+fn get_custom_url(db: &rusqlite::Connection) -> String {
+    db.query_row(
+        "SELECT COALESCE(ai_custom_url, '') FROM settings WHERE id = 1",
+        [],
+        |row| row.get::<_, String>(0),
+    ).unwrap_or_default()
+}
+
+/// Save custom AI URL
+#[tauri::command]
+pub fn set_ai_custom_url(state: State<'_, DbState>, url: String) -> Result<(), String> {
+    let db = state.db();
+    db.execute("UPDATE settings SET ai_custom_url = ?1 WHERE id = 1", [&url])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Call AI with support for custom provider (reads URL from DB)
+async fn call_with_custom_support(
+    settings: &AiSettings,
+    messages: &[ChatMessage],
+    cwd: &std::path::Path,
+    custom_url: &str,
+) -> Result<String, String> {
+    if settings.provider == "custom" {
+        if custom_url.is_empty() {
+            return Err("Custom provider URL is not configured. Go to Settings.".into());
+        }
+        return call_openai_compatible(custom_url, settings, messages).await;
+    }
+    call_ai_with_fallback(settings, messages, cwd).await
+}
+
 #[tauri::command]
 pub async fn ask_ai(
     prompt: String,
     state: State<'_, DbState>,
     base_dir: State<'_, BaseDirState>,
 ) -> Result<String, String> {
-    let settings = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        get_ai_settings(&db)?
+    let (settings, custom_url) = {
+        let db = state.db();
+        (get_ai_settings(&db)?, get_custom_url(&db))
     };
     let cwd = base_dir.0.clone();
     let messages = vec![ChatMessage { role: "user".into(), content: prompt }];
-    call_ai_with_fallback(&settings, &messages, &cwd).await
+    call_with_custom_support(&settings, &messages, &cwd, &custom_url).await
 }
 
 /// Multi-turn AI conversation
@@ -178,12 +235,12 @@ pub async fn ask_ai_conversation(
     state: State<'_, DbState>,
     base_dir: State<'_, BaseDirState>,
 ) -> Result<String, String> {
-    let settings = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        get_ai_settings(&db)?
+    let (settings, custom_url) = {
+        let db = state.db();
+        (get_ai_settings(&db)?, get_custom_url(&db))
     };
     let cwd = base_dir.0.clone();
-    call_ai_with_fallback(&settings, &messages, &cwd).await
+    call_with_custom_support(&settings, &messages, &cwd, &custom_url).await
 }
 
 /// Generate vocabulary words with AI and insert them into the database
@@ -196,15 +253,16 @@ pub async fn generate_vocabulary(
     level: String,
     theme: Option<String>,
 ) -> Result<i64, String> {
-    let (settings, source_lang, target_lang) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
+    let (settings, source_lang, target_lang, custom_url) = {
+        let db = state.db();
         let s = get_ai_settings(&db)?;
+        let cu = get_custom_url(&db);
         let (sl, tl): (String, String) = db.query_row(
             "SELECT source_lang, target_lang FROM language_pairs WHERE id = ?1",
             [pair_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         ).map_err(|e| e.to_string())?;
-        (s, sl, tl)
+        (s, sl, tl, cu)
     };
 
     let theme_str = theme.as_deref().unwrap_or("general / mixed themes");
@@ -224,7 +282,7 @@ pub async fn generate_vocabulary(
 
     let cwd = base_dir.0.clone();
     let messages = vec![ChatMessage { role: "user".into(), content: prompt }];
-    let response = call_ai_with_fallback(&settings, &messages, &cwd).await?;
+    let response = call_with_custom_support(&settings, &messages, &cwd, &custom_url).await?;
 
     // Extract JSON array from response (AI might wrap in markdown fences)
     let json_str = extract_json_array(&response)?;
@@ -232,7 +290,7 @@ pub async fn generate_vocabulary(
         .map_err(|e| format!("Failed to parse AI response as JSON array: {}. Response: {}", e, &response[..200.min(response.len())]))?;
 
     // Insert into DB
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute("BEGIN", []).map_err(|e| e.to_string())?;
 
     let mut inserted: i64 = 0;
@@ -269,16 +327,16 @@ pub async fn generate_grammar(
     count: i64,
     level: String,
 ) -> Result<i64, String> {
-    let (settings, source_lang, target_lang) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
+    let (settings, source_lang, target_lang, custom_url) = {
+        let db = state.db();
         let s = get_ai_settings(&db)?;
+        let cu = get_custom_url(&db);
         let (sl, tl): (String, String) = db.query_row(
             "SELECT source_lang, target_lang FROM language_pairs WHERE id = ?1",
             [pair_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         ).map_err(|e| e.to_string())?;
-        // Get existing topic count for display_order offset
-        (s, sl, tl)
+        (s, sl, tl, cu)
     };
 
     let prompt = format!(
@@ -314,13 +372,13 @@ pub async fn generate_grammar(
 
     let cwd = base_dir.0.clone();
     let messages = vec![ChatMessage { role: "user".into(), content: prompt }];
-    let response = call_ai_with_fallback(&settings, &messages, &cwd).await?;
+    let response = call_with_custom_support(&settings, &messages, &cwd, &custom_url).await?;
 
     let json_str = extract_json_array(&response)?;
     let topics: Vec<serde_json::Value> = serde_json::from_str(&json_str)
         .map_err(|e| format!("Failed to parse grammar JSON: {}. Response: {}", e, &response[..200.min(response.len())]))?;
 
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
 
     // Get next display_order
     let max_order: i64 = db.query_row(
@@ -371,15 +429,16 @@ pub async fn generate_verbs(
     count: i64,
     level: String,
 ) -> Result<i64, String> {
-    let (settings, source_lang, target_lang) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
+    let (settings, source_lang, target_lang, custom_url) = {
+        let db = state.db();
         let s = get_ai_settings(&db)?;
+        let cu = get_custom_url(&db);
         let (sl, tl): (String, String) = db.query_row(
             "SELECT source_lang, target_lang FROM language_pairs WHERE id = ?1",
             [pair_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         ).map_err(|e| e.to_string())?;
-        (s, sl, tl)
+        (s, sl, tl, cu)
     };
 
     let prompt = format!(
@@ -413,13 +472,13 @@ pub async fn generate_verbs(
 
     let cwd = base_dir.0.clone();
     let messages = vec![ChatMessage { role: "user".into(), content: prompt }];
-    let response = call_ai_with_fallback(&settings, &messages, &cwd).await?;
+    let response = call_with_custom_support(&settings, &messages, &cwd, &custom_url).await?;
 
     let json_str = extract_json_array(&response)?;
     let verbs: Vec<serde_json::Value> = serde_json::from_str(&json_str)
         .map_err(|e| format!("Failed to parse verbs JSON: {}. Response: {}", e, &response[..200.min(response.len())]))?;
 
-    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let db = state.db();
     db.execute("BEGIN", []).map_err(|e| e.to_string())?;
 
     let mut inserted: i64 = 0;
@@ -498,7 +557,6 @@ fn extract_json_array(response: &str) -> Result<String, String> {
 
 // ─── Provider implementations ────────────────────────────────────────────────
 
-#[cfg(not(mobile))]
 async fn call_claude_cli(model: &str, prompt: &str, cwd: &std::path::Path) -> Result<String, String> {
     let cwd = cwd.to_path_buf();
     let prompt = prompt.to_string();
@@ -534,7 +592,6 @@ async fn call_claude_cli(model: &str, prompt: &str, cwd: &std::path::Path) -> Re
     .map_err(|e| e.to_string())?
 }
 
-#[cfg(not(mobile))]
 async fn call_codex_cli(prompt: &str, cwd: &std::path::Path) -> Result<String, String> {
     let cwd = cwd.to_path_buf();
     let prompt = prompt.to_string();
@@ -624,7 +681,61 @@ async fn call_anthropic(settings: &AiSettings, messages: &[ChatMessage]) -> Resu
         .ok_or_else(|| format!("Anthropic response missing 'text': {}", first))
 }
 
-/// OpenAI-compatible API (OpenAI, Mistral, GLM, Ollama)
+/// Anthropic-compatible API at a custom URL (e.g. Z.ai GLM Coding Plan)
+async fn call_anthropic_compatible(url: &str, settings: &AiSettings, messages: &[ChatMessage]) -> Result<String, String> {
+    if settings.api_key.is_empty() {
+        return Err("API key not configured. Go to Settings.".into());
+    }
+    let client = reqwest::Client::new();
+
+    let system_content: String = messages.iter()
+        .filter(|m| m.role == "system")
+        .map(|m| m.content.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let api_messages: Vec<serde_json::Value> = messages.iter()
+        .filter(|m| m.role != "system")
+        .map(|m| serde_json::json!({"role": m.role, "content": m.content}))
+        .collect();
+
+    let mut body = serde_json::json!({
+        "model": settings.model,
+        "max_tokens": 4096,
+        "messages": api_messages
+    });
+    if !system_content.is_empty() {
+        body["system"] = serde_json::Value::String(system_content);
+    }
+
+    let resp = client
+        .post(url)
+        .header("x-api-key", &settings.api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("content-type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("API network error: {}", e))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("API {} : {}", status, text));
+    }
+
+    let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let content = json.get("content")
+        .ok_or_else(|| format!("Response missing 'content': {}", json))?;
+    let first = content.get(0)
+        .ok_or_else(|| "Response 'content' array is empty".to_string())?;
+    first.get("text")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| format!("Response missing 'text': {}", first))
+}
+
+/// OpenAI-compatible API (OpenAI, Mistral, Ollama, LM Studio)
 async fn call_openai_compatible(url: &str, settings: &AiSettings, messages: &[ChatMessage]) -> Result<String, String> {
     if settings.api_key.is_empty() && !url.contains("localhost") {
         return Err("API key not configured. Go to Settings.".into());

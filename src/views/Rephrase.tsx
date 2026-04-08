@@ -1,26 +1,28 @@
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
-import { useApp } from "../store/AppContext";
+import { AlertTriangle } from "lucide-react";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import LanguagePairBar from "../components/LanguagePairBar";
+import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
+import PageHeader from "../components/ui/PageHeader";
 import RephraseTool from "../components/tools/RephraseTool";
 
 export default function Rephrase() {
   const { t } = useTranslation();
-  const { languagePairs } = useApp();
-  const { activePair, switchPair } = useFeaturePair("rephrase");
+  const { activePair } = useFeaturePair("rephrase");
+  const isAiConfigured = useAppStore(selectIsAiConfigured);
+  const cachedInput = useAppStore.getState().toolInputCache["rephrase"] || "";
+  const onInputChange = useCallback((v: string) => useAppStore.getState().setToolInput("rephrase", v), []);
 
   return (
     <div className="space-y-6">
-      <LanguagePairBar pairs={languagePairs} activePairId={activePair?.id ?? null} onSwitch={switchPair} />
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <RefreshCw size={24} className="text-indigo-500" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("nav.rephrase")}</h1>
+      <PageHeader title={t("nav.rephrase")} subtitle={t("tools.rephrase.subtitle")} />
+      {!isAiConfigured && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi", "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.")}</p>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{t("tools.rephrase.inputPlaceholder")}</p>
-      </div>
-      <RephraseTool activePair={activePair} />
+      )}
+      <RephraseTool activePair={activePair} initialWord={cachedInput} onInputChange={onInputChange} />
     </div>
   );
 }

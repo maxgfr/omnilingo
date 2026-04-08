@@ -29,10 +29,3 @@ vi.mock("@tauri-apps/plugin-updater", () => ({
 vi.mock("@tauri-apps/plugin-process", () => ({
   relaunch: vi.fn(),
 }));
-
-// Mock @tauri-apps/plugin-notification
-vi.mock("@tauri-apps/plugin-notification", () => ({
-  sendNotification: vi.fn(),
-  isPermissionGranted: vi.fn().mockResolvedValue(true),
-  requestPermission: vi.fn().mockResolvedValue(true),
-}));
