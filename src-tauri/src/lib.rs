@@ -86,29 +86,20 @@ pub fn run() {
             commands::import::import_builtin_data,
             commands::import::import_from_file,
             // Dictionary
-            commands::dictionary::get_words,
             commands::dictionary::search_words,
-            commands::dictionary::get_unlearned_words,
-            commands::dictionary::get_word_count,
-            commands::dictionary::get_categories,
-            commands::dictionary::add_custom_word,
-            // SRS
-            commands::srs::add_word_to_srs,
-            commands::srs::get_due_cards,
-            commands::srs::get_all_srs_cards,
-            commands::srs::get_due_count,
-            commands::srs::review_card,
-            commands::srs::delete_srs_card,
-            commands::srs::get_srs_stats,
-            commands::srs::get_decks,
-            commands::srs::delete_deck,
+            commands::dictionary::get_all_dictionary_words,
             // Grammar
             commands::grammar::get_grammar_topics,
             commands::grammar::mark_grammar_completed,
             commands::grammar::get_due_grammar_topics,
             commands::grammar::review_grammar_topic,
+            commands::grammar::save_grammar_topic,
+            commands::grammar::delete_grammar_topic,
             // Conjugation
             commands::conjugation::get_verbs,
+            commands::conjugation::save_verb,
+            commands::conjugation::delete_verb,
+            commands::conjugation::get_conjugation_stats,
             commands::conjugation::log_conjugation_session,
             // Dictionary download
             commands::download::get_available_dictionaries,
@@ -117,6 +108,15 @@ pub fn run() {
             commands::favorites::toggle_favorite,
             commands::favorites::get_favorites,
             commands::favorites::is_favorite,
+            // Favorite lists
+            commands::favorites::create_favorite_list,
+            commands::favorites::delete_favorite_list,
+            commands::favorites::rename_favorite_list,
+            commands::favorites::get_favorite_lists,
+            commands::favorites::add_to_favorite_list,
+            commands::favorites::remove_from_favorite_list,
+            commands::favorites::get_favorite_list_items,
+            commands::favorites::get_word_list_memberships,
             // Chat
             commands::chat::get_chat_history,
             commands::chat::save_chat_message,
@@ -124,16 +124,14 @@ pub fn run() {
             // Conversation
             commands::conversation::get_conversation_scenarios,
             commands::conversation::save_conversation_scenario,
+            commands::conversation::update_conversation_scenario,
             commands::conversation::delete_conversation_scenario,
             commands::conversation::get_conversation_sessions,
             commands::conversation::save_conversation_session,
             commands::conversation::delete_conversation_session,
             // Global
             log_session,
-            clear_cache,
-            reset_progress,
             delete_all_data,
-            detect_ollama,
             fetch_model_catalog,
         ])
         .run(tauri::generate_context!())
@@ -170,57 +168,6 @@ fn log_session(
     Ok(())
 }
 
-/// Clear downloaded dictionary caches
-#[tauri::command]
-fn clear_cache(base_dir: tauri::State<'_, BaseDirState>) -> Result<String, String> {
-    let mut freed = 0u64;
-
-    let downloads_dir = base_dir.0.join("downloads");
-    if downloads_dir.exists() {
-        if let Ok(entries) = std::fs::read_dir(&downloads_dir) {
-            for e in entries.flatten() {
-                freed += e.metadata().map(|m| m.len()).unwrap_or(0);
-            }
-        }
-        let _ = std::fs::remove_dir_all(&downloads_dir);
-    }
-
-    Ok(format!("{:.1} MB freed", freed as f64 / 1_000_000.0))
-}
-
-/// Reset all learning progress (keeps dictionaries)
-#[tauri::command]
-fn reset_progress(
-    state: tauri::State<'_, DbState>,
-    base_dir: tauri::State<'_, BaseDirState>,
-) -> Result<String, String> {
-    let db = state.db();
-
-    db.execute("DELETE FROM srs_cards", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM grammar_srs", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM sessions", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM errors", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM favorites", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM chat_messages", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM conversation_sessions", []).map_err(|e| e.to_string())?;
-
-    // Reset memory files
-    let memory_dir = base_dir.0.join("memory");
-    let _ = std::fs::write(memory_dir.join("progress.md"), "# Omnilingo Progress\n\n## Overview\n- **Words learned:** 0\n");
-    let _ = std::fs::write(memory_dir.join("vocabulary.md"), "# Learned Vocabulary\n\n| Source | Target | Gender | Level | EF | Interval | Next Review | Score |\n|---|---|---|---|---|---|---|---|\n");
-    let _ = std::fs::write(memory_dir.join("grammar-log.md"), "# Grammar Log\n\n");
-    let _ = std::fs::write(memory_dir.join("conjugation-log.md"), "# Conjugation Log\n\n");
-
-    let sessions_dir = memory_dir.join("sessions");
-    if sessions_dir.exists() {
-        let _ = std::fs::remove_dir_all(&sessions_dir);
-        let _ = std::fs::create_dir_all(&sessions_dir);
-    }
-
-    Ok("Progress reset".to_string())
-}
-
 /// Delete ALL data (words, progress, settings — everything except language pairs)
 #[tauri::command]
 fn delete_all_data(
@@ -230,7 +177,8 @@ fn delete_all_data(
     let db = state.db();
 
     // Delete in FK-safe order: children before parents
-    db.execute("DELETE FROM srs_cards", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM favorite_list_items", []).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM favorite_lists", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM favorites", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_srs", []).map_err(|e| e.to_string())?;
@@ -266,35 +214,6 @@ fn delete_all_data(
     }
 
     Ok("All data deleted".to_string())
-}
-
-/// Detect if Ollama is running locally and list available models
-#[tauri::command]
-async fn detect_ollama() -> Result<serde_json::Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(3))
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    match client.get("http://localhost:11434/api/tags").send().await {
-        Ok(resp) if resp.status().is_success() => {
-            let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-            let models: Vec<String> = json["models"]
-                .as_array()
-                .unwrap_or(&vec![])
-                .iter()
-                .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
-                .collect();
-            Ok(serde_json::json!({
-                "available": true,
-                "models": models,
-            }))
-        }
-        _ => Ok(serde_json::json!({
-            "available": false,
-            "models": [],
-        })),
-    }
 }
 
 /// Fetch model catalog from models.dev

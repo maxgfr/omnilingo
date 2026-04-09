@@ -40,9 +40,9 @@ export function useStreamingResponse() {
         setIsLoading(false);
         setIsStreaming(true);
 
-        // Progressive reveal: faster for longer texts
+        // Progressive reveal: much faster for longer texts
         const chars = [...response];
-        const charsPerTick = Math.max(1, Math.ceil(chars.length / 120)); // ~2 seconds total
+        const charsPerTick = Math.max(3, Math.ceil(chars.length / 40)); // ~0.7 seconds total
         let idx = 0;
 
         return new Promise<string>((resolve) => {

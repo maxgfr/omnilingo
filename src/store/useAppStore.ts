@@ -3,9 +3,6 @@ import { persist } from "zustand/middleware";
 import * as bridge from "../lib/bridge";
 import type { Settings, LanguagePair, AiSettings } from "../types";
 
-// ─── Flashcards slice ────────────────────────────────────────────────
-type FlashcardsScreen = "decks" | "deck-detail" | "review";
-
 // ─── View cache types (session-scoped, NOT persisted) ────────────────
 interface DictionaryCache {
   searchQuery: string;
@@ -34,8 +31,15 @@ interface ConversationCache {
   messages: Array<{ role: string; content: string }>;
 }
 
+interface FavoritesCache {
+  searchQuery: string;
+  selectedWordId: number | null;
+  activeListId: number | null;
+  aiContent: string | null;
+}
+
 // ─── State shape ─────────────────────────────────────────────────────
-interface AppState {
+export interface AppState {
   // Core
   settings: Settings | null;
   languagePairs: LanguagePair[];
@@ -50,18 +54,14 @@ interface AppState {
   aiModel: string;
   aiCustomUrl: string;
 
-  // Flashcards navigation
-  flashcardsScreen: FlashcardsScreen;
-  selectedDeck: string | null;
-  reviewDeck: string | null;
-  createdDecks: string[]; // deck names created but not yet with cards
-
   // View caches (session-scoped, NOT persisted to localStorage)
   dictionaryCache: DictionaryCache | null;
+  favoritesCache: FavoritesCache | null;
   grammarCache: GrammarCache | null;
   conjugationCache: ConjugationCache | null;
   conversationCache: ConversationCache | null;
   toolInputCache: Record<string, string>;
+  toolResultCache: Record<string, string>;
 
   // Actions – core
   reloadSettings: () => Promise<void>;
@@ -72,19 +72,17 @@ interface AppState {
   setAiConfig: (provider: string, apiKey: string, model: string, customUrl?: string) => Promise<void>;
   loadAiSettings: () => Promise<void>;
 
-  // Actions – flashcards
-  openDeck: (name: string) => void;
-  startReview: (deck: string | null) => void;
-  goHome: () => void;
-  addCreatedDeck: (name: string) => void;
-  removeCreatedDeck: (name: string) => void;
-
   // Actions – view caches
   setDictionaryCache: (cache: DictionaryCache | null) => void;
+  setFavoritesCache: (cache: FavoritesCache | null) => void;
   setGrammarCache: (cache: GrammarCache | null) => void;
   setConjugationCache: (cache: ConjugationCache | null) => void;
   setConversationCache: (cache: ConversationCache | null) => void;
   setToolInput: (tool: string, value: string) => void;
+  setToolResult: (tool: string, value: string | null) => void;
+
+  // Actions – global reset
+  resetAllState: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -99,15 +97,13 @@ export const useAppStore = create<AppState>()(
       aiApiKey: "",
       aiModel: "",
       aiCustomUrl: "",
-      flashcardsScreen: "decks",
-      selectedDeck: null,
-      reviewDeck: null,
-      createdDecks: [],
       dictionaryCache: null,
+      favoritesCache: null,
       grammarCache: null,
       conjugationCache: null,
       conversationCache: null,
       toolInputCache: {},
+      toolResultCache: {},
 
       // ── Core actions ─────────────────────────────────────────────
       reloadSettings: async () => {
@@ -154,10 +150,12 @@ export const useAppStore = create<AppState>()(
           activePairId: pairId,
           // Invalidate all view caches on pair switch
           dictionaryCache: null,
+          favoritesCache: null,
           grammarCache: null,
           conjugationCache: null,
           conversationCache: null,
           toolInputCache: {},
+          toolResultCache: {},
         });
         bridge.setActiveLanguagePair(pairId).catch(console.error);
       },
@@ -184,21 +182,21 @@ export const useAppStore = create<AppState>()(
         } catch { /* ignore */ }
       },
 
-      // ── Flashcards actions ───────────────────────────────────────
-      openDeck: (name) => set({ flashcardsScreen: "deck-detail", selectedDeck: name }),
-      startReview: (deck) => set({ flashcardsScreen: "review", reviewDeck: deck }),
-      goHome: () => set({ flashcardsScreen: "decks", selectedDeck: null, reviewDeck: null }),
-      addCreatedDeck: (name) =>
-        set((state) => ({
-          createdDecks: state.createdDecks.includes(name) ? state.createdDecks : [...state.createdDecks, name],
-        })),
-      removeCreatedDeck: (name) =>
-        set((state) => ({
-          createdDecks: state.createdDecks.filter((d) => d !== name),
-        })),
+      // ── Global reset ───────────────────────────────────────────────
+      resetAllState: () =>
+        set({
+          dictionaryCache: null,
+          favoritesCache: null,
+          grammarCache: null,
+          conjugationCache: null,
+          conversationCache: null,
+          toolInputCache: {},
+          toolResultCache: {},
+        }),
 
       // ── View cache actions ─────────────────────────────────────────
       setDictionaryCache: (cache) => set({ dictionaryCache: cache }),
+      setFavoritesCache: (cache) => set({ favoritesCache: cache }),
       setGrammarCache: (cache) => set({ grammarCache: cache }),
       setConjugationCache: (cache) => set({ conjugationCache: cache }),
       setConversationCache: (cache) => set({ conversationCache: cache }),
@@ -206,6 +204,13 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           toolInputCache: { ...state.toolInputCache, [tool]: value },
         })),
+      setToolResult: (tool, value) =>
+        set((state) => {
+          const next = { ...state.toolResultCache };
+          if (value === null) delete next[tool];
+          else next[tool] = value;
+          return { toolResultCache: next };
+        }),
     }),
     {
       name: "omnilingo-app-store",
@@ -215,10 +220,6 @@ export const useAppStore = create<AppState>()(
         aiApiKey: state.aiApiKey,
         aiModel: state.aiModel,
         aiCustomUrl: state.aiCustomUrl,
-        flashcardsScreen: state.flashcardsScreen,
-        selectedDeck: state.selectedDeck,
-        reviewDeck: state.reviewDeck,
-        createdDecks: state.createdDecks,
       }),
     },
   ),

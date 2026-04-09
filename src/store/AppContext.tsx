@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useAppStore } from "./useAppStore";
 import type { Settings, LanguagePair } from "../types";
 
@@ -46,10 +46,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [settings?.dark_mode]);
 
+  const value = useMemo(
+    () => ({ settings, languagePairs, loading, reloadSettings, updateSetting }),
+    [settings, languagePairs, loading, reloadSettings, updateSetting],
+  );
+
   return (
-    <AppContext.Provider
-      value={{ settings, languagePairs, loading, reloadSettings, updateSetting }}
-    >
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );

@@ -13,14 +13,10 @@ vi.mock("../lib/bridge", () => ({
   }]),
   askAi: vi.fn().mockResolvedValue('{"translation":"maison"}'),
   searchWords: vi.fn().mockResolvedValue([]),
-  addWordToSrs: vi.fn().mockResolvedValue({}),
   getVerbs: vi.fn().mockResolvedValue([]),
   readMemoryFile: vi.fn().mockResolvedValue(null),
-  getDueCount: vi.fn().mockResolvedValue(0),
-  getWordCount: vi.fn().mockResolvedValue(100),
   setActiveLanguagePair: vi.fn().mockResolvedValue(undefined),
   updateSetting: vi.fn().mockResolvedValue(undefined),
-  getSrsStats: vi.fn().mockResolvedValue({ total_cards: 0, due_count: 0, average_accuracy: 0 }),
 }));
 
 
@@ -31,11 +27,6 @@ vi.mock("react-i18next", () => ({
   }),
   initReactI18next: { type: "3rdParty", init: vi.fn() },
 }));
-
-vi.mock("../lib/onboarding", async () => {
-  const actual = await vi.importActual("../lib/onboarding") as Record<string, unknown>;
-  return { ...actual, isOnboardingDone: vi.fn().mockReturnValue(true) };
-});
 
 // ─────────────────────────────────────────────────────────────────────
 // 1. markdown.ts utilities
@@ -108,6 +99,7 @@ describe("markdown utilities", () => {
 describe("AI cache", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     vi.clearAllMocks();
   });
 
@@ -156,6 +148,60 @@ describe("AI cache", () => {
     const ctx = await getPromptContext(1);
     expect(ctx).toContain("Baum");
     expect(ctx).toContain("Haus");
+  });
+
+  it("getCachedResult returns null for uncached entries", async () => {
+    const { getCachedResult } = await import("../lib/ai-cache");
+    expect(getCachedResult("tool", "input", 1)).toBeNull();
+  });
+
+  it("getCachedResult returns cached result within TTL", async () => {
+    const { getCachedResult } = await import("../lib/ai-cache");
+    const key = "omnilingo-ai-cache-tool-1-input";
+    sessionStorage.setItem(key, JSON.stringify({ result: "cached-value", timestamp: Date.now() }));
+    expect(getCachedResult("tool", "input", 1)).toBe("cached-value");
+  });
+
+  it("getCachedResult returns null for expired entries", async () => {
+    const { getCachedResult } = await import("../lib/ai-cache");
+    const key = "omnilingo-ai-cache-tool-1-old";
+    const expired = Date.now() - 25 * 60 * 60 * 1000; // 25 hours ago
+    sessionStorage.setItem(key, JSON.stringify({ result: "old-value", timestamp: expired }));
+    expect(getCachedResult("tool", "old", 1)).toBeNull();
+  });
+
+  it("getCachedResult is case-insensitive on input", async () => {
+    const { getCachedResult } = await import("../lib/ai-cache");
+    const key = "omnilingo-ai-cache-tool-1-haus";
+    sessionStorage.setItem(key, JSON.stringify({ result: "ok", timestamp: Date.now() }));
+    expect(getCachedResult("tool", "Haus", 1)).toBe("ok");
+    expect(getCachedResult("tool", "HAUS", 1)).toBe("ok");
+  });
+
+  it("clearToolHistory removes specific tool history", async () => {
+    const { addToHistory, getSearchHistory, clearToolHistory } = await import("../lib/ai-cache");
+    addToHistory(1, "rephrase", "hello");
+    addToHistory(1, "corrector", "world");
+    clearToolHistory(1, "rephrase");
+    const history = getSearchHistory(1);
+    expect(history.every((h) => h.tool !== "rephrase")).toBe(true);
+    expect(history.some((h) => h.tool === "corrector")).toBe(true);
+  });
+
+  it("clearToolHistory removes all history when no tool specified", async () => {
+    const { addToHistory, getSearchHistory, clearToolHistory } = await import("../lib/ai-cache");
+    addToHistory(1, "rephrase", "hello");
+    addToHistory(1, "corrector", "world");
+    clearToolHistory(1);
+    expect(getSearchHistory(1)).toEqual([]);
+  });
+
+  it("clearToolHistory clears session cache for tool", async () => {
+    const { clearToolHistory } = await import("../lib/ai-cache");
+    const key = "omnilingo-ai-cache-rephrase-1-test";
+    sessionStorage.setItem(key, JSON.stringify({ result: "cached", timestamp: Date.now() }));
+    clearToolHistory(1, "rephrase");
+    expect(sessionStorage.getItem(key)).toBeNull();
   });
 });
 

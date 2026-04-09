@@ -12,6 +12,11 @@ import {
   List,
   Wand2,
   Loader2,
+  Save,
+  CheckCircle,
+  Trash2,
+  BarChart3,
+  Timer,
 } from "lucide-react";
 import { useFeaturePair } from "../lib/useFeaturePair";
 import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
@@ -24,6 +29,13 @@ import SearchInput from "../components/ui/SearchInput";
 import ExamplePreview from "../components/ui/ExamplePreview";
 import RecentSearches from "../components/ui/RecentSearches";
 import { CONJUGATION_EXAMPLE } from "../lib/exampleData";
+
+// Module-level cache to avoid reloading on tab switch
+let _conjCache: { pairId: number; verbs: Verb[] } | null = null;
+
+function normalizeForComparison(text: string): string {
+  return text.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
 
 export default function Conjugation() {
   const { t } = useTranslation();
@@ -56,6 +68,17 @@ export default function Conjugation() {
   const [aiVerbInput, setAiVerbInput] = useState("");
   const [generatingVerb, setGeneratingVerb] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [savingVerb, setSavingVerb] = useState(false);
+  const [verbSaved, setVerbSaved] = useState(false);
+
+  // Stats dashboard
+  const [stats, setStats] = useState<{ total_sessions: number; by_tense: Array<{ tense: string; correct: number; total: number }>; by_verb: Array<{ verb: string; correct: number; total: number }> } | null>(null);
+  const [showStats, setShowStats] = useState(false);
+
+  // Speed drill
+  const [speedDrillActive, setSpeedDrillActive] = useState(false);
+  const [speedDrillTimer, setSpeedDrillTimer] = useState(60);
+  const [speedDrillScore, setSpeedDrillScore] = useState(0);
 
   const handleGenerateVerb = useCallback(async () => {
     if (!activePair || !aiVerbInput.trim() || generatingVerb) return;
@@ -187,46 +210,73 @@ Return ONLY valid JSON, no markdown fences.`;
       setLoading(false);
       return;
     }
+
+    const restoreVerb = (v: Verb[]) => {
+      if (isRestoringCache && cache.currentVerbId != null) {
+        if (cache.currentVerbId < 0 && cache.aiVerb) {
+          try {
+            const aiVerb = JSON.parse(cache.aiVerb) as Verb;
+            const tenses = getVerbTenses(aiVerb);
+            const tense = cache.selectedTense && tenses.includes(cache.selectedTense)
+              ? cache.selectedTense : tenses[0] || "";
+            startPractice(aiVerb, tense);
+            return;
+          } catch { /* ignore */ }
+        }
+        const restored = v.find((verb) => verb.id === cache.currentVerbId);
+        if (restored) {
+          const tenses = getVerbTenses(restored);
+          const tense = cache.selectedTense && tenses.includes(cache.selectedTense)
+            ? cache.selectedTense : tenses[0] || "";
+          startPractice(restored, tense);
+          return;
+        }
+      }
+      if (v.length > 0) {
+        const tenses = getVerbTenses(v[0]);
+        const firstTense = tenses[0] || "";
+        setSelectedTense(firstTense);
+        pickRandom(v, firstTense);
+      }
+    };
+
+    // Use module-level cache if pair hasn't changed
+    if (_conjCache && _conjCache.pairId === activePair.id) {
+      setVerbs(_conjCache.verbs);
+      restoreVerb(_conjCache.verbs);
+      setLoading(false);
+      bridge.getConjugationStats(activePair.id).then(setStats).catch(() => {});
+      return;
+    }
+
     setLoading(true);
     bridge
       .getVerbs(activePair.id)
       .then((v) => {
+        _conjCache = { pairId: activePair.id, verbs: v };
         setVerbs(v);
-
-        // Restore verb from cache
-        if (isRestoringCache && cache.currentVerbId != null) {
-          // Check for AI-generated verb (id < 0)
-          if (cache.currentVerbId < 0 && cache.aiVerb) {
-            try {
-              const aiVerb = JSON.parse(cache.aiVerb) as Verb;
-              const tenses = getVerbTenses(aiVerb);
-              const tense = cache.selectedTense && tenses.includes(cache.selectedTense)
-                ? cache.selectedTense
-                : tenses[0] || "";
-              startPractice(aiVerb, tense);
-              return;
-            } catch { /* ignore */ }
-          }
-          const restored = v.find((verb) => verb.id === cache.currentVerbId);
-          if (restored) {
-            const tenses = getVerbTenses(restored);
-            const tense = cache.selectedTense && tenses.includes(cache.selectedTense)
-              ? cache.selectedTense
-              : tenses[0] || "";
-            startPractice(restored, tense);
-            return;
-          }
-        }
-
-        if (v.length > 0) {
-          const tenses = getVerbTenses(v[0]);
-          const firstTense = tenses[0] || "";
-          setSelectedTense(firstTense);
-          pickRandom(v, firstTense);
-        }
+        restoreVerb(v);
       })
       .finally(() => setLoading(false));
+
+    bridge.getConjugationStats(activePair.id).then(setStats).catch(() => {});
   }, [activePair]);
+
+  // Speed drill timer
+  useEffect(() => {
+    if (!speedDrillActive || speedDrillTimer <= 0) return;
+    const interval = setInterval(() => {
+      setSpeedDrillTimer((prev) => {
+        if (prev <= 1) {
+          setSpeedDrillActive(false);
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [speedDrillActive, speedDrillTimer <= 0]);
 
   const verbFuse = useMemo(
     () => new Fuse(verbs, { keys: ["infinitive", "translation"], threshold: 0.4 }),
@@ -273,12 +323,12 @@ Return ONLY valid JSON, no markdown fences.`;
     let correct = 0;
     const errors: string[] = [];
     persons.forEach((person) => {
-      const expected = (correctAnswers[person] || "").trim().toLowerCase();
-      const given = (answers[person] || "").trim().toLowerCase();
+      const expected = normalizeForComparison(correctAnswers[person] || "");
+      const given = normalizeForComparison(answers[person] || "");
       if (given === expected) {
         correct++;
       } else {
-        errors.push(`${person}: "${given || t("conjugation.empty")}" -> "${correctAnswers[person]}"`);
+        errors.push(`${person}: "${(answers[person] || "").trim() || t("conjugation.empty")}" -> "${correctAnswers[person]}"`);
       }
     });
 
@@ -296,6 +346,12 @@ Return ONLY valid JSON, no markdown fences.`;
           errors,
         )
         .catch(() => {});
+    }
+
+    // Speed drill: auto-advance on all correct
+    if (speedDrillActive && allCorrect && speedDrillTimer > 0) {
+      setSpeedDrillScore((s) => s + 1);
+      setTimeout(() => handleNext(), 300);
     }
   }
 
@@ -344,8 +400,8 @@ Return ONLY valid JSON, no markdown fences.`;
   }
 
   function isAnswerCorrect(person: string): boolean {
-    const expected = (correctAnswers[person] || "").trim().toLowerCase();
-    const given = (answers[person] || "").trim().toLowerCase();
+    const expected = normalizeForComparison(correctAnswers[person] || "");
+    const given = normalizeForComparison(answers[person] || "");
     return given === expected;
   }
 
@@ -485,7 +541,145 @@ Return ONLY valid JSON, no markdown fences.`;
           <List size={16} />
           {t("conjugation.byVerb")}
         </button>
+        <button
+          onClick={() => {
+            if (speedDrillActive) {
+              setSpeedDrillActive(false);
+              setSpeedDrillTimer(60);
+            } else {
+              setSpeedDrillActive(true);
+              setSpeedDrillTimer(60);
+              setSpeedDrillScore(0);
+              setMode("random");
+              pickRandom(verbs);
+            }
+          }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            speedDrillActive
+              ? "bg-rose-500 text-white shadow-sm"
+              : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-rose-400 dark:hover:border-rose-500"
+          }`}
+        >
+          <Timer size={16} />
+          {speedDrillActive ? t("conjugation.stopDrill", "Arreter") : t("conjugation.speedDrill", "Speed Drill")}
+        </button>
+        {stats && stats.total_sessions > 0 && (
+          <button
+            onClick={() => setShowStats((s) => !s)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              showStats
+                ? "bg-blue-500 text-white shadow-sm"
+                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+            }`}
+          >
+            <BarChart3 size={16} />
+            {t("conjugation.stats", "Stats")}
+          </button>
+        )}
       </div>
+
+      {/* Speed drill banner */}
+      {speedDrillActive && (
+        <div className="flex items-center justify-between px-5 py-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-900/10">
+          <div className="flex items-center gap-3">
+            <Timer size={20} className="text-rose-500" />
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+              {Math.floor(speedDrillTimer / 60)}:{(speedDrillTimer % 60).toString().padStart(2, "0")}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t("conjugation.score", "Score")}:</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{speedDrillScore}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Speed drill results */}
+      {!speedDrillActive && speedDrillTimer === 0 && (
+        <div className="rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-900/10 p-6 text-center space-y-3">
+          <Timer size={32} className="mx-auto text-rose-500" />
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t("conjugation.drillFinished", "Temps ecoulé !")}</h3>
+          <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">{speedDrillScore} {t("conjugation.verbsConjugated", "verbes conjugués")}</p>
+          <button
+            onClick={() => {
+              setSpeedDrillTimer(60);
+              setSpeedDrillScore(0);
+              setSpeedDrillActive(true);
+              pickRandom(verbs);
+            }}
+            className="mt-2 px-5 py-2.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium transition-colors"
+          >
+            <RotateCcw size={16} className="inline mr-2" />
+            {t("conjugation.restartDrill", "Recommencer")}
+          </button>
+        </div>
+      )}
+
+      {/* Stats dashboard */}
+      {showStats && stats && (
+        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2">
+            <BarChart3 size={16} />
+            {t("conjugation.statsTitle", "Statistiques de conjugaison")}
+            <span className="text-xs font-normal text-gray-500">({stats.total_sessions} {t("conjugation.sessions", "sessions")})</span>
+          </h3>
+
+          {/* By tense */}
+          {stats.by_tense.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">{t("conjugation.byTenseStats", "Par temps")}</h4>
+              <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-800">
+                      <th className="text-left px-3 py-1.5 font-medium text-gray-600 dark:text-gray-400">{t("conjugation.tense", "Temps")}</th>
+                      <th className="text-right px-3 py-1.5 font-medium text-gray-600 dark:text-gray-400">{t("conjugation.result", "Résultat")}</th>
+                      <th className="text-right px-3 py-1.5 font-medium text-gray-600 dark:text-gray-400">%</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {stats.by_tense.map((row) => (
+                      <tr key={row.tense} className="bg-white dark:bg-gray-900">
+                        <td className="px-3 py-1.5 text-gray-900 dark:text-white">{getTenseLabel(row.tense)}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-600 dark:text-gray-400">{row.correct}/{row.total}</td>
+                        <td className="px-3 py-1.5 text-right font-medium">
+                          <span className={row.total > 0 && row.correct / row.total >= 0.7 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                            {row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Hardest verbs */}
+          {stats.by_verb.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">{t("conjugation.hardestVerbs", "Verbes les plus difficiles")}</h4>
+              <div className="space-y-1.5">
+                {[...stats.by_verb]
+                  .filter((v) => v.total > 0)
+                  .sort((a, b) => (a.correct / a.total) - (b.correct / b.total))
+                  .slice(0, 8)
+                  .map((row) => (
+                    <div key={row.verb} className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{row.verb}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">{row.correct}/{row.total}</span>
+                        <span className={`text-xs font-medium ${row.correct / row.total >= 0.7 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                          {Math.round((row.correct / row.total) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tense selector (byTense mode) -- dynamic from data */}
       {mode === "byTense" && (
@@ -773,6 +967,55 @@ Return ONLY valid JSON, no markdown fences.`;
               >
                 <RotateCcw size={16} />
                 {t("common.next")}
+              </button>
+            )}
+            {/* Save AI verb */}
+            {currentVerb && currentVerb.id < 0 && !verbSaved && (
+              <button
+                onClick={async () => {
+                  if (!activePair || savingVerb) return;
+                  setSavingVerb(true);
+                  try {
+                    const newId = await bridge.saveVerb(
+                      activePair.id, currentVerb.infinitive, currentVerb.translation,
+                      currentVerb.level ?? null, currentVerb.verb_type ?? null,
+                      currentVerb.auxiliary ?? null, currentVerb.is_separable,
+                      currentVerb.conjugations, currentVerb.examples ?? null,
+                    );
+                    setCurrentVerb({ ...currentVerb, id: newId });
+                    setVerbSaved(true);
+                    _conjCache = null;
+                    const reloaded = await bridge.getVerbs(activePair.id);
+                    setVerbs(reloaded);
+                  } catch (err) { console.error("Failed to save verb:", err); }
+                  finally { setSavingVerb(false); }
+                }}
+                disabled={savingVerb}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+              >
+                {savingVerb ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {t("common.save")}
+              </button>
+            )}
+            {verbSaved && (
+              <span className="flex items-center gap-2 px-5 py-2.5 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                <CheckCircle size={16} /> {t("common.added")}
+              </span>
+            )}
+            {currentVerb && currentVerb.id > 0 && (
+              <button
+                onClick={async () => {
+                  if (!activePair) return;
+                  await bridge.deleteVerb(currentVerb.id);
+                  _conjCache = null;
+                  const reloaded = await bridge.getVerbs(activePair.id);
+                  setVerbs(reloaded);
+                  setCurrentVerb(null);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-gray-400 hover:text-red-500 text-sm font-medium transition-colors"
+              >
+                <Trash2 size={16} />
+                {t("common.delete")}
               </button>
             )}
           </div>

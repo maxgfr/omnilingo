@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Copy, Check } from "lucide-react";
-import { cachedAskAi, addToHistory, getPromptContext } from "../../lib/ai-cache";
+import { Loader2, Copy, Check, Trash2 } from "lucide-react";
+import { cachedAskAi, addToHistory, getPromptContext, clearToolHistory } from "../../lib/ai-cache";
 import { parseAiJson, formatMessage } from "../../lib/markdown";
 import type { LanguagePair } from "../../types";
+import { useAppStore } from "../../store/useAppStore";
 import ExamplePreview from "../ui/ExamplePreview";
 import RecentSearches from "../ui/RecentSearches";
 import { REPHRASE_EXAMPLE } from "../../lib/exampleData";
@@ -33,11 +34,25 @@ export default function RephraseTool({ initialWord, activePair, onInputChange }:
     setInput(value);
     onInputChange?.(value);
   };
-  const [structured, setStructured] = useState<RephraseResult | null>(null);
-  const [fallback, setFallback] = useState<string | null>(null);
+  const cachedResult = useAppStore.getState().toolResultCache["rephrase"];
+  const [structured, setStructured] = useState<RephraseResult | null>(() => {
+    if (cachedResult) try { const p = JSON.parse(cachedResult); return p.structured ?? null; } catch { return null; }
+    return null;
+  });
+  const [fallback, setFallback] = useState<string | null>(() => {
+    if (cachedResult) try { const p = JSON.parse(cachedResult); return p.fallback ?? null; } catch { return null; }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (structured || fallback) {
+      useAppStore.getState().setToolResult("rephrase", JSON.stringify({ structured, fallback }));
+    }
+  }, [structured, fallback]);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedTones, setSelectedTones] = useState<Set<string>>(new Set());
 
   const handleRephrase = useCallback(async () => {
     if (!input.trim() || loading || !activePair) return;
@@ -47,9 +62,12 @@ export default function RephraseTool({ initialWord, activePair, onInputChange }:
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
+      const tonesStr = selectedTones.size > 0
+        ? `Only these tones: ${[...selectedTones].join(", ")}.`
+        : "3-5 diverse alternatives with different tones.";
       const prompt = `Student learning ${srcName} at ${level}. Rephrase text, return JSON:
 {"alternatives":[{"text":"rephrased in ${srcName}","tone":"formal|informal|simple|professional|creative|academic|polite|casual","note":"what changed, in ${tgtName}"}]}
-3-5 diverse alternatives with different tones. ONLY valid JSON.
+${tonesStr} ONLY valid JSON.
 ${enriched}
 Text: ${input.trim()}`;
       addToHistory(activePair.id, "rephrase", input.trim());
@@ -58,9 +76,27 @@ Text: ${input.trim()}`;
       if (parsed?.alternatives?.length) setStructured(parsed); else setFallback(response);
     } catch (err) { setFallback(`Error: ${err}`); }
     finally { setLoading(false); }
-  }, [input, loading, activePair]);
+  }, [input, loading, activePair, selectedTones]);
 
   useEffect(() => { if (initialWord) handleRephrase(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const highlightDiff = (original: string, rephrased: string): React.ReactNode => {
+    const origWords = original.split(/\s+/);
+    const newWords = rephrased.split(/\s+/);
+    return newWords.map((word, i) => {
+      const isChanged = !origWords.includes(word.replace(/[.,!?;:]/g, ""));
+      return (
+        <span key={i}>
+          {i > 0 && " "}
+          {isChanged ? (
+            <mark className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-0.5 rounded">
+              {word}
+            </mark>
+          ) : word}
+        </span>
+      );
+    });
+  };
 
   const handleCopy = (text: string, idx: number) => { navigator.clipboard.writeText(text); setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000); };
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleRephrase(); } };
@@ -68,12 +104,46 @@ Text: ${input.trim()}`;
   return (
     <div className="space-y-4">
       <div className="relative">
-        <textarea value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => !input.trim() && setShowHistory(true)} onBlur={() => setTimeout(() => setShowHistory(false), 150)} placeholder={t("tools.rephrase.inputPlaceholder")} rows={3} autoComplete="off" className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-none transition-colors" />
+        <textarea value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => !input.trim() && setShowHistory(true)} onBlur={() => setTimeout(() => setShowHistory(false), 150)} placeholder={t("tools.rephrase.inputPlaceholder")} rows={3} maxLength={500} autoComplete="off" className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-none transition-colors" />
+        <div className="flex justify-end">
+          <span className={`text-xs ${input.length > 450 ? (input.length >= 500 ? "text-red-500" : "text-amber-500") : "text-gray-400"}`}>
+            {input.length}/500
+          </span>
+        </div>
         {activePair && <RecentSearches tool="rephrase" pairId={activePair.id} visible={showHistory && !input.trim()} onSelect={(q) => { handleInputChange(q); setShowHistory(false); }} />}
       </div>
-      <button onClick={handleRephrase} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-        {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.rephrase.rephrasing")}</> : t("tools.rephrase.rephrase")}
-      </button>
+      <div className="flex flex-wrap gap-1.5">
+        {Object.entries(TONE_STYLES).map(([tone, style]) => (
+          <button
+            key={tone}
+            onClick={() => setSelectedTones(prev => {
+              const next = new Set(prev);
+              if (next.has(tone)) next.delete(tone);
+              else next.add(tone);
+              return next;
+            })}
+            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider transition-all ${
+              selectedTones.has(tone) || selectedTones.size === 0
+                ? `${style.bg} ${style.text} ring-2 ring-offset-1 ring-amber-400/50`
+                : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+            }`}
+          >
+            {tone}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button onClick={handleRephrase} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.rephrase.rephrasing")}</> : t("tools.rephrase.rephrase")}
+        </button>
+        {activePair && (
+          <button onClick={() => {
+            clearToolHistory(activePair.id, "rephrase");
+            setStructured(null); setFallback(null); handleInputChange(""); useAppStore.getState().setToolResult("rephrase", null);          }} className="flex items-center gap-2 px-4 py-2.5 text-gray-400 hover:text-red-500 text-sm font-medium rounded-lg transition-colors" title={t("common.clear")}>
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
 
       {!structured && !fallback && !loading && (
         <ExamplePreview onClick={() => { handleInputChange(REPHRASE_EXAMPLE.sampleInput); }}>
@@ -94,27 +164,34 @@ Text: ${input.trim()}`;
         </ExamplePreview>
       )}
 
-      {structured && (
-        <div className="space-y-3">
-          {structured.alternatives.map((alt, i) => {
-            const ts = TONE_STYLES[alt.tone] || TONE_STYLES.neutral;
-            return (
-              <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${ts.bg} ${ts.text}`}>{alt.tone}</span>
-                    <p className="text-sm text-gray-900 dark:text-white leading-relaxed mt-2">{alt.text}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">{alt.note}</p>
-                  </div>
-                  <div className="flex flex-col gap-1 flex-shrink-0">
-                    <button onClick={() => handleCopy(alt.text, i)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{copiedIdx === i ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-gray-400" />}</button>
+      {structured && (() => {
+        const displayAlternatives = structured.alternatives.filter(
+          alt => selectedTones.size === 0 || selectedTones.has(alt.tone)
+        );
+        return (
+          <div className="space-y-3">
+            {displayAlternatives.map((alt, i) => {
+              const ts = TONE_STYLES[alt.tone] || TONE_STYLES.neutral;
+              return (
+                <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${ts.bg} ${ts.text}`}>{alt.tone}</span>
+                      <p className="text-sm text-gray-900 dark:text-white leading-relaxed mt-2">
+                        {highlightDiff(input, alt.text)}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">{alt.note}</p>
+                    </div>
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button onClick={() => handleCopy(alt.text, i)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{copiedIdx === i ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} className="text-gray-400" />}</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        );
+      })()}
       {fallback && <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm"><div className="prose prose-sm dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: formatMessage(fallback) }} /></div>}
     </div>
   );

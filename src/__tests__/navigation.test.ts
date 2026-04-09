@@ -24,31 +24,14 @@ vi.mock("../lib/bridge", () => ({
   ]),
   setActiveLanguagePair: vi.fn().mockResolvedValue(undefined),
   updateSetting: vi.fn().mockResolvedValue(undefined),
-  getSrsStats: vi.fn().mockResolvedValue({ total_cards: 10, due_count: 3, average_accuracy: 80 }),
-  getDueCount: vi.fn().mockResolvedValue(3),
-  getWordCount: vi.fn().mockResolvedValue(100),
   getAiSettings: vi.fn().mockResolvedValue({ provider: "claude-code", api_key: "", model: "" }),
   getAvailableDictionaries: vi.fn().mockResolvedValue([]),
-  detectOllama: vi.fn().mockResolvedValue({ available: false, models: [] }),
   getDueCards: vi.fn().mockResolvedValue([]),
-  getWords: vi.fn().mockResolvedValue([]),
-  getUnlearnedWords: vi.fn().mockResolvedValue([]),
   getGrammarTopics: vi.fn().mockResolvedValue([]),
   getVerbs: vi.fn().mockResolvedValue([]),
   searchWords: vi.fn().mockResolvedValue([]),
-  getCategories: vi.fn().mockResolvedValue([]),
   getFavorites: vi.fn().mockResolvedValue([]),
-  fetchModelCatalog: vi.fn().mockResolvedValue({}),
 }));
-
-// Mock onboarding as completed so it doesn't block rendering
-vi.mock("../lib/onboarding", async () => {
-  const actual = await vi.importActual("../lib/onboarding") as Record<string, unknown>;
-  return {
-    ...actual,
-    isOnboardingDone: vi.fn().mockReturnValue(true),
-  };
-});
 
 // Mock i18n
 vi.mock("react-i18next", () => ({
@@ -95,7 +78,6 @@ describe("Route definitions", () => {
     "/dictionary",
     "/grammar",
     "/conjugation",
-    "/flashcards",
     "/conversation",
     "/rephrase",
     "/corrector",
@@ -104,8 +86,8 @@ describe("Route definitions", () => {
     "/settings",
   ];
 
-  it("has exactly 11 routes defined", () => {
-    expect(EXPECTED_ROUTES).toHaveLength(11);
+  it("has exactly 10 routes defined", () => {
+    expect(EXPECTED_ROUTES).toHaveLength(10);
   });
 
   it("all expected routes are present", () => {
@@ -114,7 +96,6 @@ describe("Route definitions", () => {
       "/dictionary",
       "/grammar",
       "/conjugation",
-      "/flashcards",
       "/conversation",
       "/rephrase",
       "/corrector",
@@ -140,7 +121,6 @@ describe("Route definitions", () => {
   });
 
   it("learning routes exist", () => {
-    expect(EXPECTED_ROUTES).toContain("/flashcards");
     expect(EXPECTED_ROUTES).toContain("/conversation");
   });
 
@@ -174,12 +154,6 @@ describe("View modules", () => {
 
   it("Dictionary view exports a default component", async () => {
     const mod = await import("../views/Dictionary");
-    expect(mod.default).toBeDefined();
-    expect(typeof mod.default).toBe("function");
-  });
-
-  it("Flashcards view exports a default component", async () => {
-    const mod = await import("../views/Flashcards");
     expect(mod.default).toBeDefined();
     expect(typeof mod.default).toBe("function");
   });

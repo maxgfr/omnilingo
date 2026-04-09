@@ -3,7 +3,7 @@ import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Search, BookOpen, BookText, Languages, Layers, MessageSquare,
+  Search, BookOpen, Heart, BookText, Languages, MessageSquare,
   RefreshCw, SpellCheck, ArrowRightLeft, FileSearch, Settings,
 } from "lucide-react";
 
@@ -23,18 +23,19 @@ export default function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const commands: CommandItem[] = [
+  const commands: CommandItem[] = useMemo(() => [
     { id: "dictionary", label: t("nav.dictionary"), icon: BookOpen, action: () => navigate("/dictionary"), keywords: "words search find dictionnaire" },
+    { id: "favorites", label: t("nav.favorites"), icon: Heart, action: () => navigate("/favorites"), keywords: "favoris favorite liked saved bookmarked heart" },
     { id: "grammar", label: t("nav.grammar"), icon: BookText, action: () => navigate("/grammar"), keywords: "rules syntax grammaire" },
     { id: "conjugation", label: t("nav.conjugation"), icon: Languages, action: () => navigate("/conjugation"), keywords: "verbs tenses conjugaison" },
-    { id: "flashcards", label: t("nav.flashcards"), icon: Layers, action: () => navigate("/flashcards"), keywords: "cards memorize srs review" },
+
     { id: "conversation", label: t("nav.conversation"), icon: MessageSquare, action: () => navigate("/conversation"), keywords: "chat ai tutor scenario" },
     { id: "rephrase", label: t("nav.rephrase"), icon: RefreshCw, action: () => navigate("/rephrase"), keywords: "reformuler rewrite" },
     { id: "corrector", label: t("nav.corrector"), icon: SpellCheck, action: () => navigate("/corrector"), keywords: "correcteur grammar spelling" },
     { id: "synonyms", label: t("nav.synonyms"), icon: ArrowRightLeft, action: () => navigate("/synonyms"), keywords: "synonymes similar words" },
     { id: "text-analysis", label: t("nav.textAnalysis"), icon: FileSearch, action: () => navigate("/text-analysis"), keywords: "analyse sentence mining" },
     { id: "settings", label: t("nav.settings"), icon: Settings, action: () => navigate("/settings"), keywords: "preferences config parametres" },
-  ];
+  ], [t, navigate]);
 
   const commandFuse = useMemo(
     () => new Fuse(commands, { keys: ["label", "keywords"], threshold: 0.4 }),

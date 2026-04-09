@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Copy, Check, AlertTriangle, CheckCircle } from "lucide-react";
-import { cachedAskAi, getCachedResult, addToHistory, getPromptContext } from "../../lib/ai-cache";
+import { Loader2, Copy, Check, AlertTriangle, CheckCircle, Trash2, RotateCcw } from "lucide-react";
+import { cachedAskAi, getCachedResult, addToHistory, getPromptContext, clearToolHistory } from "../../lib/ai-cache";
 import { parseAiJson, formatMessage } from "../../lib/markdown";
 import type { LanguagePair } from "../../types";
+import { useAppStore } from "../../store/useAppStore";
 import ExamplePreview from "../ui/ExamplePreview";
 import RecentSearches from "../ui/RecentSearches";
 import { CORRECTOR_EXAMPLE } from "../../lib/exampleData";
@@ -32,12 +33,35 @@ export default function CorrectorTool({ initialWord, activePair, onInputChange }
     setInput(value);
     onInputChange?.(value);
   };
-  const [structured, setStructured] = useState<CorrectorResult | null>(null);
-  const [fallback, setFallback] = useState<string | null>(null);
+  const cachedResult = useAppStore.getState().toolResultCache["corrector"];
+  const [structured, setStructured] = useState<CorrectorResult | null>(() => {
+    if (cachedResult) try { const p = JSON.parse(cachedResult); return p.structured ?? null; } catch { return null; }
+    return null;
+  });
+  const [fallback, setFallback] = useState<string | null>(() => {
+    if (cachedResult) try { const p = JSON.parse(cachedResult); return p.fallback ?? null; } catch { return null; }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
+
+  // Sync results to Zustand
+  useEffect(() => {
+    if (structured || fallback) {
+      useAppStore.getState().setToolResult("corrector", JSON.stringify({ structured, fallback }));
+    }
+  }, [structured, fallback]);
   const [copied, setCopied] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
+  const pendingReCorrect = useRef(false);
+
+  // Auto-trigger correction after re-correct sets input
+  useEffect(() => {
+    if (pendingReCorrect.current && input && !loading) {
+      pendingReCorrect.current = false;
+      handleCorrect();
+    }
+  }, [input]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore cached result on mount
   useEffect(() => {
@@ -84,9 +108,32 @@ Text: ${input.trim()}`;
         <textarea value={input} onChange={(e) => handleInputChange(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => !input.trim() && setShowHistory(true)} onBlur={() => setTimeout(() => setShowHistory(false), 150)} placeholder={t("tools.corrector.inputPlaceholder")} rows={3} autoComplete="off" className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-none transition-colors" />
         {activePair && <RecentSearches tool="corrector" pairId={activePair.id} visible={showHistory && !input.trim()} onSelect={(q) => { handleInputChange(q); setShowHistory(false); }} />}
       </div>
-      <button onClick={handleCorrect} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-        {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.corrector.correcting")}</> : t("tools.corrector.correct")}
-      </button>
+      <div className="flex gap-2">
+        <button onClick={handleCorrect} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.corrector.correcting")}</> : t("tools.corrector.correct")}
+        </button>
+        {structured && (
+          <button
+            onClick={() => {
+              handleInputChange(structured.corrected);
+              setStructured(null);
+              setFallback(null);
+                           pendingReCorrect.current = true;
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-amber-400 hover:text-amber-600 text-sm font-medium rounded-lg transition-colors"
+          >
+            <RotateCcw size={16} />
+            {t("tools.corrector.reCorrect", "Re-corriger")}
+          </button>
+        )}
+        {activePair && (
+          <button onClick={() => {
+            clearToolHistory(activePair.id, "corrector");
+            setStructured(null); setFallback(null); handleInputChange(""); useAppStore.getState().setToolResult("corrector", null);          }} className="flex items-center gap-2 px-4 py-2.5 text-gray-400 hover:text-red-500 text-sm rounded-lg transition-colors" title={t("common.clear")}>
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
 
       {!structured && !fallback && !loading && (
         <ExamplePreview onClick={() => { handleInputChange(CORRECTOR_EXAMPLE.sampleInput); }}>

@@ -10,32 +10,39 @@ function escapeHtml(text: string): string {
 }
 
 export function formatMessage(text: string): string {
-  let html = text;
-
-  // Code blocks (must be before inline code) - escape content inside
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g,
-    (_m, _lang, code) =>
-      `<pre class="bg-gray-800 text-gray-100 dark:bg-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2"><code>${escapeHtml(code)}</code></pre>`);
-
-  // Inline code - escape content inside
-  html = html.replace(/`([^`]+)`/g,
-    (_m, code) =>
-      `<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">${escapeHtml(code)}</code>`);
-
-  // Escape remaining text that is not inside HTML tags we just created.
-  html = html.replace(/((?:^|>)[^<]*)/g, (_m, segment) => {
-    if (segment.startsWith(">")) {
-      return ">" + escapeHtml(segment.slice(1));
-    }
-    return escapeHtml(segment);
+  // 1. Extract code blocks and inline code to protect them from escaping
+  const codeBlocks: string[] = [];
+  let html = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(
+      `<pre class="bg-gray-800 text-gray-100 dark:bg-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto my-2"><code>${escapeHtml(code)}</code></pre>`
+    );
+    return `\x00CB${idx}\x00`;
   });
 
+  const inlineCodes: string[] = [];
+  html = html.replace(/`([^`]+)`/g, (_m, code) => {
+    const idx = inlineCodes.length;
+    inlineCodes.push(
+      `<code class="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm font-mono">${escapeHtml(code)}</code>`
+    );
+    return `\x00IC${idx}\x00`;
+  });
+
+  // 2. Escape HTML in the remaining text
+  html = escapeHtml(html);
+
+  // 3. Restore code blocks and inline code
+  html = html.replace(/\x00CB(\d+)\x00/g, (_m, idx) => codeBlocks[Number(idx)]);
+  html = html.replace(/\x00IC(\d+)\x00/g, (_m, idx) => inlineCodes[Number(idx)]);
+
+  // 4. Apply markdown formatting
   // Headers
   html = html.replace(/^### (.+)$/gm, '<h3 class="font-bold text-base mt-3 mb-1">$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-lg mt-3 mb-1">$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-3 mb-1">$1</h1>');
 
-  // Bold and italic
+  // Bold and italic (escaped asterisks: &ast; won't match, but ** will since escapeHtml doesn't touch *)
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
@@ -46,7 +53,7 @@ export function formatMessage(text: string): string {
   // Ordered lists
   html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>');
 
-  // Line breaks (but not inside pre/code blocks)
+  // Line breaks
   html = html.replace(/\n/g, '<br />');
 
   return html;

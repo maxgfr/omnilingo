@@ -101,6 +101,18 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Failed to update schema version: {}", e))?;
     }
 
+    if current_version < 7 {
+        let migration_sql = include_str!("../migrations/007_favorite_lists.sql");
+        conn.execute_batch(migration_sql)
+            .map_err(|e| format!("Migration 007 failed: {}", e))?;
+    }
+
+    if current_version < 8 {
+        let migration_sql = include_str!("../migrations/008_drop_srs.sql");
+        conn.execute_batch(migration_sql)
+            .map_err(|e| format!("Migration 008 failed: {}", e))?;
+    }
+
     Ok(())
 }
 

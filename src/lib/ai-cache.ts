@@ -67,6 +67,29 @@ export function addToHistory(pairId: number, tool: string, query: string): void 
   } catch { /* ignore */ }
 }
 
+export function clearToolHistory(pairId: number, tool?: string): void {
+  if (tool) {
+    // Clear only entries for a specific tool
+    const history = getSearchHistory(pairId);
+    const filtered = history.filter((h) => h.tool !== tool);
+    try {
+      localStorage.setItem(`${HISTORY_KEY}-${pairId}`, JSON.stringify(filtered));
+    } catch { /* ignore */ }
+  } else {
+    // Clear all history for this pair
+    localStorage.removeItem(`${HISTORY_KEY}-${pairId}`);
+  }
+  // Clear session cache for this tool/pair
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const key = sessionStorage.key(i);
+    if (key?.startsWith(CACHE_PREFIX) && key.includes(`-${pairId}-`)) {
+      if (!tool || key.includes(`-${tool}-`)) {
+        sessionStorage.removeItem(key);
+      }
+    }
+  }
+}
+
 // ── Enriched Prompt Context ──────────────────────────────────────────
 
 /** Build extra context from recent errors + recent searches for richer AI prompts. */

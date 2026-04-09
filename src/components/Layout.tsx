@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
-  BookOpen, BookText, Languages, Layers, MessageSquare,
+  BookOpen, Heart, BookText, Languages, MessageSquare,
   RefreshCw, SpellCheck, ArrowRightLeft, FileSearch,
   Settings as SettingsIcon, Menu, X, ChevronDown,
 } from "lucide-react";
@@ -12,9 +12,10 @@ const navSections = [
   {
     items: [
       { to: "/dictionary", icon: BookOpen, labelKey: "nav.dictionary" },
+      { to: "/favorites", icon: Heart, labelKey: "nav.favorites" },
       { to: "/grammar", icon: BookText, labelKey: "nav.grammar" },
       { to: "/conjugation", icon: Languages, labelKey: "nav.conjugation" },
-      { to: "/flashcards", icon: Layers, labelKey: "nav.flashcards" },
+
       { to: "/conversation", icon: MessageSquare, labelKey: "nav.conversation" },
     ],
   },
@@ -73,7 +74,7 @@ export default function Layout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const pairGroups = groupPairs(languagePairs);
+  const pairGroups = useMemo(() => groupPairs(languagePairs), [languagePairs]);
 
   // Find the group that contains the active pair
   const activeGroup = pairGroups.find((g) => g.ids.includes(activePairId ?? -1));
@@ -173,7 +174,7 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
-        <div className="max-w-7xl mx-auto p-6">
+        <div className="p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex flex-col items-center gap-3">

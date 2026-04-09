@@ -3,9 +3,10 @@ import { AppProvider } from "./store/AppContext";
 import Layout from "./components/Layout";
 import CommandPalette from "./components/CommandPalette";
 import Dictionary from "./views/Dictionary";
+import Favorites from "./views/Favorites";
 import Grammar from "./views/Grammar";
 import Conjugation from "./views/Conjugation";
-import Flashcards from "./views/Flashcards";
+
 import Conversation from "./views/Conversation";
 import Rephrase from "./views/Rephrase";
 import Corrector from "./views/Corrector";
@@ -22,9 +23,10 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<Navigate to="/dictionary" replace />} />
               <Route path="/dictionary" element={<Dictionary />} />
+              <Route path="/favorites" element={<Favorites />} />
               <Route path="/grammar" element={<Grammar />} />
               <Route path="/conjugation" element={<Conjugation />} />
-              <Route path="/flashcards" element={<Flashcards />} />
+
               <Route path="/conversation" element={<Conversation />} />
               <Route path="/rephrase" element={<Rephrase />} />
               <Route path="/corrector" element={<Corrector />} />

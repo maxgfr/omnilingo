@@ -115,6 +115,83 @@ pub fn mark_grammar_completed(
     Ok(())
 }
 
+#[derive(Deserialize)]
+pub struct SaveGrammarTopicInput {
+    pub pair_id: i64,
+    pub level: String,
+    pub title: String,
+    pub title_source: Option<String>,
+    pub explanation: String,
+    pub key_points: Option<serde_json::Value>,
+    pub examples: Option<serde_json::Value>,
+    pub exercises: Option<serde_json::Value>,
+}
+
+#[tauri::command]
+pub fn save_grammar_topic(
+    state: State<'_, DbState>,
+    input: SaveGrammarTopicInput,
+) -> Result<String, String> {
+    let db = state.db();
+
+    // Generate a unique ID
+    let id = format!("ai-{}", chrono::Local::now().timestamp_millis());
+
+    // Find next display_order
+    let max_order: i64 = db
+        .query_row(
+            "SELECT COALESCE(MAX(display_order), 0) FROM grammar_topics WHERE language_pair_id = ?1",
+            [input.pair_id],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    db.execute(
+        "INSERT INTO grammar_topics (id, language_pair_id, level, display_order, title, title_source, explanation, key_points, examples, exercises)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        rusqlite::params![
+            id,
+            input.pair_id,
+            input.level,
+            max_order + 1,
+            input.title,
+            input.title_source,
+            input.explanation,
+            input.key_points.map(|v| v.to_string()),
+            input.examples.map(|v| v.to_string()),
+            input.exercises.map(|v| v.to_string()),
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(id)
+}
+
+#[tauri::command]
+pub fn delete_grammar_topic(
+    state: State<'_, DbState>,
+    topic_id: String,
+    pair_id: i64,
+) -> Result<(), String> {
+    let db = state.db();
+    db.execute(
+        "DELETE FROM grammar_topics WHERE id = ?1 AND language_pair_id = ?2",
+        rusqlite::params![topic_id, pair_id],
+    )
+    .map_err(|e| e.to_string())?;
+    db.execute(
+        "DELETE FROM grammar_progress WHERE topic_id = ?1 AND language_pair_id = ?2",
+        rusqlite::params![topic_id, pair_id],
+    )
+    .map_err(|e| e.to_string())?;
+    db.execute(
+        "DELETE FROM grammar_srs WHERE topic_id = ?1 AND language_pair_id = ?2",
+        rusqlite::params![topic_id, pair_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct GrammarSrsState {
     pub topic_id: String,

@@ -3,14 +3,16 @@ import {
   SettingsSchema,
   LanguagePairSchema,
   WordSchema,
-  SrsCardSchema,
-  SrsStatsSchema,
   DictionarySourceSchema,
   GrammarTopicSchema,
   ExerciseSchema,
   VerbSchema,
   AiSettingsSchema,
   FavoriteWordSchema,
+  FavoriteListSchema,
+  GrammarSrsStateSchema,
+  ConversationScenarioSchema,
+  ConversationSessionSchema,
 } from "../types";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -244,134 +246,7 @@ describe("WordSchema", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 4. SrsCardSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("SrsCardSchema", () => {
-  const validCard = {
-    id: 1,
-    word_id: 42,
-    source_word: "Haus",
-    target_word: "maison",
-    gender: "n",
-    plural: "Hauser",
-    level: "A1",
-    category: "home",
-    example_source: "Das ist mein Haus.",
-    example_target: "C'est ma maison.",
-    repetitions: 3,
-    ease_factor: 2.5,
-    interval_days: 7,
-    next_review: "2026-03-25",
-    last_score: 4,
-  };
-
-  it("accepts a fully valid SRS card", () => {
-    const result = SrsCardSchema.parse(validCard);
-    expect(result.id).toBe(1);
-    expect(result.word_id).toBe(42);
-    expect(result.source_word).toBe("Haus");
-    expect(result.target_word).toBe("maison");
-    expect(result.repetitions).toBe(3);
-    expect(result.ease_factor).toBe(2.5);
-    expect(result.interval_days).toBe(7);
-    expect(result.next_review).toBe("2026-03-25");
-    expect(result.last_score).toBe(4);
-  });
-
-  it("accepts nullable fields on SRS card", () => {
-    const result = SrsCardSchema.parse({
-      ...validCard,
-      gender: null,
-      plural: null,
-      level: null,
-      category: null,
-      example_source: null,
-      example_target: null,
-      last_score: null,
-    });
-    expect(result.gender).toBeNull();
-    expect(result.plural).toBeNull();
-    expect(result.level).toBeNull();
-    expect(result.category).toBeNull();
-    expect(result.example_source).toBeNull();
-    expect(result.example_target).toBeNull();
-    expect(result.last_score).toBeNull();
-  });
-
-  it("accepts new card with default SM-2 values", () => {
-    const result = SrsCardSchema.parse({
-      ...validCard,
-      repetitions: 0,
-      ease_factor: 2.5,
-      interval_days: 0,
-      last_score: null,
-    });
-    expect(result.repetitions).toBe(0);
-    expect(result.ease_factor).toBe(2.5);
-    expect(result.interval_days).toBe(0);
-    expect(result.last_score).toBeNull();
-  });
-
-  it("accepts card with high repetition count", () => {
-    const result = SrsCardSchema.parse({
-      ...validCard,
-      repetitions: 100,
-      ease_factor: 3.5,
-      interval_days: 365,
-    });
-    expect(result.repetitions).toBe(100);
-    expect(result.interval_days).toBe(365);
-  });
-
-  it("rejects missing next_review", () => {
-    const { next_review: _, ...noReview } = validCard;
-    expect(() => SrsCardSchema.parse(noReview)).toThrow();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 5. SrsStatsSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("SrsStatsSchema", () => {
-  it("accepts valid SRS stats", () => {
-    const result = SrsStatsSchema.parse({
-      total_cards: 150,
-      due_count: 12,
-      average_accuracy: 87.5,
-    });
-    expect(result.total_cards).toBe(150);
-    expect(result.due_count).toBe(12);
-    expect(result.average_accuracy).toBe(87.5);
-  });
-
-  it("accepts zero values", () => {
-    const result = SrsStatsSchema.parse({
-      total_cards: 0,
-      due_count: 0,
-      average_accuracy: 0,
-    });
-    expect(result.total_cards).toBe(0);
-    expect(result.due_count).toBe(0);
-    expect(result.average_accuracy).toBe(0);
-  });
-
-  it("accepts 100% accuracy", () => {
-    const result = SrsStatsSchema.parse({
-      total_cards: 50,
-      due_count: 0,
-      average_accuracy: 100,
-    });
-    expect(result.average_accuracy).toBe(100);
-  });
-
-  it("rejects missing fields", () => {
-    expect(() => SrsStatsSchema.parse({ total_cards: 10 })).toThrow();
-    expect(() => SrsStatsSchema.parse({})).toThrow();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 6. DictionarySourceSchema
+// 4. DictionarySourceSchema
 // ─────────────────────────────────────────────────────────────────────
 describe("DictionarySourceSchema", () => {
   const validSource = {
@@ -676,6 +551,9 @@ describe("FavoriteWordSchema", () => {
       gender: "n",
       level: "A1",
       category: "home",
+      tags: null,
+      example_source: "Das Haus ist groß.",
+      example_target: "La maison est grande.",
     });
     expect(result.id).toBe(1);
     expect(result.word_id).toBe(42);
@@ -691,9 +569,161 @@ describe("FavoriteWordSchema", () => {
       gender: null,
       level: null,
       category: null,
+      tags: null,
+      example_source: null,
+      example_target: null,
     });
     expect(result.gender).toBeNull();
     expect(result.level).toBeNull();
     expect(result.category).toBeNull();
+    expect(result.tags).toBeNull();
+    expect(result.example_source).toBeNull();
+    expect(result.example_target).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// FavoriteListSchema
+// ─────────────────────────────────────────────────────────────────────
+describe("FavoriteListSchema", () => {
+  it("parses a valid favorite list", () => {
+    const result = FavoriteListSchema.parse({
+      id: 1,
+      name: "My Words",
+      language_pair_id: 1,
+      item_count: 5,
+      created_at: "2025-01-15",
+    });
+    expect(result.id).toBe(1);
+    expect(result.name).toBe("My Words");
+    expect(result.item_count).toBe(5);
+  });
+
+  it("rejects missing required fields", () => {
+    expect(() => FavoriteListSchema.parse({ id: 1 })).toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// GrammarSrsStateSchema
+// ─────────────────────────────────────────────────────────────────────
+describe("GrammarSrsStateSchema", () => {
+  it("parses a valid SRS state", () => {
+    const result = GrammarSrsStateSchema.parse({
+      topic_id: "nominativ",
+      language_pair_id: 1,
+      repetitions: 3,
+      ease_factor: 2.5,
+      interval_days: 7,
+      next_review: "2025-01-22",
+      last_score: 3,
+    });
+    expect(result.topic_id).toBe("nominativ");
+    expect(result.repetitions).toBe(3);
+    expect(result.ease_factor).toBeCloseTo(2.5);
+  });
+
+  it("accepts null last_score", () => {
+    const result = GrammarSrsStateSchema.parse({
+      topic_id: "akkusativ",
+      language_pair_id: 1,
+      repetitions: 0,
+      ease_factor: 2.5,
+      interval_days: 0,
+      next_review: "2025-01-15",
+      last_score: null,
+    });
+    expect(result.last_score).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// ConversationScenarioSchema
+// ─────────────────────────────────────────────────────────────────────
+describe("ConversationScenarioSchema", () => {
+  it("parses a valid scenario", () => {
+    const result = ConversationScenarioSchema.parse({
+      id: 1,
+      language_pair_id: 1,
+      name: "At the Cafe",
+      icon: "☕",
+      description: "Order coffee in German",
+      system_prompt: "You are a waiter",
+      is_builtin: true,
+      created_at: "2025-01-15",
+    });
+    expect(result.name).toBe("At the Cafe");
+    expect(result.is_builtin).toBe(true);
+  });
+
+  it("coerces is_builtin from 1 to true", () => {
+    const result = ConversationScenarioSchema.parse({
+      id: 1,
+      language_pair_id: 1,
+      name: "Custom",
+      icon: "📝",
+      description: "Custom scenario",
+      system_prompt: "test",
+      is_builtin: 1,
+      created_at: "2025-01-15",
+    });
+    expect(result.is_builtin).toBe(true);
+  });
+
+  it("coerces is_builtin from 0 to false", () => {
+    const result = ConversationScenarioSchema.parse({
+      id: 1,
+      language_pair_id: 1,
+      name: "Custom",
+      icon: "📝",
+      description: "Custom scenario",
+      system_prompt: "test",
+      is_builtin: 0,
+      created_at: "2025-01-15",
+    });
+    expect(result.is_builtin).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// ConversationSessionSchema
+// ─────────────────────────────────────────────────────────────────────
+describe("ConversationSessionSchema", () => {
+  it("parses a valid session", () => {
+    const result = ConversationSessionSchema.parse({
+      id: 1,
+      language_pair_id: 1,
+      scenario_id: 2,
+      mode: "correct",
+      title: "Cafe Practice",
+      messages: "[]",
+      created_at: "2025-01-15",
+    });
+    expect(result.mode).toBe("correct");
+    expect(result.scenario_id).toBe(2);
+  });
+
+  it("accepts null scenario_id", () => {
+    const result = ConversationSessionSchema.parse({
+      id: 1,
+      language_pair_id: 1,
+      scenario_id: null,
+      mode: "free",
+      title: "Free Chat",
+      messages: "[]",
+      created_at: "2025-01-15",
+    });
+    expect(result.scenario_id).toBeNull();
+  });
+
+  it("rejects missing mode", () => {
+    expect(() => ConversationSessionSchema.parse({
+      id: 1,
+      language_pair_id: 1,
+      scenario_id: null,
+      title: "Test",
+      messages: "[]",
+      created_at: "2025-01-15",
+    })).toThrow();
   });
 });

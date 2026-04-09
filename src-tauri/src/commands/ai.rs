@@ -107,43 +107,16 @@ pub async fn call_provider(
     }
 }
 
-/// Call AI with automatic fallback: try primary provider, then local providers, then cloud.
+/// Call AI with the configured provider — no fallback.
 pub async fn call_ai_with_fallback(
     settings: &AiSettings,
     messages: &[ChatMessage],
     cwd: &std::path::Path,
 ) -> Result<String, String> {
-    // Try primary provider first
-    match call_provider(settings, messages, cwd).await {
-        Ok(response) => Ok(response),
-        Err(primary_err) => {
-            log::warn!("Primary AI provider '{}' failed: {}", settings.provider, primary_err);
-
-            // Fallback chain: try local providers first (free), then skip the primary
-            let fallbacks: Vec<(&str, &str)> = vec![
-                ("claude-code", "claude-sonnet-4-6"),
-                ("ollama", ""),
-                ("lmstudio", ""),
-            ];
-
-            for (provider, model) in &fallbacks {
-                if *provider == settings.provider {
-                    continue; // Already tried
-                }
-                let fallback_settings = AiSettings {
-                    provider: provider.to_string(),
-                    api_key: settings.api_key.clone(),
-                    model: model.to_string(),
-                };
-                if let Ok(response) = call_provider(&fallback_settings, messages, cwd).await {
-                    log::info!("Fallback to '{}' succeeded", provider);
-                    return Ok(response);
-                }
-            }
-
-            Err(format!("All AI providers failed. Primary error: {}", primary_err))
-        }
-    }
+    call_provider(settings, messages, cwd).await.map_err(|e| {
+        log::warn!("AI provider '{}' failed: {}", settings.provider, e);
+        e
+    })
 }
 
 // ─── Tauri commands ──────────────────────────────────────────────────────────

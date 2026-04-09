@@ -1,26 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import {
-  OnboardingStateSchema,
-  LANGUAGES,
-  AI_PROVIDERS,
-  isOnboardingDone,
-  markOnboardingDone,
-  resetOnboarding,
-  filterDictionaries,
-  scoreDictRelevance,
-  findLangCode3,
-  isOnboardingComplete,
-} from "../lib/onboarding";
+import { describe, it, expect } from "vitest";
 import {
   SettingsSchema,
   LanguagePairSchema,
   WordSchema,
-  SrsCardSchema,
-  SrsStatsSchema,
   AiSettingsSchema,
   ExerciseSchema,
-  FavoriteWordSchema,
-  DictionarySourceSchema,
 } from "../types";
 
 // Helper: base settings that satisfy all required nullable fields
@@ -32,120 +16,6 @@ const BASE_SETTINGS = {
 function parseSettings(overrides: Record<string, unknown> = {}) {
   return SettingsSchema.parse({ ...BASE_SETTINGS, ...overrides });
 }
-
-// ─────────────────────────────────────────────────────────────────────
-// 1. User Journey: Fresh Install
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Fresh Install", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it("onboarding is not done initially", () => {
-    resetOnboarding();
-    expect(isOnboardingDone()).toBe(false);
-  });
-
-  it("user selects French as native language (step 1)", () => {
-    const state = OnboardingStateSchema.parse({
-      step: 1,
-      nativeLang: "fr",
-      targetLang: null,
-      level: null,
-    });
-    expect(state.nativeLang).toBe("fr");
-    expect(state.step).toBe(1);
-    expect(state.targetLang).toBeNull();
-  });
-
-  it("user selects German as target language (step 2)", () => {
-    const state = OnboardingStateSchema.parse({
-      step: 2,
-      nativeLang: "fr",
-      targetLang: "de",
-      level: null,
-    });
-    expect(state.targetLang).toBe("de");
-    expect(state.nativeLang).toBe("fr");
-  });
-
-  it("user selects level A1 (step 3)", () => {
-    const state = OnboardingStateSchema.parse({
-      step: 3,
-      nativeLang: "fr",
-      targetLang: "de",
-      level: "A1",
-    });
-    expect(state.level).toBe("A1");
-  });
-
-  it("user selects AI provider claude-code (step 4)", () => {
-    const state = OnboardingStateSchema.parse({
-      step: 4,
-      nativeLang: "fr",
-      targetLang: "de",
-      level: "A1",
-      aiProvider: "claude-code",
-      aiApiKey: "",
-    });
-    expect(state.aiProvider).toBe("claude-code");
-    expect(state.aiApiKey).toBe("");
-  });
-
-  it("user completes onboarding (step 5)", () => {
-    const state = OnboardingStateSchema.parse({
-      step: 5,
-      nativeLang: "fr",
-      targetLang: "de",
-      level: "A1",
-      aiProvider: "claude-code",
-      aiApiKey: "",
-      completed: true,
-    });
-    expect(state.completed).toBe(true);
-    expect(isOnboardingComplete(state)).toBe(true);
-  });
-
-  it("markOnboardingDone persists the completion", () => {
-    markOnboardingDone();
-    expect(isOnboardingDone()).toBe(true);
-  });
-
-  it("full onboarding state is valid from start to finish", () => {
-    // Step 0: initial
-    const s0 = OnboardingStateSchema.parse({ step: 0, nativeLang: null, targetLang: null, level: null });
-    expect(isOnboardingComplete(s0)).toBe(false);
-
-    // Step 1: native selected
-    const s1 = OnboardingStateSchema.parse({ step: 1, nativeLang: "fr", targetLang: null, level: null });
-    expect(s1.nativeLang).toBe("fr");
-
-    // Step 2: target selected
-    const s2 = OnboardingStateSchema.parse({ step: 2, nativeLang: "fr", targetLang: "de", level: null });
-    expect(s2.targetLang).toBe("de");
-
-    // Step 3: level selected
-    const s3 = OnboardingStateSchema.parse({ step: 3, nativeLang: "fr", targetLang: "de", level: "A2" });
-    expect(s3.level).toBe("A2");
-
-    // Step 4: AI provider
-    const s4 = OnboardingStateSchema.parse({ step: 4, nativeLang: "fr", targetLang: "de", level: "A2", aiProvider: "anthropic", aiApiKey: "sk-test" });
-    expect(s4.aiProvider).toBe("anthropic");
-
-    // Step 5: completed
-    const s5 = OnboardingStateSchema.parse({ step: 5, nativeLang: "fr", targetLang: "de", level: "A2", aiProvider: "anthropic", aiApiKey: "sk-test", completed: true });
-    expect(isOnboardingComplete(s5)).toBe(true);
-  });
-
-  it("target language options exclude native language", () => {
-    const nativeLang = "fr" as string;
-    const availableTargets = LANGUAGES.filter((l) => l.code !== nativeLang);
-    expect(availableTargets.every((l) => l.code !== "fr")).toBe(true);
-    expect(availableTargets.length).toBe(LANGUAGES.length - 1);
-    expect(availableTargets.map((l) => l.code)).toContain("de");
-    expect(availableTargets.map((l) => l.code)).toContain("en");
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────────
 // 2. User Journey: Language Switching
@@ -248,77 +118,6 @@ describe("User Journey: Settings", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 4. User Journey: Dictionary Download
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Dictionary Download", () => {
-  const dicts = [
-    {
-      source_lang: "deu", target_lang: "fra", source_name: "German", target_name: "French",
-      source_flag: "\uD83C\uDDE9\uD83C\uDDEA", target_flag: "\uD83C\uDDEB\uD83C\uDDF7",
-      provider: "freedict", url: "http://test", format: "stardict",
-      word_count: 1000, size_mb: 1.5,
-    },
-    {
-      source_lang: "eng", target_lang: "spa", source_name: "English", target_name: "Spanish",
-      source_flag: "\uD83C\uDDEC\uD83C\uDDE7", target_flag: "\uD83C\uDDEA\uD83C\uDDF8",
-      provider: "freedict", url: "http://test2", format: "stardict",
-      word_count: 2000, size_mb: 2.0,
-    },
-    {
-      source_lang: "fra", target_lang: "deu", source_name: "French", target_name: "German",
-      source_flag: "\uD83C\uDDEB\uD83C\uDDF7", target_flag: "\uD83C\uDDE9\uD83C\uDDEA",
-      provider: "freedict", url: "http://test3", format: "stardict",
-      word_count: 800, size_mb: 1.2,
-    },
-  ];
-
-  it("filters dictionaries by search term", () => {
-    const filtered = filterDictionaries(dicts, "german", "fra", "deu");
-    expect(filtered.length).toBe(2); // German appears as source_name in 1, target_name in another
-    expect(filtered[0].source_name === "German" || filtered[0].target_name === "German").toBe(true);
-  });
-
-  it("filters dictionaries by language code", () => {
-    const filtered = filterDictionaries(dicts, "eng", "fra", "deu");
-    expect(filtered.length).toBe(1);
-    expect(filtered[0].source_lang).toBe("eng");
-  });
-
-  it("sorts by relevance - exact pair match first", () => {
-    const sorted = filterDictionaries(dicts, "", "fra", "deu");
-    // deu-fra and fra-deu should both be exact matches (score 0)
-    expect(scoreDictRelevance(sorted[0].source_lang, sorted[0].target_lang, "fra", "deu")).toBe(0);
-    // eng-spa should be last (score 2)
-    expect(scoreDictRelevance(sorted[sorted.length - 1].source_lang, sorted[sorted.length - 1].target_lang, "fra", "deu")).toBe(2);
-  });
-
-  it("validates dictionary source schema", () => {
-    for (const dict of dicts) {
-      const result = DictionarySourceSchema.parse(dict);
-      expect(result.provider).toBe("freedict");
-      expect(result.format).toBe("stardict");
-    }
-  });
-
-  it("findLangCode3 resolves 2-letter to 3-letter codes", () => {
-    expect(findLangCode3("fr")).toBe("fra");
-    expect(findLangCode3("de")).toBe("deu");
-    expect(findLangCode3("en")).toBe("eng");
-    expect(findLangCode3("es")).toBe("spa");
-  });
-
-  it("empty search returns all dictionaries sorted", () => {
-    const result = filterDictionaries(dicts, "", "fra", "deu");
-    expect(result.length).toBe(3);
-  });
-
-  it("no matching search returns empty", () => {
-    const result = filterDictionaries(dicts, "zzzzz", "fra", "deu");
-    expect(result.length).toBe(0);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
 // 5. User Journey: Quiz Flow
 // ─────────────────────────────────────────────────────────────────────
 describe("User Journey: Quiz Flow", () => {
@@ -384,212 +183,7 @@ describe("User Journey: Quiz Flow", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 6. User Journey: Review (SRS) Flow
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Review Flow", () => {
-  const makeCard = (overrides: Partial<Record<string, unknown>> = {}) =>
-    SrsCardSchema.parse({
-      id: 1,
-      word_id: 42,
-      source_word: "Haus",
-      target_word: "maison",
-      gender: "n",
-      plural: null,
-      level: "A1",
-      category: null,
-      example_source: null,
-      example_target: null,
-      repetitions: 0,
-      ease_factor: 2.5,
-      interval_days: 0,
-      next_review: "2026-03-18",
-      last_score: null,
-      ...overrides,
-    });
-
-  it("new card starts with SM-2 defaults", () => {
-    const card = makeCard();
-    expect(card.repetitions).toBe(0);
-    expect(card.ease_factor).toBe(2.5);
-    expect(card.interval_days).toBe(0);
-    expect(card.last_score).toBeNull();
-  });
-
-  it("SM-2 quality buttons map to correct values", () => {
-    // Forgot=0, Hard=2, Good=3, Easy=5
-    const qualities = { forgot: 0, hard: 2, good: 3, easy: 5 };
-    expect(qualities.forgot).toBe(0);
-    expect(qualities.hard).toBe(2);
-    expect(qualities.good).toBe(3);
-    expect(qualities.easy).toBe(5);
-  });
-
-  it("card with past next_review is due", () => {
-    const card = makeCard({ next_review: "2026-03-17" });
-    const today = "2026-03-18";
-    expect(card.next_review <= today).toBe(true);
-  });
-
-  it("card with future next_review is not due", () => {
-    const card = makeCard({ next_review: "2026-03-25" });
-    const today = "2026-03-18";
-    expect(card.next_review <= today).toBe(false);
-  });
-
-  it("review session tracks results", () => {
-    const results = {
-      correct: 0,
-      total: 0,
-      forgotten: [] as string[],
-    };
-
-    // Rate first card as "good"
-    results.correct++;
-    results.total++;
-
-    // Rate second card as "forgot"
-    results.total++;
-    results.forgotten.push("Haus");
-
-    // Rate third card as "easy"
-    results.correct++;
-    results.total++;
-
-    expect(results.correct).toBe(2);
-    expect(results.total).toBe(3);
-    expect(results.forgotten).toEqual(["Haus"]);
-  });
-
-  it("card grouping: new vs learning vs mastered", () => {
-    const cards = [
-      makeCard({ id: 1, repetitions: 0, ease_factor: 2.5 }), // new
-      makeCard({ id: 2, repetitions: 2, ease_factor: 2.3 }), // learning
-      makeCard({ id: 3, repetitions: 5, ease_factor: 2.6 }), // mastered
-      makeCard({ id: 4, repetitions: 10, ease_factor: 3.0 }), // mastered
-    ];
-
-    const newCards = cards.filter((c) => c.ease_factor === 2.5 && c.repetitions === 0);
-    const learningCards = cards.filter(
-      (c) => !(c.ease_factor === 2.5 && c.repetitions === 0) && c.repetitions < 5,
-    );
-    const masteredCards = cards.filter((c) => c.repetitions >= 5);
-
-    expect(newCards).toHaveLength(1);
-    expect(learningCards).toHaveLength(1);
-    expect(masteredCards).toHaveLength(2);
-  });
-
-  it("review completion shows when all cards reviewed", () => {
-    const totalCards = 5;
-    let currentIndex = 0;
-    while (currentIndex < totalCards) {
-      currentIndex++;
-    }
-    expect(currentIndex).toBe(totalCards);
-    const completed = currentIndex >= totalCards;
-    expect(completed).toBe(true);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 7. User Journey: Flashcard Management
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Flashcard Management", () => {
-  it("custom flashcard can be created with front/back", () => {
-    // Simulates creating a custom word then adding to SRS
-    const word = WordSchema.parse({
-      id: 999,
-      language_pair_id: 1,
-      source_word: "Apfel",
-      target_word: "pomme",
-      gender: "m",
-      plural: null,
-      level: null,
-      category: null,
-      tags: null,
-      example_source: null,
-      example_target: null,
-    });
-    expect(word.source_word).toBe("Apfel");
-    expect(word.target_word).toBe("pomme");
-  });
-
-  it("flashcard validation rejects empty front/back", () => {
-    // App logic: if (!front.trim() || !back.trim()) return
-    const front = "";
-    const back = "pomme";
-    expect(!front.trim() || !back.trim()).toBe(true);
-
-    const front2 = "Apfel";
-    const back2 = "";
-    expect(!front2.trim() || !back2.trim()).toBe(true);
-
-    const front3 = "   ";
-    const back3 = "pomme";
-    expect(!front3.trim() || !back3.trim()).toBe(true);
-  });
-
-  it("valid flashcard passes trim check", () => {
-    const front = "Apfel";
-    const back = "pomme";
-    expect(!front.trim() || !back.trim()).toBe(false);
-  });
-
-  it("SRS card schema validates flashcard data", () => {
-    const card = SrsCardSchema.parse({
-      id: 1,
-      word_id: 999,
-      source_word: "Apfel",
-      target_word: "pomme",
-      gender: "m",
-      plural: null,
-      level: null,
-      category: null,
-      example_source: null,
-      example_target: null,
-      repetitions: 0,
-      ease_factor: 2.5,
-      interval_days: 0,
-      next_review: "2026-03-18",
-      last_score: null,
-    });
-    expect(card.source_word).toBe("Apfel");
-    expect(card.repetitions).toBe(0);
-  });
-
-  it("favorite word schema validates", () => {
-    const fav = FavoriteWordSchema.parse({
-      id: 1,
-      word_id: 42,
-      source_word: "Haus",
-      target_word: "maison",
-      gender: "n",
-      level: "A1",
-      category: "home",
-    });
-    expect(fav.source_word).toBe("Haus");
-    expect(fav.word_id).toBe(42);
-  });
-
-  it("export format includes progress data structure", () => {
-    // Export returns a Record<string, unknown> containing SRS data
-    const exportData: Record<string, unknown> = {
-      version: "2.0",
-      language_pair_id: 1,
-      cards: [
-        { word_id: 1, repetitions: 5, ease_factor: 2.6 },
-        { word_id: 2, repetitions: 0, ease_factor: 2.5 },
-      ],
-      favorites: [1, 2, 3],
-    };
-    expect(exportData).toBeDefined();
-    expect(Array.isArray(exportData.cards)).toBe(true);
-    expect(Array.isArray(exportData.favorites)).toBe(true);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 8. User Journey: Chat Flow
+// 6. User Journey: Chat Flow
 // ─────────────────────────────────────────────────────────────────────
 describe("User Journey: Chat Flow", () => {
   it("chat message structure is valid", () => {
@@ -667,32 +261,7 @@ describe("User Journey: Chat Flow", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 9. User Journey: Stats Display
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Stats Display", () => {
-  it("SRS stats show review summary", () => {
-    const srsStats = SrsStatsSchema.parse({
-      total_cards: 150,
-      due_count: 12,
-      average_accuracy: 87.5,
-    });
-    expect(srsStats.total_cards).toBe(150);
-    expect(srsStats.due_count).toBe(12);
-  });
-
-  it("accuracy calculation works", () => {
-    // accuracy = Math.round(average_accuracy)
-    const stats = SrsStatsSchema.parse({
-      total_cards: 50,
-      due_count: 5,
-      average_accuracy: 87.5,
-    });
-    expect(Math.round(stats.average_accuracy)).toBe(88);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 10. User Journey: Import/Export
+// 7. User Journey: Import/Export
 // ─────────────────────────────────────────────────────────────────────
 describe("User Journey: Import/Export", () => {
   it("import format validation accepts valid content string", () => {
@@ -735,24 +304,6 @@ describe("User Journey: AI Provider Configuration", () => {
     expect(settings.ai_provider).toBe("claude-code");
   });
 
-  it("claude-code provider does not require API key", () => {
-    const provider = AI_PROVIDERS.find((p) => p.value === "claude-code");
-    expect(provider).toBeDefined();
-    expect(provider!.noKey).toBe(true);
-  });
-
-  it("anthropic provider requires API key", () => {
-    const provider = AI_PROVIDERS.find((p) => p.value === "anthropic");
-    expect(provider).toBeDefined();
-    expect(provider!.noKey).toBe(false);
-  });
-
-  it("ollama provider does not require API key", () => {
-    const provider = AI_PROVIDERS.find((p) => p.value === "ollama");
-    expect(provider).toBeDefined();
-    expect(provider!.noKey).toBe(true);
-  });
-
   it("AI settings schema validates provider + model + key", () => {
     const ai = AiSettingsSchema.parse({
       provider: "anthropic",
@@ -779,27 +330,6 @@ describe("User Journey: AI Provider Configuration", () => {
     expect(s2.ai_model).toBe("gpt-4o-mini");
   });
 
-  it("all AI_PROVIDERS from onboarding have value and label", () => {
-    for (const provider of AI_PROVIDERS) {
-      expect(provider.value).toBeTruthy();
-      expect(provider.label).toBeTruthy();
-      expect(typeof provider.noKey).toBe("boolean");
-    }
-  });
-
-  it("providers without key include claude-code and ollama", () => {
-    const noKeyProviders = AI_PROVIDERS.filter((p) => p.noKey);
-    const values = noKeyProviders.map((p) => p.value);
-    expect(values).toContain("claude-code");
-    expect(values).toContain("ollama");
-  });
-
-  it("providers requiring key include anthropic and openai", () => {
-    const keyProviders = AI_PROVIDERS.filter((p) => !p.noKey);
-    const values = keyProviders.map((p) => p.value);
-    expect(values).toContain("anthropic");
-    expect(values).toContain("openai");
-  });
 });
 
 
@@ -965,31 +495,6 @@ describe("User Journey: Error Tracking", () => {
     expect(params.wordOrTopic).toBeTruthy();
     expect(params.userAnswer).toBeTruthy();
     expect(params.correctAnswer).toBeTruthy();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 18. User Journey: Maintenance Operations
-// ─────────────────────────────────────────────────────────────────────
-describe("User Journey: Maintenance Operations", () => {
-  it("clear cache is a simple operation", () => {
-    // clearCache() returns a string message
-    const expectedReturn = "string";
-    expect(expectedReturn).toBe("string");
-  });
-
-  it("reset progress is destructive and returns confirmation", () => {
-    // resetProgress() returns a string
-    const expectedReturn = "string";
-    expect(expectedReturn).toBe("string");
-  });
-
-  it("reset onboarding allows re-starting setup", () => {
-    localStorage.clear();
-    markOnboardingDone();
-    expect(isOnboardingDone()).toBe(true);
-    resetOnboarding();
-    expect(isOnboardingDone()).toBe(false);
   });
 });
 

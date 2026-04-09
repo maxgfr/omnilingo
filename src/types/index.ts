@@ -34,40 +34,6 @@ export const WordSchema = z.object({
   example_target: z.string().nullable(),
 });
 
-export const SrsCardSchema = z.object({
-  id: z.number(),
-  word_id: z.number(),
-  source_word: z.string(),
-  target_word: z.string(),
-  gender: z.string().nullable(),
-  plural: z.string().nullable(),
-  level: z.string().nullable(),
-  category: z.string().nullable(),
-  example_source: z.string().nullable(),
-  example_target: z.string().nullable(),
-  repetitions: z.number(),
-  ease_factor: z.number(),
-  interval_days: z.number(),
-  next_review: z.string(),
-  last_score: z.number().nullable(),
-  card_type: z.string().default("translation"),
-  deck: z.string().default("default"),
-  cloze_sentence: z.string().nullable().optional(),
-});
-
-export const SrsStatsSchema = z.object({
-  total_cards: z.number(),
-  due_count: z.number(),
-  average_accuracy: z.number(),
-});
-
-export const DeckInfoSchema = z.object({
-  name: z.string(),
-  card_count: z.number(),
-  due_count: z.number(),
-});
-export type DeckInfo = z.infer<typeof DeckInfoSchema>;
-
 export const GrammarTopicSchema = z.object({
   id: z.string(),
   language_pair_id: z.number(),
@@ -138,7 +104,19 @@ export const FavoriteWordSchema = z.object({
   gender: z.string().nullable(),
   level: z.string().nullable(),
   category: z.string().nullable(),
+  tags: z.string().nullable(),
+  example_source: z.string().nullable(),
+  example_target: z.string().nullable(),
 });
+
+export const FavoriteListSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  language_pair_id: z.number(),
+  item_count: z.number(),
+  created_at: z.string(),
+});
+export type FavoriteList = z.infer<typeof FavoriteListSchema>;
 
 export const GrammarSrsStateSchema = z.object({
   topic_id: z.string(),
@@ -176,8 +154,6 @@ export const ConversationSessionSchema = z.object({
 export type Settings = z.infer<typeof SettingsSchema>;
 export type LanguagePair = z.infer<typeof LanguagePairSchema>;
 export type Word = z.infer<typeof WordSchema>;
-export type SrsCard = z.infer<typeof SrsCardSchema>;
-export type SrsStats = z.infer<typeof SrsStatsSchema>;
 export type GrammarTopic = z.infer<typeof GrammarTopicSchema>;
 export type Exercise = z.infer<typeof ExerciseSchema>;
 export type Verb = z.infer<typeof VerbSchema>;
@@ -187,4 +163,4 @@ export type FavoriteWord = z.infer<typeof FavoriteWordSchema>;
 export type GrammarSrsState = z.infer<typeof GrammarSrsStateSchema>;
 export type ConversationScenario = z.infer<typeof ConversationScenarioSchema>;
 export type ConversationSession = z.infer<typeof ConversationSessionSchema>;
-export type ViewName = "dictionary" | "grammar" | "conjugation" | "flashcards" | "conversation" | "rephrase" | "corrector" | "synonyms" | "text-analysis" | "settings";
+export type ViewName = "dictionary" | "grammar" | "conjugation" | "conversation" | "rephrase" | "corrector" | "synonyms" | "text-analysis" | "settings";

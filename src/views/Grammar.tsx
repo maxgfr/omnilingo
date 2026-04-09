@@ -1,20 +1,24 @@
 import { type ReactElement, useEffect, useState, useCallback, useMemo } from "react";
 import Fuse from "fuse.js";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   CheckCircle,
   Circle,
-  MessageCircle,
   Trophy,
   Wand2,
   Loader2,
   Clock,
+  Save,
+  Trash2,
+  Send,
+  MessageCircle,
+  PenLine,
 } from "lucide-react";
 import { useFeaturePair } from "../lib/useFeaturePair";
-import { useAppStore } from "../store/useAppStore";
+import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
 import { addToHistory } from "../lib/ai-cache";
+import { formatMessage } from "../lib/markdown";
 import * as bridge from "../lib/bridge";
 import { QCM, FillBlank, TrueFalse } from "../components/Exercise";
 import Spinner from "../components/ui/Spinner";
@@ -24,6 +28,9 @@ import ExamplePreview from "../components/ui/ExamplePreview";
 import RecentSearches from "../components/ui/RecentSearches";
 import { GRAMMAR_EXAMPLE } from "../lib/exampleData";
 import type { GrammarTopic, GrammarSrsState, Exercise } from "../types";
+
+// Module-level cache to avoid reloading on tab switch
+let _grammarCache: { pairId: number; topics: GrammarTopic[]; dueTopics: GrammarSrsState[] } | null = null;
 
 const levelColors: Record<string, string> = {
   A1: "text-emerald-600 dark:text-emerald-400",
@@ -73,7 +80,7 @@ function renderMarkdown(text: string) {
 export default function Grammar() {
   const { t } = useTranslation();
   const { activePair } = useFeaturePair("grammar");
-  const navigate = useNavigate();
+  const isAiConfigured = useAppStore(selectIsAiConfigured);
 
   // Restore cached state
   const cachedState = useAppStore.getState().grammarCache;
@@ -84,6 +91,7 @@ export default function Grammar() {
   const [exerciseResults, setExerciseResults] = useState<boolean[]>([]);
   const [exercisesDone, setExercisesDone] = useState(false);
   const [searchQuery, setSearchQuery] = useState(cachedState?.searchQuery ?? "");
+  const [statusFilter, setStatusFilter] = useState<"all" | "due" | "completed" | "notStarted">("all");
 
   // SRS due topics
   const [dueTopics, setDueTopics] = useState<GrammarSrsState[]>([]);
@@ -127,28 +135,41 @@ export default function Grammar() {
       setLoading(false);
       return;
     }
+
+    const restoreSelected = (loadedTopics: GrammarTopic[]) => {
+      if (isRestoringCache && cache.selectedTopicId != null) {
+        if (cache.selectedTopicId === "ai-generated" && cache.aiLesson) {
+          try {
+            const restored = JSON.parse(cache.aiLesson) as GrammarTopic;
+            setSelectedTopic(restored);
+            setAiLesson(restored);
+          } catch { /* ignore */ }
+        } else {
+          const restored = loadedTopics.find((tp) => tp.id === cache.selectedTopicId);
+          if (restored) setSelectedTopic(restored);
+        }
+      }
+    };
+
+    // Use module-level cache if pair hasn't changed
+    if (_grammarCache && _grammarCache.pairId === activePair.id) {
+      setTopics(_grammarCache.topics);
+      setDueTopics(_grammarCache.dueTopics);
+      restoreSelected(_grammarCache.topics);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     Promise.all([
       bridge.getGrammarTopics(activePair.id),
       bridge.getDueGrammarTopics(activePair.id),
     ])
       .then(([loadedTopics, loadedDue]) => {
+        _grammarCache = { pairId: activePair.id, topics: loadedTopics, dueTopics: loadedDue };
         setTopics(loadedTopics);
         setDueTopics(loadedDue);
-
-        // Restore selected topic from cache
-        if (isRestoringCache && cache.selectedTopicId != null) {
-          if (cache.selectedTopicId === "ai-generated" && cache.aiLesson) {
-            try {
-              const restored = JSON.parse(cache.aiLesson) as GrammarTopic;
-              setSelectedTopic(restored);
-              setAiLesson(restored);
-            } catch { /* ignore */ }
-          } else {
-            const restored = loadedTopics.find((tp) => tp.id === cache.selectedTopicId);
-            if (restored) setSelectedTopic(restored);
-          }
-        }
+        restoreSelected(loadedTopics);
       })
       .catch((err) => console.error("Failed to load grammar topics:", err))
       .finally(() => setLoading(false));
@@ -165,8 +186,17 @@ export default function Grammar() {
     ? fuse.search(searchQuery.trim()).map((r) => r.item)
     : topics;
 
+  // Filter topics based on status filter
+  const statusFilteredTopics = filteredTopics.filter((topic) => {
+    if (statusFilter === "all") return true;
+    if (statusFilter === "due") return dueTopicIds.has(topic.id);
+    if (statusFilter === "completed") return topic.completed;
+    if (statusFilter === "notStarted") return !topic.completed && !topic.score_total;
+    return true;
+  });
+
   // Group topics by level
-  const topicsByLevel = filteredTopics.reduce<Record<string, GrammarTopic[]>>((acc, topic) => {
+  const topicsByLevel = statusFilteredTopics.reduce<Record<string, GrammarTopic[]>>((acc, topic) => {
     const level = topic.level || "Other";
     if (!acc[level]) acc[level] = [];
     acc[level].push(topic);
@@ -192,9 +222,12 @@ export default function Grammar() {
     setSelectedTopic(null);
     setExerciseResults([]);
     setExercisesDone(false);
+    setEditing(false);
+    setEditForm(null);
     // Reload topics and due list to reflect any completion/review changes
     if (activePair) {
-      bridge.getGrammarTopics(activePair.id).then((topics) => setTopics(topics));
+      _grammarCache = null; // invalidate cache
+      bridge.getGrammarTopics(activePair.id).then((t) => setTopics(t));
       bridge.getDueGrammarTopics(activePair.id).then((due) => setDueTopics(due));
     }
   }, [activePair]);
@@ -300,13 +333,120 @@ Return ONLY valid JSON, no markdown fences.`;
     }
   }, [activePair, aiTopic, generatingLesson]);
 
-  const askClaude = useCallback(() => {
-    if (!selectedTopic) return;
-    const question = encodeURIComponent(
-      `Explique-moi le sujet de grammaire : "${selectedTopic.title}". ${selectedTopic.explanation}`,
-    );
-    navigate(`/chat?q=${question}`);
-  }, [selectedTopic, navigate]);
+  // ── Save AI lesson to DB ──
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSaveLesson = useCallback(async () => {
+    if (!activePair || !selectedTopic || saving) return;
+    setSaving(true);
+    try {
+      const newId = await bridge.saveGrammarTopic({
+        pairId: activePair.id,
+        level: selectedTopic.level || "A2",
+        title: selectedTopic.title,
+        titleSource: selectedTopic.title_source ?? undefined,
+        explanation: selectedTopic.explanation,
+        keyPoints: selectedTopic.key_points,
+        examples: selectedTopic.examples,
+        exercises: selectedTopic.exercises,
+      });
+      // Update the topic in-place with the new DB id
+      const updatedTopic = { ...selectedTopic, id: newId };
+      setSelectedTopic(updatedTopic);
+      setAiLesson(null); // No longer "ai-generated"
+      setSaved(true);
+      // Reload topics
+      _grammarCache = null;
+      const reloaded = await bridge.getGrammarTopics(activePair.id);
+      setTopics(reloaded);
+    } catch (err) {
+      console.error("Failed to save lesson:", err);
+    } finally {
+      setSaving(false);
+    }
+  }, [activePair, selectedTopic, saving]);
+
+  // ── Edit topic ──
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<{ title: string; explanation: string; keyPoints: string[] } | null>(null);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!activePair || !selectedTopic || !editForm) return;
+    try {
+      // Delete old and re-create with edits
+      if (selectedTopic.id !== "ai-generated") {
+        await bridge.deleteGrammarTopic(selectedTopic.id, activePair.id);
+      }
+      const newId = await bridge.saveGrammarTopic({
+        pairId: activePair.id,
+        level: selectedTopic.level || "A2",
+        title: editForm.title,
+        titleSource: selectedTopic.title_source ?? undefined,
+        explanation: editForm.explanation,
+        keyPoints: editForm.keyPoints,
+        examples: selectedTopic.examples,
+        exercises: selectedTopic.exercises,
+      });
+      _grammarCache = null;
+      const reloaded = await bridge.getGrammarTopics(activePair.id);
+      setTopics(reloaded);
+      const updated = reloaded.find((t) => t.id === newId);
+      if (updated) setSelectedTopic(updated);
+      setEditing(false);
+      setEditForm(null);
+    } catch (err) {
+      console.error("Failed to save edit:", err);
+    }
+  }, [activePair, selectedTopic, editForm]);
+
+  // ── Delete topic ──
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDeleteTopic = useCallback(async () => {
+    if (!activePair || !selectedTopic) return;
+    try {
+      await bridge.deleteGrammarTopic(selectedTopic.id, activePair.id);
+      _grammarCache = null;
+      setConfirmDelete(false);
+      goBackToList();
+    } catch (err) {
+      console.error("Failed to delete topic:", err);
+    }
+  }, [activePair, selectedTopic, goBackToList]);
+
+  // ── Inline AI chat ──
+  const [chatMessages, setChatMessages] = useState<{ role: string; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+
+  const handleChatSend = useCallback(async () => {
+    if (!chatInput.trim() || chatLoading || !selectedTopic || !activePair) return;
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    const newMessages = [...chatMessages, { role: "user", content: userMsg }];
+    setChatMessages(newMessages);
+    setChatLoading(true);
+
+    try {
+      const systemPrompt = `You are a bilingual grammar tutor for ${activePair.source_name} and ${activePair.target_name}.
+The current lesson is about "${selectedTopic.title}".
+Lesson content: ${selectedTopic.explanation}
+Answer questions about this topic. Be concise. Write explanations in ${activePair.target_name}, but always include examples and grammar forms in both ${activePair.source_name} and ${activePair.target_name}.`;
+
+      const apiMessages = [
+        { role: "system", content: systemPrompt },
+        ...newMessages.slice(-10),
+      ];
+      const response = await bridge.askAiConversation(apiMessages);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: response }]);
+    } catch (err) {
+      setChatMessages((prev) => [...prev, { role: "assistant", content: `Erreur: ${err}` }]);
+    } finally {
+      setChatLoading(false);
+    }
+  }, [chatInput, chatLoading, chatMessages, selectedTopic, activePair]);
 
   // Loading state
   if (loading) {
@@ -420,9 +560,17 @@ Return ONLY valid JSON, no markdown fences.`;
               <CheckCircle size={16} className="text-emerald-500" />
             )}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {selectedTopic.title}
-          </h1>
+          {editing && editForm ? (
+            <input
+              value={editForm.title}
+              onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+              className="w-full text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
+            />
+          ) : (
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {selectedTopic.title}
+            </h1>
+          )}
           {selectedTopic.title_source && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {selectedTopic.title_source}
@@ -432,15 +580,60 @@ Return ONLY valid JSON, no markdown fences.`;
 
         {/* Explanation */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-6">
-          <div className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-3">
-            {selectedTopic.explanation.split("\n").map((paragraph, i) => (
-              <p key={i}>{renderMarkdown(paragraph)}</p>
-            ))}
-          </div>
+          {editing && editForm ? (
+            <textarea
+              value={editForm.explanation}
+              onChange={(e) => setEditForm({ ...editForm, explanation: e.target.value })}
+              rows={8}
+              className="w-full text-gray-700 dark:text-gray-300 leading-relaxed bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-y"
+            />
+          ) : (
+            <div className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-3">
+              {selectedTopic.explanation.split("\n").map((paragraph, i) => (
+                <p key={i}>{renderMarkdown(paragraph)}</p>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Key points */}
-        {selectedTopic.key_points && selectedTopic.key_points.length > 0 && (
+        {editing && editForm ? (
+          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-5 mb-6">
+            <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-3 text-sm uppercase tracking-wide">
+              {t("grammar.keyPoints")}
+            </h3>
+            <div className="space-y-2">
+              {editForm.keyPoints.map((point, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    value={point}
+                    onChange={(e) => {
+                      const updated = [...editForm.keyPoints];
+                      updated[i] = e.target.value;
+                      setEditForm({ ...editForm, keyPoints: updated });
+                    }}
+                    className="flex-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
+                  />
+                  <button
+                    onClick={() => {
+                      const updated = editForm.keyPoints.filter((_, j) => j !== i);
+                      setEditForm({ ...editForm, keyPoints: updated });
+                    }}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setEditForm({ ...editForm, keyPoints: [...editForm.keyPoints, ""] })}
+                className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium"
+              >
+                + {t("grammar.addKeyPoint", "Ajouter un point")}
+              </button>
+            </div>
+          </div>
+        ) : selectedTopic.key_points && selectedTopic.key_points.length > 0 ? (
           <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-5 mb-6">
             <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-3 text-sm uppercase tracking-wide">
               {t("grammar.keyPoints")}
@@ -457,7 +650,7 @@ Return ONLY valid JSON, no markdown fences.`;
               ))}
             </ul>
           </div>
-        )}
+        ) : null}
 
         {/* Examples table */}
         {selectedTopic.examples && selectedTopic.examples.length > 0 && (
@@ -585,15 +778,104 @@ Return ONLY valid JSON, no markdown fences.`;
           </div>
         )}
 
-        {/* Ask Claude button */}
-        <div className="flex gap-3">
-          <button
-            onClick={askClaude}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl text-sm font-semibold transition-colors"
-          >
-            <MessageCircle size={16} />
-            {t("grammar.askClaude")}
-          </button>
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-3">
+          {/* Save button (only for AI-generated unsaved lessons) */}
+          {aiLesson && selectedTopic?.id === "ai-generated" && !saved && (
+            <button
+              onClick={handleSaveLesson}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {t("common.save")}
+            </button>
+          )}
+          {saved && (
+            <span className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-semibold">
+              <CheckCircle size={16} />
+              {t("common.save")}
+            </span>
+          )}
+
+          {/* Save/Cancel edit buttons */}
+          {editing && editForm && (
+            <>
+              <button
+                onClick={handleSaveEdit}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                <Save size={16} />
+                {t("common.save")}
+              </button>
+              <button
+                onClick={() => { setEditing(false); setEditForm(null); }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-semibold transition-colors"
+              >
+                {t("common.cancel")}
+              </button>
+            </>
+          )}
+
+          {/* Chat toggle */}
+          {isAiConfigured && (
+            <button
+              onClick={() => { setShowChat(!showChat); if (!showChat) setChatMessages([]); }}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                showChat
+                  ? "bg-amber-500 text-white"
+                  : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+              }`}
+            >
+              <MessageCircle size={16} />
+              {t("grammar.askAi", "Poser une question")}
+            </button>
+          )}
+
+          {/* Edit button */}
+          {selectedTopic && selectedTopic.id !== "ai-generated" && !editing && (
+            <button
+              onClick={() => {
+                setEditing(true);
+                setEditForm({
+                  title: selectedTopic.title,
+                  explanation: selectedTopic.explanation,
+                  keyPoints: selectedTopic.key_points || [],
+                });
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-gray-400 hover:text-amber-500 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <PenLine size={16} />
+            </button>
+          )}
+
+          {/* Delete button */}
+          {selectedTopic && selectedTopic.id !== "ai-generated" && (
+            confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDeleteTopic}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold transition-colors"
+                >
+                  {t("common.confirm")}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-gray-400 hover:text-red-500 rounded-xl text-sm font-semibold transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            )
+          )}
+
           <button
             onClick={goBackToList}
             className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl text-sm font-semibold transition-colors"
@@ -602,6 +884,55 @@ Return ONLY valid JSON, no markdown fences.`;
             {t("common.back")}
           </button>
         </div>
+
+        {/* Inline AI Chat */}
+        {showChat && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div className="max-h-64 overflow-y-auto p-4 space-y-3">
+              {chatMessages.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">
+                  {t("grammar.askAboutTopic", "Posez une question sur cette leçon...")}
+                </p>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+                    msg.role === "user"
+                      ? "bg-amber-500 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
+                  }`}>
+                    {msg.role === "assistant" ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
+                    ) : msg.content}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-xl px-3 py-2">
+                    <Loader2 size={14} className="animate-spin text-gray-400" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="border-t border-gray-200 dark:border-gray-700 p-3 flex gap-2">
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleChatSend()}
+                placeholder={t("grammar.askAboutTopic", "Posez une question...")}
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder:text-gray-400"
+              />
+              <button
+                onClick={handleChatSend}
+                disabled={!chatInput.trim() || chatLoading}
+                className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors disabled:opacity-50"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -658,6 +989,28 @@ Return ONLY valid JSON, no markdown fences.`;
 
       <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder={t("grammar.searchTopics")} />
 
+      <div className="flex flex-wrap gap-2">
+        {(["all", "due", "completed", "notStarted"] as const).map((filter) => (
+          <button
+            key={filter}
+            onClick={() => setStatusFilter(filter)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              statusFilter === filter
+                ? "bg-amber-500 text-white"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
+          >
+            {filter === "all" ? t("common.all", "Tous")
+              : filter === "due" ? t("grammar.dueReview", "À réviser")
+              : filter === "completed" ? t("grammar.completed", "Complété")
+              : t("grammar.notStarted", "Non commencé")}
+            {filter === "due" && dueTopics.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-600 text-white text-[10px]">{dueTopics.length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-8">
         {sortedLevels.map((level) => {
           const levelLabelKeys: Record<string, string> = {
@@ -679,10 +1032,16 @@ Return ONLY valid JSON, no markdown fences.`;
 
           return (
             <div key={level}>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3 mb-3">
                 <h2 className={`text-sm font-bold uppercase tracking-wide ${levelInfo.color}`}>
                   {levelInfo.label}
                 </h2>
+                <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full transition-all"
+                    style={{ width: `${levelTopics.length > 0 ? (completedInLevel / levelTopics.length) * 100 : 0}%` }}
+                  />
+                </div>
                 <span className="text-xs text-gray-400 dark:text-gray-500">
                   {completedInLevel}/{levelTopics.length}
                 </span>

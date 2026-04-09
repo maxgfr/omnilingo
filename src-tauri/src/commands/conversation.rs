@@ -81,6 +81,25 @@ pub fn save_conversation_scenario(
 }
 
 #[tauri::command]
+pub fn update_conversation_scenario(
+    state: State<'_, DbState>,
+    scenario_id: i64,
+    name: String,
+    icon: String,
+    description: String,
+    system_prompt: String,
+) -> Result<(), String> {
+    let db = state.db();
+    db.execute(
+        "UPDATE conversation_scenarios SET name = ?1, icon = ?2, description = ?3, system_prompt = ?4
+         WHERE id = ?5 AND is_builtin = 0",
+        rusqlite::params![name, icon, description, system_prompt, scenario_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn delete_conversation_scenario(
     state: State<'_, DbState>,
     scenario_id: i64,

@@ -1,15 +1,17 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2 } from "lucide-react";
-import { cachedAskAi, addToHistory, getPromptContext } from "../../lib/ai-cache";
+import { useNavigate } from "react-router-dom";
+import { Search, Loader2, Trash2, BookOpen } from "lucide-react";
+import { cachedAskAi, addToHistory, getPromptContext, clearToolHistory } from "../../lib/ai-cache";
 import { renderClickable, parseAiJson, formatMessage } from "../../lib/markdown";
 import type { LanguagePair } from "../../types";
+import { useAppStore } from "../../store/useAppStore";
 import ExamplePreview from "../ui/ExamplePreview";
 import RecentSearches from "../ui/RecentSearches";
 import { SYNONYMS_EXAMPLE } from "../../lib/exampleData";
 
 interface SynonymEntry { word: string; register: string; definition: string; example: { source: string; target: string }; }
-interface SynonymsResult { synonyms: SynonymEntry[]; }
+interface SynonymsResult { synonyms: SynonymEntry[]; antonyms?: { word: string; definition: string }[]; }
 
 const REGISTER_STYLES: Record<string, string> = {
   formal: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
@@ -24,16 +26,30 @@ interface ToolProps { onWordClick?: (word: string) => void; initialWord?: string
 
 export default function SynonymsTool({ onWordClick, initialWord, activePair, onInputChange }: ToolProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [input, setInput] = useState(initialWord || "");
 
   const handleInputChange = (value: string) => {
     setInput(value);
     onInputChange?.(value);
   };
-  const [structured, setStructured] = useState<SynonymsResult | null>(null);
-  const [fallback, setFallback] = useState<string | null>(null);
+  const cachedResult = useAppStore.getState().toolResultCache["synonyms"];
+  const [structured, setStructured] = useState<SynonymsResult | null>(() => {
+    if (cachedResult) try { const p = JSON.parse(cachedResult); return p.structured ?? null; } catch { return null; }
+    return null;
+  });
+  const [fallback, setFallback] = useState<string | null>(() => {
+    if (cachedResult) try { const p = JSON.parse(cachedResult); return p.fallback ?? null; } catch { return null; }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    if (structured || fallback) {
+      useAppStore.getState().setToolResult("synonyms", JSON.stringify({ structured, fallback }));
+    }
+  }, [structured, fallback]);
 
   const handleSearch = useCallback(async () => {
     if (!input.trim() || loading || !activePair) return;
@@ -43,9 +59,9 @@ export default function SynonymsTool({ onWordClick, initialWord, activePair, onI
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
-      const prompt = `Student learning ${srcName} at ${level}. Synonyms for "${input.trim()}", return JSON:
-{"synonyms":[{"word":"synonym","register":"formal|neutral|informal|literary|colloquial|technical","definition":"meaning in ${tgtName}","example":{"source":"sentence with **synonym** bold","target":"translation with **equiv** bold"}}]}
-5-10 synonyms sorted by relevance. ONLY valid JSON.
+      const prompt = `Student learning ${srcName} at ${level}. Synonyms and antonyms for "${input.trim()}", return JSON:
+{"synonyms":[{"word":"synonym","register":"formal|neutral|informal|literary|colloquial|technical","definition":"meaning in ${tgtName}","example":{"source":"sentence with **synonym** bold","target":"translation with **equiv** bold"}}],"antonyms":[{"word":"antonym","definition":"meaning in ${tgtName}"}]}
+5-10 synonyms sorted by relevance. 3-5 antonyms if applicable. ONLY valid JSON.
 ${enriched}`;
       addToHistory(activePair.id, "synonyms", input.trim());
       const response = await cachedAskAi("synonyms", input.trim(), activePair.id, prompt);
@@ -72,6 +88,13 @@ ${enriched}`;
         <button onClick={handleSearch} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.synonyms.searching")}</> : t("tools.synonyms.search")}
         </button>
+        {activePair && (
+          <button onClick={() => {
+            clearToolHistory(activePair.id, "synonyms");
+            setStructured(null); setFallback(null); handleInputChange(""); useAppStore.getState().setToolResult("synonyms", null);          }} className="flex items-center px-4 py-2.5 text-gray-400 hover:text-red-500 text-sm rounded-lg transition-colors" title={t("common.clear")}>
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
 
       {!structured && !fallback && !loading && (
@@ -104,6 +127,17 @@ ${enriched}`;
                 <div key={i} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-amber-600 dark:hover:text-amber-400" onClick={(e) => { e.stopPropagation(); onWordClick?.(syn.word); }}>{syn.word}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        useAppStore.getState().setDictionaryCache({ searchQuery: syn.word, selectedWordId: null, aiContent: null });
+                        navigate("/dictionary");
+                      }}
+                      className="p-1 rounded text-gray-400 hover:text-amber-500 transition-colors"
+                      title={t("tools.synonyms.viewInDictionary", "Voir dans le dictionnaire")}
+                    >
+                      <BookOpen size={12} />
+                    </button>
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${REGISTER_STYLES[syn.register] || REGISTER_STYLES.neutral}`}>{syn.register}</span>
                     <span className="text-sm text-gray-500 dark:text-gray-400 italic ml-auto">{syn.definition}</span>
                   </div>
@@ -115,6 +149,34 @@ ${enriched}`;
               ))}
             </div>
           </div>
+          {structured?.antonyms && structured.antonyms.length > 0 && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {t("tools.synonyms.antonyms", "Antonymes")}
+                </span>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                {structured.antonyms.map((ant, i) => (
+                  <div key={i} className="px-5 py-3 flex items-center gap-3">
+                    <span className="font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-amber-600" onClick={() => onWordClick?.(ant.word)}>{ant.word}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        useAppStore.getState().setDictionaryCache({ searchQuery: ant.word, selectedWordId: null, aiContent: null });
+                        navigate("/dictionary");
+                      }}
+                      className="p-1 rounded text-gray-400 hover:text-amber-500 transition-colors"
+                      title={t("tools.synonyms.viewInDictionary", "Voir dans le dictionnaire")}
+                    >
+                      <BookOpen size={12} />
+                    </button>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 italic">{ant.definition}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {fallback && <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm"><div className="prose prose-sm dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: formatMessage(fallback) }} /></div>}

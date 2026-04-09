@@ -100,7 +100,6 @@ pub fn delete_language_pair(state: State<'_, DbState>, pair_id: i64) -> Result<(
     ).map_err(|e| e.to_string())?;
     // Delete all related data (manual cascade — all tables referencing language_pairs)
     for sql in &[
-        "DELETE FROM srs_cards WHERE word_id IN (SELECT id FROM words WHERE language_pair_id = ?1)",
         "DELETE FROM favorites WHERE word_id IN (SELECT id FROM words WHERE language_pair_id = ?1)",
         "DELETE FROM words WHERE language_pair_id = ?1",
         "DELETE FROM grammar_progress WHERE topic_id IN (SELECT id FROM grammar_topics WHERE language_pair_id = ?1)",
@@ -158,28 +157,6 @@ pub fn export_data(state: State<'_, DbState>) -> Result<String, String> {
             }))
         }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
         export.insert("words".into(), serde_json::Value::Array(words));
-    }
-
-    // Export SRS cards
-    {
-        let mut stmt = db.prepare(
-            "SELECT sc.language_pair_id, w.source_word, w.target_word, sc.repetitions, sc.ease_factor, sc.interval_days, sc.next_review, sc.deck, sc.card_type
-             FROM srs_cards sc JOIN words w ON w.id = sc.word_id"
-        ).map_err(|e| e.to_string())?;
-        let cards: Vec<serde_json::Value> = stmt.query_map([], |row| {
-            Ok(serde_json::json!({
-                "language_pair_id": row.get::<_, i64>(0)?,
-                "source_word": row.get::<_, String>(1)?,
-                "target_word": row.get::<_, String>(2)?,
-                "repetitions": row.get::<_, i64>(3)?,
-                "ease_factor": row.get::<_, f64>(4)?,
-                "interval_days": row.get::<_, i64>(5)?,
-                "next_review": row.get::<_, String>(6)?,
-                "deck": row.get::<_, String>(7)?,
-                "card_type": row.get::<_, String>(8)?,
-            }))
-        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
-        export.insert("srs_cards".into(), serde_json::Value::Array(cards));
     }
 
     // Export favorites

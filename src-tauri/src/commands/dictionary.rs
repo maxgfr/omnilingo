@@ -36,47 +36,6 @@ fn row_to_word(row: &rusqlite::Row<'_>) -> rusqlite::Result<Word> {
 }
 
 #[tauri::command]
-pub fn get_words(
-    state: State<'_, DbState>,
-    pair_id: i64,
-    level: Option<String>,
-    limit: Option<i64>,
-    offset: Option<i64>,
-) -> Result<Vec<Word>, String> {
-    let db = state.db();
-    let limit = limit.unwrap_or(-1); // -1 = no limit in SQLite
-    let offset = offset.unwrap_or(0);
-
-    if let Some(lvl) = level {
-        let mut stmt = db
-            .prepare(
-                "SELECT id, language_pair_id, source_word, target_word, gender, plural, level, category, tags, example_source, example_target
-                 FROM words WHERE language_pair_id = ?1 AND level = ?2
-                 ORDER BY source_word LIMIT ?3 OFFSET ?4",
-            )
-            .map_err(|e| e.to_string())?;
-        let result = stmt.query_map(rusqlite::params![pair_id, lvl, limit, offset], row_to_word)
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-        Ok(result)
-    } else {
-        let mut stmt = db
-            .prepare(
-                "SELECT id, language_pair_id, source_word, target_word, gender, plural, level, category, tags, example_source, example_target
-                 FROM words WHERE language_pair_id = ?1
-                 ORDER BY source_word LIMIT ?2 OFFSET ?3",
-            )
-            .map_err(|e| e.to_string())?;
-        let result = stmt.query_map(rusqlite::params![pair_id, limit, offset], row_to_word)
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-        Ok(result)
-    }
-}
-
-#[tauri::command]
 pub fn search_words(
     state: State<'_, DbState>,
     pair_id: i64,
@@ -119,14 +78,18 @@ pub fn search_words(
         param_values.push(rusqlite::types::Value::Text(cat.clone()));
     }
 
-    // Order by relevance: exact match > prefix > contains, prioritize active pair
+    // Order by relevance: exact > prefix > contains, source before target, shorter words first
     sql.push_str(
         " ORDER BY
            CASE WHEN w.language_pair_id = ?1 THEN 0 ELSE 1 END,
-           CASE WHEN unaccent(w.source_word) = ?3 OR unaccent(w.target_word) = ?3 THEN 0
-                WHEN unaccent(w.source_word) LIKE ?4 OR unaccent(w.target_word) LIKE ?4 THEN 1
-                WHEN unaccent(w.source_word) LIKE ?5 OR unaccent(w.target_word) LIKE ?5 THEN 2
-                ELSE 3 END,
+           CASE
+             WHEN unaccent(w.source_word) = ?3 THEN 0
+             WHEN unaccent(w.target_word) = ?3 THEN 1
+             WHEN unaccent(w.source_word) LIKE ?4 THEN 2
+             WHEN unaccent(w.target_word) LIKE ?4 THEN 3
+             ELSE 4
+           END,
+           length(w.source_word),
            w.source_word
          LIMIT 100"
     );
@@ -143,106 +106,24 @@ pub fn search_words(
 }
 
 #[tauri::command]
-pub fn get_unlearned_words(
+pub fn get_all_dictionary_words(
     state: State<'_, DbState>,
     pair_id: i64,
-    level: Option<String>,
-    limit: Option<i64>,
+    reverse_pair_id: Option<i64>,
 ) -> Result<Vec<Word>, String> {
     let db = state.db();
-    let limit = limit.unwrap_or(10);
-
-    if let Some(lvl) = level {
-        let levels = match lvl.as_str() {
-            "A1" => "'A1'",
-            "A2" => "'A1','A2'",
-            _ => "'A1','A2','B1'",
-        };
-        let sql = format!(
-            "SELECT w.id, w.language_pair_id, w.source_word, w.target_word, w.gender, w.plural, w.level, w.category, w.tags, w.example_source, w.example_target
-             FROM words w
-             LEFT JOIN srs_cards sc ON sc.word_id = w.id
-             WHERE w.language_pair_id = ?1 AND sc.id IS NULL AND w.level IN ({})
-             ORDER BY RANDOM() LIMIT ?2",
-            levels
-        );
-        let mut stmt = db.prepare(&sql).map_err(|e| e.to_string())?;
-        let result = stmt.query_map(rusqlite::params![pair_id, limit], row_to_word)
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-        Ok(result)
-    } else {
-        let mut stmt = db
-            .prepare(
-                "SELECT w.id, w.language_pair_id, w.source_word, w.target_word, w.gender, w.plural, w.level, w.category, w.tags, w.example_source, w.example_target
-                 FROM words w
-                 LEFT JOIN srs_cards sc ON sc.word_id = w.id
-                 WHERE w.language_pair_id = ?1 AND sc.id IS NULL
-                 ORDER BY RANDOM() LIMIT ?2",
-            )
-            .map_err(|e| e.to_string())?;
-        let result = stmt.query_map(rusqlite::params![pair_id, limit], row_to_word)
-            .map_err(|e| e.to_string())?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
-        Ok(result)
-    }
-}
-
-/// Add a custom word
-#[tauri::command]
-pub fn add_custom_word(
-    state: State<'_, DbState>,
-    pair_id: i64,
-    source_word: String,
-    target_word: String,
-    gender: Option<String>,
-    level: Option<String>,
-    category: Option<String>,
-) -> Result<i64, String> {
-    let db = state.db();
-    // Try insert, or get existing word id if duplicate
-    match db.execute(
-        "INSERT INTO words (language_pair_id, source_word, target_word, gender, level, category) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        rusqlite::params![pair_id, source_word, target_word, gender, level, category],
-    ) {
-        Ok(_) => Ok(db.last_insert_rowid()),
-        Err(rusqlite::Error::SqliteFailure(err, _)) if err.code == rusqlite::ffi::ErrorCode::ConstraintViolation => {
-            // Word already exists, return its id
-            db.query_row(
-                "SELECT id FROM words WHERE language_pair_id = ?1 AND source_word = ?2",
-                rusqlite::params![pair_id, source_word],
-                |row| row.get(0),
-            ).map_err(|e| e.to_string())
-        }
-        Err(e) => Err(e.to_string()),
-    }
-}
-
-#[tauri::command]
-pub fn get_word_count(state: State<'_, DbState>, pair_id: i64) -> Result<i64, String> {
-    let db = state.db();
-    db.query_row(
-        "SELECT COUNT(*) FROM words WHERE language_pair_id = ?1",
-        [pair_id],
-        |row| row.get(0),
-    )
-    .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn get_categories(state: State<'_, DbState>, pair_id: i64) -> Result<Vec<String>, String> {
-    let db = state.db();
+    let effective_reverse = reverse_pair_id.unwrap_or(pair_id);
     let mut stmt = db
         .prepare(
-            "SELECT DISTINCT category FROM words WHERE language_pair_id = ?1 AND category IS NOT NULL ORDER BY category",
+            "SELECT id, language_pair_id, source_word, target_word, gender, plural, level, category, tags, example_source, example_target
+             FROM words WHERE language_pair_id IN (?1, ?2)
+             ORDER BY source_word",
         )
         .map_err(|e| e.to_string())?;
     let result = stmt
-        .query_map([pair_id], |row| row.get(0))
+        .query_map(rusqlite::params![pair_id, effective_reverse], row_to_word)
         .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<String>, _>>()
+        .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
     Ok(result)
 }

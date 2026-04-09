@@ -2625,7 +2625,7 @@ dependencies = [
 
 [[package]]
 name = "omnilingo"
-version = "2.13.1"
+version = "2.13.2"
 dependencies = [
  "bzip2",
  "chrono",

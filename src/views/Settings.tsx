@@ -111,6 +111,8 @@ export default function Settings() {
   const [loadingData, setLoadingData] = useState(true);
   const [deletingAll, setDeletingAll] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
+  const [testTimer, setTestTimer] = useState(0);
+  const [testing, setTesting] = useState(false);
   const [modelCatalog, setModelCatalog] = useState<Record<string, string[]>>({});
   const [localTheme, setLocalTheme] = useState<string | null>(null);
 
@@ -240,10 +242,12 @@ export default function Settings() {
       const result = await bridge.deleteAllData();
       // Clear per-feature localStorage
       for (const key of Object.keys(localStorage)) {
-        if (key.startsWith("omnilingo-pair-") || key.startsWith("omnilingo-favs-")) {
+        if (key.startsWith("omnilingo-")) {
           localStorage.removeItem(key);
         }
       }
+      // Reset all Zustand state (decks, caches, etc.)
+      useAppStore.getState().resetAllState();
       showStatus(result);
       await reloadSettings();
       setShowDeleteAllConfirm(false);
@@ -252,6 +256,22 @@ export default function Settings() {
     } finally {
       setDeletingAll(false);
     }
+  };
+
+  const handleExportBeforeDelete = async () => {
+    try {
+      const data = await bridge.exportData();
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `omnilingo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export:", err);
+    }
+    await handleDeleteAllData();
   };
 
   // Map provider to catalog key
@@ -470,6 +490,11 @@ export default function Settings() {
             <button
               onClick={async () => {
                 showStatus(t("settings.testingConnection"));
+                setTesting(true);
+                setTestTimer(0);
+                const timerInterval = setInterval(() => {
+                  setTestTimer((prev) => prev + 1);
+                }, 1000);
                 try {
                   const response = await bridge.testAiConnection(
                     newProvider,
@@ -484,14 +509,27 @@ export default function Settings() {
                   }
                 } catch (err) {
                   showStatus(`${t("settings.connectionFailed")}: ${err}`, "error");
+                } finally {
+                  clearInterval(timerInterval);
+                  setTesting(false);
+                  setTestTimer(0);
                 }
               }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              disabled={testing}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Zap size={16} />
-              {t("settings.testConnection")}
+              {testing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+              {testing ? `${t("settings.testConnection")} (${testTimer}s)` : t("settings.testConnection")}
             </button>
           </div>
+
+          {/* Timeout warning for AI test */}
+          {testing && testTimer >= 10 && (
+            <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-400">
+              <AlertTriangle size={14} className="flex-shrink-0" />
+              {t("settings.testTakingLong", "Le test prend plus de temps que prévu... Vérifiez votre clé API et votre connexion.")}
+            </div>
+          )}
 
           {/* Current config info */}
           {aiSettings && (
@@ -625,17 +663,28 @@ export default function Settings() {
                   {t("settings.areYouSure")}
                 </p>
               </div>
-              <p className="text-xs text-red-600 dark:text-red-400/80 mb-4">
+              <p className="text-xs text-red-600 dark:text-red-400/80 mb-2">
                 {t("settings.deleteAllWarning")}
               </p>
-              <div className="flex gap-2">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                {t("settings.exportBeforeDelete", "Exporter vos données avant de supprimer ?")}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleExportBeforeDelete}
+                  disabled={deletingAll}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {deletingAll ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  {t("settings.exportAndDelete", "Exporter & Supprimer")}
+                </button>
                 <button
                   onClick={handleDeleteAllData}
                   disabled={deletingAll}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   {deletingAll ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  {t("settings.confirmDeleteAll")}
+                  {t("settings.deleteWithoutExport", "Supprimer sans exporter")}
                 </button>
                 <button
                   onClick={() => setShowDeleteAllConfirm(false)}
