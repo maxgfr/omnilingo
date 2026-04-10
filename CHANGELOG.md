@@ -1,3 +1,10 @@
+## [2.16.1](https://github.com/maxgfr/omnilingo/compare/v2.16.0...v2.16.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* remove grammar SRS and completion tracking ([00e98ec](https://github.com/maxgfr/omnilingo/commit/00e98ecd4d41468efde21865fd59bed2dab0922f))
+
 # [2.16.0](https://github.com/maxgfr/omnilingo/compare/v2.15.0...v2.16.0) (2026-04-10)
 
 
