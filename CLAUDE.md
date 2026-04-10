@@ -89,8 +89,6 @@ bun run build                                                     # tsc + vite b
 bun vitest run                                                    # Frontend unit tests
 ./node_modules/.bin/tsc --noEmit                                  # Standalone typecheck
 cargo tauri dev                                                   # Full app in dev
-cargo tauri dev --features mcp                                    # Dev + MCP bridge (for e2e)
-bun e2e/run.ts                                                    # Run e2e suite (needs --features mcp)
 cargo tauri build                                                 # Release build
 cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings  # Rust lint
 cargo test --manifest-path src-tauri/Cargo.toml                   # Rust tests
@@ -121,7 +119,7 @@ The router handles non-streaming `ask_ai` and multi-turn `ask_ai_conversation` c
 
 ## CI/CD
 
-- **`build.yml`** (push / PR on `main`): commitlint (PRs only), frontend (typecheck + vitest + Vite build) on Ubuntu, Clippy + `cargo test` on macOS and Windows in parallel, `cargo audit` for dependency vulnerabilities, and an end-to-end job on Ubuntu that builds the app with `--features mcp`, runs it under xvfb, and drives it via the MCP WebSocket bridge from `bun e2e/run.ts`.
+- **`build.yml`** (push / PR on `main`): commitlint (PRs only), frontend (typecheck + vitest + Vite build) on Ubuntu, Clippy + `cargo test` on macOS and Windows in parallel, `cargo audit` for dependency vulnerabilities. Both workflows have `concurrency.cancel-in-progress: true` so a fresh push immediately stops any older in-flight run on the same ref.
 - **`release.yml`** (tag `v*`): builds macOS (arm64 + x64) and Windows (x64) via tauri-action, creates a GitHub Release with bundled artifacts and the auto-update `latest.json`.
 
 ### GitHub Secrets (optional)

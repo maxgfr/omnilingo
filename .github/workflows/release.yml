@@ -12,6 +12,13 @@ permissions:
   issues: write
   pull-requests: write
 
+# Cancel any in-flight Release run for the same ref when a new commit is
+# pushed. Tag-triggered runs and main-branch runs each get their own group
+# so a tag push never cancels an in-progress release-from-main.
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ─────────────────────────────────────────────
   # Semantic Release (only on branch push, skipped for tag push)
