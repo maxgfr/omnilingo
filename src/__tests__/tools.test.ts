@@ -225,39 +225,52 @@ describe("Tool component imports", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// 4. i18n tools keys completeness
+// 4. i18n tools keys completeness — only the 4 active tools
 // ─────────────────────────────────────────────────────────────────────
 describe("i18n tools keys", () => {
   it("tools section exists in locale", async () => {
     const locale = await import("../i18n/locales/en.json");
     expect(locale.default.tools).toBeDefined();
-    expect(locale.default.tools.title).toBeDefined();
   });
 
-  it("pronunciation section has all keys", async () => {
+  it("corrector section has the keys the view uses", async () => {
     const locale = await import("../i18n/locales/en.json");
-    const pron = locale.default.tools.pronunciation;
-    expect(pron.noModel).toBeDefined();
-    expect(pron.tapToRecord).toBeDefined();
-    expect(pron.correct).toBeDefined();
-    expect(pron.tryAgain).toBeDefined();
-    expect(pron.heard).toBeDefined();
+    const t = locale.default.tools.corrector;
+    expect(t.inputPlaceholder).toBeDefined();
+    expect(t.correct).toBeDefined();
+    expect(t.correcting).toBeDefined();
+    expect(t.correctedVersion).toBeDefined();
+    expect(t.corrections).toBeDefined();
+    expect(t.scores.excellent).toBeDefined();
+    expect(t.scores.good).toBeDefined();
+    expect(t.scores.fair).toBeDefined();
+    expect(t.scores.poor).toBeDefined();
   });
 
-  it("reader section has all keys", async () => {
+  it("rephrase section has the keys the view uses", async () => {
     const locale = await import("../i18n/locales/en.json");
-    const reader = locale.default.tools.reader;
-    expect(reader.inputPlaceholder).toBeDefined();
-    expect(reader.analyze).toBeDefined();
-    expect(reader.analyzing).toBeDefined();
-    expect(reader.vocabulary).toBeDefined();
+    const t = locale.default.tools.rephrase;
+    expect(t.inputPlaceholder).toBeDefined();
+    expect(t.rephrase).toBeDefined();
+    expect(t.rephrasing).toBeDefined();
   });
 
-  it("daily section has text-of-day keys", async () => {
+  it("synonyms section has the keys the view uses", async () => {
     const locale = await import("../i18n/locales/en.json");
-    const daily = locale.default.tools.daily;
-    expect(daily.textTitle).toBeDefined();
-    expect(daily.showTranslation).toBeDefined();
-    expect(daily.hideTranslation).toBeDefined();
+    const t = locale.default.tools.synonyms;
+    expect(t.inputPlaceholder).toBeDefined();
+    expect(t.search).toBeDefined();
+    expect(t.searching).toBeDefined();
+    expect(t.viewInDictionary).toBeDefined();
+    expect(t.antonyms).toBeDefined();
+  });
+
+  it("mining section has the keys the view uses", async () => {
+    const locale = await import("../i18n/locales/en.json");
+    const t = locale.default.tools.mining;
+    expect(t.inputPlaceholder).toBeDefined();
+    expect(t.mine).toBeDefined();
+    expect(t.mining).toBeDefined();
+    expect(t.grammarPoint).toBeDefined();
   });
 });

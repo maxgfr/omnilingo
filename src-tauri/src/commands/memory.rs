@@ -31,14 +31,3 @@ pub fn read_memory_file(base_dir: State<'_, BaseDirState>, path: String) -> Resu
         .map(Some)
         .map_err(|e| format!("Failed to read {}: {}", path, e))
 }
-
-#[tauri::command]
-pub fn write_memory_file(base_dir: State<'_, BaseDirState>, path: String, content: String) -> Result<(), String> {
-    let file_path = safe_memory_path(&base_dir.0, &path)?;
-    if let Some(parent) = file_path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
-    }
-    std::fs::write(&file_path, &content)
-        .map_err(|e| format!("Failed to write {}: {}", path, e))
-}

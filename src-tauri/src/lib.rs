@@ -70,7 +70,6 @@ pub fn run() {
             commands::settings::delete_language_pair,
             // Memory
             commands::memory::read_memory_file,
-            commands::memory::write_memory_file,
             // AI
             commands::ai::ask_ai,
             commands::ai::ask_ai_conversation,
