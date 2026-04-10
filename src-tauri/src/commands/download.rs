@@ -4,6 +4,10 @@ use tauri::State;
 
 use crate::{BaseDirState, DbState};
 
+/// Bundled FreeDict catalog — embedded at compile time so it ships with every build,
+/// regardless of resource directory layout on macOS / Windows / Linux.
+const DICTIONARY_SOURCES_JSON: &str = include_str!("../../../data/dictionary-sources.json");
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DictionarySource {
     pub source_lang: String,
@@ -21,19 +25,9 @@ pub struct DictionarySource {
 
 /// Get the catalog of available dictionaries from the bundled manifest
 #[tauri::command]
-pub fn get_available_dictionaries(
-    base_dir: State<'_, BaseDirState>,
-) -> Result<Vec<DictionarySource>, String> {
-    let manifest_path = base_dir.0.join("data/dictionary-sources.json");
-    if !manifest_path.exists() {
-        return Ok(vec![]);
-    }
-
-    let data = std::fs::read_to_string(&manifest_path)
-        .map_err(|e| format!("Failed to read manifest: {}", e))?;
-
-    let manifest: serde_json::Value =
-        serde_json::from_str(&data).map_err(|e| format!("Invalid manifest: {}", e))?;
+pub fn get_available_dictionaries() -> Result<Vec<DictionarySource>, String> {
+    let manifest: serde_json::Value = serde_json::from_str(DICTIONARY_SOURCES_JSON)
+        .map_err(|e| format!("Invalid manifest: {}", e))?;
 
     let mut sources = Vec::new();
 
