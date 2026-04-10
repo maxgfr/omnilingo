@@ -1,3 +1,10 @@
+## [2.14.4](https://github.com/maxgfr/omnilingo/compare/v2.14.3...v2.14.4) (2026-04-10)
+
+
+### Bug Fixes
+
+* embed FreeDict catalog at compile time ([90953e2](https://github.com/maxgfr/omnilingo/commit/90953e2dd957c7afdf252cbfefd6edeae7e576e7))
+
 ## [2.14.3](https://github.com/maxgfr/omnilingo/compare/v2.14.2...v2.14.3) (2026-04-10)
 
 
