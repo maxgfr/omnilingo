@@ -39,15 +39,27 @@ pub fn run() {
                 )?;
             }
 
+            // Persistent per-user data dir.
+            //
+            // Release builds MUST use `app_data_dir()` (e.g. on macOS:
+            // ~/Library/Application Support/com.omnilingo.app). Earlier
+            // versions used `resource_dir()`, which on macOS lives inside
+            // the read-only `.app` bundle and gets wiped every time the
+            // user installs an update — destroying the SQLite DB, the
+            // downloaded FreeDict packs and the memory/ files.
             let base_dir = if cfg!(debug_assertions) {
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .parent()
                     .expect("Failed to get project root")
                     .to_path_buf()
             } else {
-                app.path()
-                    .resource_dir()
-                    .unwrap_or_else(|_| PathBuf::from("."))
+                let dir = app
+                    .path()
+                    .app_data_dir()
+                    .expect("Failed to resolve app data dir");
+                std::fs::create_dir_all(&dir)
+                    .expect("Failed to create app data dir");
+                dir
             };
 
             let _ = std::fs::create_dir_all(base_dir.join("memory/sessions"));

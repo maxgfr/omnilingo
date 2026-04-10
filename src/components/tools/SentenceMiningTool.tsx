@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Loader2, Pickaxe,
-  Trash2, AlertTriangle,
+  ChevronLeft, AlertTriangle,
 } from "lucide-react";
 import { cachedAskAi, getCachedResult, addToHistory, getPromptContext, clearToolHistory } from "../../lib/ai-cache";
 import type { LanguagePair } from "../../types";
@@ -156,12 +156,13 @@ ${input.trim()}`;
           {loading ? t("tools.mining.mining") : t("tools.mining.mine")}
         </button>
 
-        {activePair && (
+        {activePair && result && (
           <button onClick={() => {
             clearToolHistory(activePair.id, "mining");
             setResult(null); handleInputChange(""); useAppStore.getState().setToolResult("mining", null);
-          }} className="flex items-center px-4 py-2.5 text-gray-400 hover:text-red-500 text-sm rounded-xl transition-colors" title={t("common.clear")}>
-            <Trash2 size={16} />
+          }} className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl text-sm font-medium transition-colors">
+            <ChevronLeft size={16} />
+            {t("common.back")}
           </button>
         )}
       </div>

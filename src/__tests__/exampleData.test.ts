@@ -6,6 +6,7 @@ import {
   MINING_SAMPLE_INPUT,
   MINING_EXAMPLE,
   CONJUGATION_EXAMPLE,
+  DICTIONARY_EXAMPLE,
   GRAMMAR_EXAMPLE,
   CONVERSATION_EXAMPLE,
 } from "../lib/exampleData";
@@ -76,6 +77,17 @@ describe("Example data is English (base)", () => {
           expect(["A1", "A2", "B1", "B2", "C1", "C2"]).toContain(kw.level);
         }
       }
+    });
+  });
+
+  describe("DICTIONARY_EXAMPLE", () => {
+    it("has a non-empty sample query and word", () => {
+      expect(DICTIONARY_EXAMPLE.sampleQuery.length).toBeGreaterThan(0);
+      expect(DICTIONARY_EXAMPLE.word.length).toBeGreaterThan(0);
+    });
+    it("has English definition and example", () => {
+      expect(looksEnglish(DICTIONARY_EXAMPLE.definition)).toBe(true);
+      expect(looksEnglish(DICTIONARY_EXAMPLE.exampleSource)).toBe(true);
     });
   });
 

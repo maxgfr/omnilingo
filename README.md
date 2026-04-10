@@ -76,6 +76,16 @@ Artifacts are produced in `src-tauri/target/release/bundle/`:
 - **macOS** — `.dmg`, `.app`
 - **Windows** — `.msi`, `.exe`
 
+### macOS — first launch
+
+The published `.dmg` is not Apple-notarized, so macOS marks it with a quarantine attribute and refuses to launch it ("Omnilingo is damaged and can't be opened" or "from an unidentified developer"). After dragging Omnilingo into `/Applications`, clear the quarantine flag once:
+
+```bash
+xattr -cr /Applications/Omnilingo.app
+```
+
+Then open the app normally. You only need to run this command after a fresh install or update.
+
 ## Project structure
 
 ```

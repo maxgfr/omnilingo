@@ -100,6 +100,16 @@ export const MINING_EXAMPLE = [
   },
 ];
 
+export const DICTIONARY_EXAMPLE = {
+  sampleQuery: "house",
+  word: "house",
+  pos: "noun",
+  ipa: "/haʊs/",
+  definition: "A building for human habitation, typically one that consists of a ground floor and one or more upper storeys, built for a person or a family to live in.",
+  exampleSource: "They live in a small house near the park.",
+  exampleTarget: "They live in a small house near the park.",
+};
+
 export const CONJUGATION_EXAMPLE = {
   infinitive: "to make",
   translation: "to make",

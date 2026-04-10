@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Search, Loader2, Trash2, BookOpen } from "lucide-react";
+import { Search, Loader2, ChevronLeft, BookOpen } from "lucide-react";
 import { cachedAskAi, addToHistory, getPromptContext, clearToolHistory } from "../../lib/ai-cache";
 import { renderClickable, parseAiJson, formatMessage } from "../../lib/markdown";
 import type { LanguagePair } from "../../types";
@@ -124,11 +124,13 @@ ${enriched}`;
         <button onClick={handleSearch} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.synonyms.searching")}</> : t("tools.synonyms.search")}
         </button>
-        {activePair && (
+        {activePair && (structured || fallback) && (
           <button onClick={() => {
             clearToolHistory(activePair.id, "synonyms");
-            setStructured(null); setFallback(null); handleInputChange(""); useAppStore.getState().setToolResult("synonyms", null);          }} className="flex items-center px-4 py-2.5 text-gray-400 hover:text-red-500 text-sm rounded-lg transition-colors" title={t("common.clear")}>
-            <Trash2 size={16} />
+            setStructured(null); setFallback(null); handleInputChange(""); useAppStore.getState().setToolResult("synonyms", null);
+          }} className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-lg text-sm font-medium transition-colors">
+            <ChevronLeft size={16} />
+            {t("common.back")}
           </button>
         )}
       </div>
@@ -215,7 +217,7 @@ ${enriched}`;
           )}
         </div>
       )}
-      {fallback && <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm"><div className="prose prose-sm dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: formatMessage(fallback) }} /></div>}
+      {fallback && <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm"><div className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 max-w-none [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5" dangerouslySetInnerHTML={{ __html: formatMessage(fallback) }} /></div>}
     </div>
   );
 }

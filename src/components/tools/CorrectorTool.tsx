@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Copy, Check, AlertTriangle, CheckCircle, Trash2, RotateCcw } from "lucide-react";
+import { Loader2, Copy, Check, AlertTriangle, CheckCircle, ChevronLeft } from "lucide-react";
 import { cachedAskAi, getCachedResult, addToHistory, getPromptContext, clearToolHistory } from "../../lib/ai-cache";
 import { parseAiJson, formatMessage } from "../../lib/markdown";
 import type { LanguagePair } from "../../types";
@@ -54,7 +54,6 @@ export default function CorrectorTool({ initialWord, activePair, onInputChange }
   const [copied, setCopied] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
-  const pendingReCorrect = useRef(false);
 
   // Translate example into the active target language
   const { tr: trEx, loading: trExLoading } = useExampleTranslations(
@@ -66,14 +65,6 @@ export default function CorrectorTool({ initialWord, activePair, onInputChange }
       ...CORRECTOR_EXAMPLE.corrections.flatMap((c) => [c.wrong, c.right, c.explanation]),
     ],
   );
-
-  // Auto-trigger correction after re-correct sets input
-  useEffect(() => {
-    if (pendingReCorrect.current && input && !loading) {
-      pendingReCorrect.current = false;
-      handleCorrect();
-    }
-  }, [input]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore cached result on mount
   useEffect(() => {
@@ -138,25 +129,13 @@ Text: ${input.trim()}`;
         <button onClick={handleCorrect} disabled={!input.trim() || loading} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? <><Loader2 size={16} className="animate-spin" />{t("tools.corrector.correcting")}</> : t("tools.corrector.correct")}
         </button>
-        {structured && (
-          <button
-            onClick={() => {
-              handleInputChange(structured.corrected);
-              setStructured(null);
-              setFallback(null);
-                           pendingReCorrect.current = true;
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-amber-400 hover:text-amber-600 text-sm font-medium rounded-lg transition-colors"
-          >
-            <RotateCcw size={16} />
-            {t("tools.corrector.reCorrect")}
-          </button>
-        )}
-        {activePair && (
+        {activePair && (structured || fallback) && (
           <button onClick={() => {
             clearToolHistory(activePair.id, "corrector");
-            setStructured(null); setFallback(null); handleInputChange(""); useAppStore.getState().setToolResult("corrector", null);          }} className="flex items-center gap-2 px-4 py-2.5 text-gray-400 hover:text-red-500 text-sm rounded-lg transition-colors" title={t("common.clear")}>
-            <Trash2 size={16} />
+            setStructured(null); setFallback(null); handleInputChange(""); useAppStore.getState().setToolResult("corrector", null);
+          }} className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-lg text-sm font-medium transition-colors">
+            <ChevronLeft size={16} />
+            {t("common.back")}
           </button>
         )}
       </div>
@@ -228,7 +207,7 @@ Text: ${input.trim()}`;
           )}
         </div>
       )}
-      {fallback && <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm"><div className="prose prose-sm dark:prose-invert max-w-none text-sm" dangerouslySetInnerHTML={{ __html: formatMessage(fallback) }} /></div>}
+      {fallback && <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm"><div className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 max-w-none [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5" dangerouslySetInnerHTML={{ __html: formatMessage(fallback) }} /></div>}
     </div>
   );
 }

@@ -37,21 +37,27 @@ export function formatMessage(text: string): string {
   html = html.replace(/\x00IC(\d+)\x00/g, (_m, idx) => inlineCodes[Number(idx)]);
 
   // 4. Apply markdown formatting
+  //
+  // Headings, bold and list items get explicit dark-mode-aware text colors so
+  // the rendered HTML stays readable when dropped into a container that uses
+  // `bg-white dark:bg-gray-800` (Dictionary AI panel, Grammar chat assistant
+  // bubble, etc.). We can't rely on `prose dark:prose-invert` because the
+  // `@tailwindcss/typography` plugin is not installed in this project.
   // Headers
-  html = html.replace(/^### (.+)$/gm, '<h3 class="font-bold text-base mt-3 mb-1">$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-lg mt-3 mb-1">$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-3 mb-1">$1</h1>');
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-bold text-base mt-3 mb-1 text-gray-900 dark:text-white">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-bold text-lg mt-3 mb-1 text-gray-900 dark:text-white">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-3 mb-1 text-gray-900 dark:text-white">$1</h1>');
 
   // Bold and italic (escaped asterisks: &ast; won't match, but ** will since escapeHtml doesn't touch *)
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-900 dark:text-white">$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
   // Unordered lists
-  html = html.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>');
-  html = html.replace(/(<li class="ml-4 list-disc">.*<\/li>\n?)+/g, '<ul class="my-1">$&</ul>');
+  html = html.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-gray-700 dark:text-gray-200">$1</li>');
+  html = html.replace(/(<li class="ml-4 list-disc text-gray-700 dark:text-gray-200">.*<\/li>\n?)+/g, '<ul class="my-1">$&</ul>');
 
   // Ordered lists
-  html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>');
+  html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal text-gray-700 dark:text-gray-200">$1</li>');
 
   // Line breaks
   html = html.replace(/\n/g, '<br />');

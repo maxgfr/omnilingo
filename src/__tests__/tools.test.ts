@@ -34,8 +34,7 @@ describe("markdown utilities", () => {
   it("formatMessage converts markdown to HTML", async () => {
     const { formatMessage } = await import("../lib/markdown");
     const result = formatMessage("**bold** text");
-    expect(result).toContain("<strong>");
-    expect(result).toContain("bold");
+    expect(result).toMatch(/<strong[^>]*>bold<\/strong>/);
   });
 
   it("renderHighlighted escapes HTML to prevent XSS", async () => {

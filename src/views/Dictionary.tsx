@@ -16,9 +16,14 @@ import { useApp } from "../store/AppContext";
 import { useAppStore, selectIsAiConfigured, selectReversePairId } from "../store/useAppStore";
 import { useFeaturePair } from "../lib/useFeaturePair";
 import LanguagePackDownloader from "../components/LanguagePackDownloader";
+import ExamplePreview from "../components/ui/ExamplePreview";
+import RecentSearches from "../components/ui/RecentSearches";
+import { DICTIONARY_EXAMPLE } from "../lib/exampleData";
+import { useExampleTranslations } from "../lib/useExampleTranslations";
 
 import { formatMessage } from "../lib/markdown";
-import { levelColors, genderBadges, parseTargetWord, formatDefinition, normalizeForSearch, extractTranslationsWithWordSet } from "../lib/wordUtils";
+import { cachedAskAi, getCachedResult, addToHistory } from "../lib/ai-cache";
+import { levelColors, genderBadges, parseTargetWord, normalizeForSearch } from "../lib/wordUtils";
 import * as bridge from "../lib/bridge";
 import type { Word } from "../types";
 
@@ -36,12 +41,25 @@ export default function Dictionary() {
 
   const cachedState = useAppStore.getState().dictionaryCache;
 
+  // Example preview translation — shown when the search box is empty.
+  const { tr: trEx, loading: trExLoading } = useExampleTranslations(
+    "dictionary",
+    [
+      DICTIONARY_EXAMPLE.sampleQuery,
+      DICTIONARY_EXAMPLE.word,
+      DICTIONARY_EXAMPLE.definition,
+      DICTIONARY_EXAMPLE.exampleSource,
+      DICTIONARY_EXAMPLE.exampleTarget,
+    ],
+  );
+
   // All words loaded in memory
   const [allWords, setAllWords] = useState<Word[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState(cachedState?.searchQuery ?? "");
   const [deferredQuery, setDeferredQuery] = useState(searchQuery);
+  const [showHistory, setShowHistory] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -74,45 +92,6 @@ export default function Dictionary() {
       normTarget: normalizeForSearch(w.target_word),
     }));
   }, [allWords]);
-
-  // Build per-pair source_word sets for cross-referencing translations
-  const pairWordSets = useMemo(() => {
-    const sets = new Map<number, Set<string>>();
-    for (const w of allWords) {
-      let s = sets.get(w.language_pair_id);
-      if (!s) { s = new Set(); sets.set(w.language_pair_id, s); }
-      s.add(normalizeForSearch(w.source_word));
-    }
-    return sets;
-  }, [allWords]);
-
-  // Resolve translation/definition for a word.
-  //
-  // Strategy: when a reverse-pair word set is available, ALWAYS run the
-  // word-set extraction first. This catches cases like "be asleep sleep"
-  // where parseTargetWord would otherwise return the whole string as a
-  // single translation just because there are no semicolons.
-  //
-  // We only fall back to the parseTargetWord output if the extraction
-  // didn't find any reverse-pair matches.
-  const resolveTranslation = useCallback((word: Word, parsed: ReturnType<typeof parseTargetWord>) => {
-    const oppositePairId = word.language_pair_id === activePair?.id ? reversePairId : activePair?.id;
-    const oppositeSet = oppositePairId != null ? pairWordSets.get(oppositePairId) : undefined;
-
-    if (oppositeSet && oppositeSet.size > 0 && parsed.clean.length > 0) {
-      const extracted = extractTranslationsWithWordSet(parsed.clean, oppositeSet);
-      // Only use the extraction result when it found at least one match;
-      // otherwise the parsed semicolon split is more accurate.
-      if (extracted.translation) {
-        return {
-          translation: extracted.translation,
-          definition: extracted.definition ?? parsed.definition,
-        };
-      }
-    }
-
-    return { translation: parsed.translation, definition: parsed.definition };
-  }, [activePair, reversePairId, pairWordSets]);
 
   // Client-side search
   const filteredWords = useMemo(() => {
@@ -202,21 +181,15 @@ export default function Dictionary() {
       .finally(() => setLoading(false));
   }, [activePair, reversePairId]);
 
-  const handleAskAi = useCallback(async (word: Word) => {
-    if (!activePair) return;
-    setAiLoading(true);
-    setAiContent(null);
-    try {
-      // Convention: activePair.source_name = user's native, activePair.target_name = language being learned.
-      // The word being looked up may belong to either direction (source pair or its reverse).
-      // Find the actual pair the word belongs to so we know what language the word is in.
-      const nativeLang = activePair.source_name;
-      const learningLang = activePair.target_name;
-      const wordPair = languagePairs.find((p) => p.id === word.language_pair_id);
-      const wordLang = wordPair?.source_name ?? learningLang;
-      const isWordInLearningLang = wordLang !== nativeLang;
+  const buildAiPrompt = useCallback((word: Word) => {
+    if (!activePair) return "";
+    const nativeLang = activePair.source_name;
+    const learningLang = activePair.target_name;
+    const wordPair = languagePairs.find((p) => p.id === word.language_pair_id);
+    const wordLang = wordPair?.source_name ?? learningLang;
+    const isWordInLearningLang = wordLang !== nativeLang;
 
-      const prompt = `You are a bilingual dictionary assistant for a ${nativeLang} speaker who is learning ${learningLang}.
+    return `You are a bilingual dictionary assistant for a ${nativeLang} speaker who is learning ${learningLang}.
 
 The user looked up the ${wordLang} word: "${word.source_word}"
 ${word.target_word ? `Known translation: ${word.target_word}` : ""}
@@ -246,21 +219,35 @@ Rules:
 - Be concise. No preamble, no closing remarks, no code fences.
 - Every ${learningLang} word or sentence MUST be followed by its ${nativeLang} translation.
 - Omit any section that has no meaningful content.`;
+  }, [activePair, languagePairs]);
 
-      const result = await bridge.askAi(prompt);
+  const handleAskAi = useCallback(async (word: Word) => {
+    if (!activePair) return;
+    setAiLoading(true);
+    setAiContent(null);
+    try {
+      addToHistory(activePair.id, "dictionary", word.source_word);
+      const result = await cachedAskAi("dictionary", word.source_word, activePair.id, buildAiPrompt(word));
       setAiContent(result);
     } catch (err) {
       setAiContent(`${t("common.error")}: ${err}`);
     } finally {
       setAiLoading(false);
     }
-  }, [activePair, languagePairs, t]);
+  }, [activePair, buildAiPrompt, t]);
 
+  // Restore cached AI exploration when re-opening a word, so the user
+  // doesn't pay the AI round-trip twice for the same lookup.
   const openWordDetail = useCallback((word: Word) => {
     setSelectedWord(word);
-    setAiContent(null);
     setAiLoading(false);
-  }, []);
+    if (activePair) {
+      const cached = getCachedResult("dictionary", word.source_word, activePair.id);
+      setAiContent(cached);
+    } else {
+      setAiContent(null);
+    }
+  }, [activePair]);
 
   const closeWordDetail = useCallback(() => {
     setSelectedWord(null);
@@ -354,16 +341,26 @@ Rules:
     <div className="space-y-6">
       <PageHeader title={t("dictionary.title")} subtitle={t("dictionary.wordsAvailable", { count: allWords.length })} />
 
-      {/* Search bar */}
+      {/* Search bar with recent-searches dropdown when focused & empty */}
       <div className="relative">
         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onFocus={() => !searchQuery.trim() && setShowHistory(true)}
+          onBlur={() => setTimeout(() => setShowHistory(false), 150)}
           placeholder={t("dictionary.searchPlaceholder")}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
         />
+        {activePair && (
+          <RecentSearches
+            tool="dictionary"
+            pairId={activePair.id}
+            visible={showHistory && !searchQuery.trim()}
+            onSelect={(q) => { setSearchQuery(q); setShowHistory(false); }}
+          />
+        )}
       </div>
 
       {deferredQuery.trim() && (
@@ -372,8 +369,49 @@ Rules:
         </p>
       )}
 
-      {/* Word list */}
-      {filteredWords.length === 0 && !loading ? (
+      {/* Example preview — shown when the search box is empty so users
+          immediately see what a result looks like (mirrors every other view). */}
+      {!deferredQuery.trim() && (
+        <ExamplePreview
+          loading={trExLoading}
+          onClick={() => setSearchQuery(trEx(DICTIONARY_EXAMPLE.sampleQuery))}
+        >
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-4 space-y-3">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                {trEx(DICTIONARY_EXAMPLE.word)}
+              </h3>
+              <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 italic">
+                {DICTIONARY_EXAMPLE.pos}
+              </span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                {DICTIONARY_EXAMPLE.ipa}
+              </span>
+            </div>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-700/30 p-3">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                {t("dictionary.definition")}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                {trEx(DICTIONARY_EXAMPLE.definition)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-700/30 p-3">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                {t("dictionary.examples")}
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-200 italic">
+                &laquo; {trEx(DICTIONARY_EXAMPLE.exampleSource)} &raquo;
+              </p>
+            </div>
+          </div>
+        </ExamplePreview>
+      )}
+
+      {/* Word list — only shown once the user has typed a query.
+          With no query the dictionary contains 50k+ entries; rendering them
+          all is both slow and noisy. */}
+      {!deferredQuery.trim() ? null : filteredWords.length === 0 && !loading ? (
         <div className="text-center py-16 text-gray-500 dark:text-gray-400">
           <p className="text-lg font-medium">{t("dictionary.noWordsFound")}</p>
         </div>
@@ -383,7 +421,13 @@ Rules:
             const gender = word.gender ? genderBadges[word.gender] : null;
             const isSelected = selectedWord?.id === word.id;
             const parsed = parseTargetWord(word.target_word, word.category, word.tags);
-            const resolved = resolveTranslation(word, parsed);
+            // Preview shown next to the source word in the list row.
+            // Prefer the parsed translation; otherwise show a truncated
+            // definition snippet so the user gets some context. We never
+            // fall back to `parsed.clean` directly because it may contain
+            // the entire raw target_word including definition prose.
+            const listPreview = parsed.translation
+              ?? (parsed.definition ? parsed.definition.split(/[.;]/)[0].trim() : null);
 
             return (
               <div key={word.id}>
@@ -407,9 +451,9 @@ Rules:
                       <span className="font-bold text-gray-900 dark:text-white text-sm flex-shrink-0">
                         {word.source_word}
                       </span>
-                      {(resolved.translation || parsed.clean) && (
+                      {listPreview && (
                         <span className="text-sm text-amber-600 dark:text-amber-400 truncate">
-                          {resolved.translation || parsed.clean}
+                          {listPreview}
                         </span>
                       )}
                     </div>
@@ -471,56 +515,19 @@ Rules:
                       </button>
                     </div>
 
-                    {/* Translation (short) */}
-                    {resolved.translation && (
-                      <div className="rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30 p-3">
-                        <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1.5">
-                          {t("dictionary.translation")}
-                        </p>
-                        <div className="space-y-1">
-                          {formatDefinition(resolved.translation).map((def, i) => (
-                            <p key={i} className="text-sm text-gray-700 dark:text-gray-200">
-                              {formatDefinition(resolved.translation!).length > 1 && (
-                                <span className="text-amber-500 dark:text-amber-400 mr-1.5 font-medium">{i + 1}.</span>
-                              )}
-                              {def}
-                            </p>
-                          ))}
-                        </div>
-                        {word.plural && (
-                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                            {t("dictionary.plural")} : {word.plural}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Definition (long descriptions) */}
-                    {resolved.definition && (
+                    {/* Definition — the only structured block kept.
+                        Cross-pair "translation extraction" was removed
+                        because it produced false-positive matches across
+                        cognates / homographs. Users get clean translations
+                        from the "Explore with AI" button below. */}
+                    {(parsed.definition || parsed.translation || parsed.clean) && (
                       <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-700/30 p-3">
                         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                           {t("dictionary.definition")}
                         </p>
-                        <div className="space-y-1">
-                          {formatDefinition(resolved.definition).map((def, i) => (
-                            <p key={i} className="text-sm text-gray-600 dark:text-gray-300">
-                              {formatDefinition(resolved.definition!).length > 1 && (
-                                <span className="text-gray-400 dark:text-gray-500 mr-1.5 font-medium">{i + 1}.</span>
-                              )}
-                              {def}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Fallback: show clean text if no translation/definition split */}
-                    {!resolved.translation && !resolved.definition && parsed.clean && (
-                      <div className="rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30 p-3">
-                        <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1.5">
-                          {t("dictionary.translation")}
+                        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                          {parsed.definition ?? parsed.translation ?? parsed.clean}
                         </p>
-                        <p className="text-sm text-gray-700 dark:text-gray-200">{parsed.clean}</p>
                         {word.plural && (
                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                             {t("dictionary.plural")} : {word.plural}
@@ -574,7 +581,7 @@ Rules:
                           </div>
                         ) : aiContent && (
                           <div
-                            className="prose prose-sm dark:prose-invert max-w-none text-sm [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>p]:my-1.5 [&>ul]:my-1.5 [&>ol]:my-1.5"
+                            className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 max-w-none [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5"
                             dangerouslySetInnerHTML={{ __html: formatMessage(aiContent) }}
                           />
                         )}

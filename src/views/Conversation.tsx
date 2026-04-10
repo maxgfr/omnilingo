@@ -459,7 +459,7 @@ Scoring: 1=struggled, 3=adequate, 5=excellent. Include 2-5 corrections for the s
       try {
         const prompt =
           buildScenarioSystemPrompt(scenario.role, []) +
-          `\n\nStart the conversation in character as the ${scenario.role}. Say your opening line in ${sourceName}.`;
+          `\n\nStart the conversation in character as the ${scenario.role}. Say your opening line in ${targetName}, following the FORMAT rules above.`;
         const response = await bridge.askAi(prompt);
         setMessages([{ role: "assistant", content: response }]);
       } catch (err) {
@@ -468,7 +468,7 @@ Scoring: 1=struggled, 3=adequate, 5=excellent. Include 2-5 corrections for the s
         setLoading(false);
       }
     },
-    [builtinScenarios, buildScenarioSystemPrompt, sourceName],
+    [builtinScenarios, buildScenarioSystemPrompt, targetName],
   );
 
   const startCustomScenario = useCallback(
@@ -484,9 +484,13 @@ Scoring: 1=struggled, 3=adequate, 5=excellent. Include 2-5 corrections for the s
       setLoading(true);
 
       try {
+        // Route through buildScenarioSystemPrompt so custom scenarios get the
+        // same FORMAT rules (target line, italic source translation, optional
+        // correction) as built-in ones — the user's `system_prompt` is the
+        // character description; the rest is the language scaffolding.
         const prompt =
-          scenario.system_prompt +
-          `\n\nStart the conversation. Say your opening line in ${sourceName}.`;
+          buildScenarioSystemPrompt("partner", []) +
+          `\n\nStart the conversation. Say your opening line in ${targetName}, following the FORMAT rules above.`;
         const response = await bridge.askAi(prompt);
         setMessages([{ role: "assistant", content: response }]);
       } catch (err) {
@@ -495,7 +499,7 @@ Scoring: 1=struggled, 3=adequate, 5=excellent. Include 2-5 corrections for the s
         setLoading(false);
       }
     },
-    [sourceName],
+    [buildScenarioSystemPrompt, targetName],
   );
 
   // ---- Send message (preset mode) ----

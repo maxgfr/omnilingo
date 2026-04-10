@@ -65,6 +65,41 @@ fn default_model(provider: &str) -> &'static str {
     }
 }
 
+/// Look up the active language pair and build the standard system message
+/// that wraps every AI request. Returns `None` if the user has no active
+/// pair (e.g. on first launch before any dictionary is downloaded).
+///
+/// All `ask_ai` / `ask_ai_conversation` calls prepend this so individual
+/// callers don't have to remember to mention the source/target languages
+/// in their prompts. The wrapper is intentionally **descriptive, not
+/// prescriptive** — it declares the active pair as context but does NOT
+/// dictate which language to reply in. Each caller's own prompt decides
+/// whether the response should be tutorial-style (source language) or
+/// immersive (target language) so e.g. role-play conversations stay in
+/// the target language while dictionary explanations stay in the native
+/// language.
+fn build_language_system_message(db: &rusqlite::Connection) -> Option<ChatMessage> {
+    let pair: Option<(String, String)> = db
+        .query_row(
+            "SELECT lp.source_name, lp.target_name
+             FROM language_pairs lp
+             JOIN settings s ON s.active_language_pair_id = lp.id
+             WHERE s.id = 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .ok();
+    pair.map(|(source, target)| ChatMessage {
+        role: "system".into(),
+        content: format!(
+            "You are an assistant inside the Omnilingo language-learning app. \
+             Context: the user is a native {source} speaker who is currently learning {target}. \
+             Use this language pair as the default frame for every reply, but follow whatever \
+             response-language and formatting rules the next instructions specify."
+        ),
+    })
+}
+
 pub fn get_ai_settings(db: &rusqlite::Connection) -> Result<AiSettings, String> {
     db.query_row(
         "SELECT ai_provider, ai_api_key, ai_model FROM settings WHERE id = 1",
@@ -225,12 +260,20 @@ pub async fn ask_ai(
     state: State<'_, DbState>,
     base_dir: State<'_, BaseDirState>,
 ) -> Result<String, String> {
-    let (settings, custom_url) = {
+    let (settings, custom_url, language_system) = {
         let db = state.db();
-        (get_ai_settings(&db)?, get_custom_url(&db))
+        (
+            get_ai_settings(&db)?,
+            get_custom_url(&db),
+            build_language_system_message(&db),
+        )
     };
     let cwd = base_dir.0.clone();
-    let messages = vec![ChatMessage { role: "user".into(), content: prompt }];
+    let mut messages = Vec::with_capacity(2);
+    if let Some(sys) = language_system {
+        messages.push(sys);
+    }
+    messages.push(ChatMessage { role: "user".into(), content: prompt });
     call_with_custom_support(&settings, &messages, &cwd, &custom_url).await
 }
 
@@ -241,12 +284,26 @@ pub async fn ask_ai_conversation(
     state: State<'_, DbState>,
     base_dir: State<'_, BaseDirState>,
 ) -> Result<String, String> {
-    let (settings, custom_url) = {
+    let (settings, custom_url, language_system) = {
         let db = state.db();
-        (get_ai_settings(&db)?, get_custom_url(&db))
+        (
+            get_ai_settings(&db)?,
+            get_custom_url(&db),
+            build_language_system_message(&db),
+        )
     };
     let cwd = base_dir.0.clone();
-    call_with_custom_support(&settings, &messages, &cwd, &custom_url).await
+    // Prepend the language-pair system message in front of any caller-supplied
+    // messages. Existing system messages are kept; backends that support a
+    // dedicated `system` field (Anthropic, Gemini) concatenate all system
+    // messages, and OpenAI/Mistral/local OpenAI-compatible servers handle
+    // multiple system entries fine.
+    let mut wrapped: Vec<ChatMessage> = Vec::with_capacity(messages.len() + 1);
+    if let Some(sys) = language_system {
+        wrapped.push(sys);
+    }
+    wrapped.extend(messages);
+    call_with_custom_support(&settings, &wrapped, &cwd, &custom_url).await
 }
 
 /// Generate vocabulary words with AI and insert them into the database

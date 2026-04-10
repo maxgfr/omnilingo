@@ -13,7 +13,6 @@ import {
   Trash2,
   Send,
   MessageCircle,
-  PenLine,
 } from "lucide-react";
 import { useFeaturePair } from "../lib/useFeaturePair";
 import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
@@ -230,8 +229,6 @@ export default function Grammar() {
     setSelectedTopic(null);
     setExerciseResults([]);
     setExercisesDone(false);
-    setEditing(false);
-    setEditForm(null);
     // Reload topics and due list to reflect any completion/review changes
     if (activePair) {
       _grammarCache = null; // invalidate cache
@@ -381,39 +378,6 @@ Rules:
     }
   }, [activePair, selectedTopic, saving]);
 
-  // ── Edit topic ──
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<{ title: string; explanation: string; keyPoints: string[] } | null>(null);
-
-  const handleSaveEdit = useCallback(async () => {
-    if (!activePair || !selectedTopic || !editForm) return;
-    try {
-      // Delete old and re-create with edits
-      if (selectedTopic.id !== "ai-generated") {
-        await bridge.deleteGrammarTopic(selectedTopic.id, activePair.id);
-      }
-      const newId = await bridge.saveGrammarTopic({
-        pairId: activePair.id,
-        level: selectedTopic.level || "A2",
-        title: editForm.title,
-        titleSource: selectedTopic.title_source ?? undefined,
-        explanation: editForm.explanation,
-        keyPoints: editForm.keyPoints,
-        examples: selectedTopic.examples,
-        exercises: selectedTopic.exercises,
-      });
-      _grammarCache = null;
-      const reloaded = await bridge.getGrammarTopics(activePair.id);
-      setTopics(reloaded);
-      const updated = reloaded.find((t) => t.id === newId);
-      if (updated) setSelectedTopic(updated);
-      setEditing(false);
-      setEditForm(null);
-    } catch (err) {
-      console.error("Failed to save edit:", err);
-    }
-  }, [activePair, selectedTopic, editForm]);
-
   // ── Delete topic ──
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -541,20 +505,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
 
     return (
       <div className="space-y-6">
-        {/* Back button and title */}
-        <button
-          onClick={() => {
-            if (aiLesson && selectedTopic?.id === "ai-generated") {
-              setAiLesson(null);
-            }
-            goBackToList();
-          }}
-          className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 mb-4 transition-colors"
-        >
-          <ChevronLeft size={16} />
-          {t("grammar.backToTopics")}
-        </button>
-
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             {selectedTopic.level && (
@@ -570,17 +520,9 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
               <CheckCircle size={16} className="text-emerald-500" />
             )}
           </div>
-          {editing && editForm ? (
-            <input
-              value={editForm.title}
-              onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-              className="w-full text-2xl font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
-            />
-          ) : (
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {selectedTopic.title}
-            </h1>
-          )}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {selectedTopic.title}
+          </h1>
           {selectedTopic.title_source && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {selectedTopic.title_source}
@@ -590,60 +532,15 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
 
         {/* Explanation */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-6">
-          {editing && editForm ? (
-            <textarea
-              value={editForm.explanation}
-              onChange={(e) => setEditForm({ ...editForm, explanation: e.target.value })}
-              rows={8}
-              className="w-full text-gray-700 dark:text-gray-300 leading-relaxed bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-y"
-            />
-          ) : (
-            <div className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-3">
-              {selectedTopic.explanation.split("\n").map((paragraph, i) => (
-                <p key={i}>{renderMarkdown(paragraph)}</p>
-              ))}
-            </div>
-          )}
+          <div className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-3">
+            {selectedTopic.explanation.split("\n").map((paragraph, i) => (
+              <p key={i}>{renderMarkdown(paragraph)}</p>
+            ))}
+          </div>
         </div>
 
         {/* Key points */}
-        {editing && editForm ? (
-          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-5 mb-6">
-            <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-3 text-sm uppercase tracking-wide">
-              {t("grammar.keyPoints")}
-            </h3>
-            <div className="space-y-2">
-              {editForm.keyPoints.map((point, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input
-                    value={point}
-                    onChange={(e) => {
-                      const updated = [...editForm.keyPoints];
-                      updated[i] = e.target.value;
-                      setEditForm({ ...editForm, keyPoints: updated });
-                    }}
-                    className="flex-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
-                  />
-                  <button
-                    onClick={() => {
-                      const updated = editForm.keyPoints.filter((_, j) => j !== i);
-                      setEditForm({ ...editForm, keyPoints: updated });
-                    }}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={() => setEditForm({ ...editForm, keyPoints: [...editForm.keyPoints, ""] })}
-                className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium"
-              >
-                + {t("grammar.addKeyPoint")}
-              </button>
-            </div>
-          </div>
-        ) : selectedTopic.key_points && selectedTopic.key_points.length > 0 ? (
+        {selectedTopic.key_points && selectedTopic.key_points.length > 0 ? (
           <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-5 mb-6">
             <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-3 text-sm uppercase tracking-wide">
               {t("grammar.keyPoints")}
@@ -790,6 +687,20 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
 
         {/* Action buttons */}
         <div className="flex flex-wrap gap-3">
+          {/* Back button — primary navigation action */}
+          <button
+            onClick={() => {
+              if (aiLesson && selectedTopic?.id === "ai-generated") {
+                setAiLesson(null);
+              }
+              goBackToList();
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl text-sm font-semibold transition-colors"
+          >
+            <ChevronLeft size={16} />
+            {t("common.back")}
+          </button>
+
           {/* Save button (only for AI-generated unsaved lessons) */}
           {aiLesson && selectedTopic?.id === "ai-generated" && !saved && (
             <button
@@ -808,25 +719,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
             </span>
           )}
 
-          {/* Save/Cancel edit buttons */}
-          {editing && editForm && (
-            <>
-              <button
-                onClick={handleSaveEdit}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-colors"
-              >
-                <Save size={16} />
-                {t("common.save")}
-              </button>
-              <button
-                onClick={() => { setEditing(false); setEditForm(null); }}
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 rounded-xl text-sm font-semibold transition-colors"
-              >
-                {t("common.cancel")}
-              </button>
-            </>
-          )}
-
           {/* Chat toggle */}
           {isAiConfigured && (
             <button
@@ -839,23 +731,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
             >
               <MessageCircle size={16} />
               {t("grammar.askAi")}
-            </button>
-          )}
-
-          {/* Edit button */}
-          {selectedTopic && selectedTopic.id !== "ai-generated" && !editing && (
-            <button
-              onClick={() => {
-                setEditing(true);
-                setEditForm({
-                  title: selectedTopic.title,
-                  explanation: selectedTopic.explanation,
-                  keyPoints: selectedTopic.key_points || [],
-                });
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-gray-400 hover:text-amber-500 rounded-xl text-sm font-semibold transition-colors"
-            >
-              <PenLine size={16} />
             </button>
           )}
 
@@ -885,14 +760,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
               </button>
             )
           )}
-
-          <button
-            onClick={goBackToList}
-            className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl text-sm font-semibold transition-colors"
-          >
-            <ChevronLeft size={16} />
-            {t("common.back")}
-          </button>
         </div>
 
         {/* Inline AI Chat */}
@@ -912,7 +779,7 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
                       : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
                   }`}>
                     {msg.role === "assistant" ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
+                      <div className="text-sm leading-relaxed text-gray-800 dark:text-gray-100 max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
                     ) : msg.content}
                   </div>
                 </div>

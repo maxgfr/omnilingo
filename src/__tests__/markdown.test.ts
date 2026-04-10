@@ -8,10 +8,14 @@ vi.mock("../lib/bridge", () => ({
 // formatMessage
 // ─────────────────────────────────────────────────────────────────────
 describe("formatMessage", () => {
-  it("converts bold to <strong>", async () => {
+  it("converts bold to <strong> with dark-mode classes", async () => {
     const { formatMessage } = await import("../lib/markdown");
     const result = formatMessage("**bold** text");
-    expect(result).toContain("<strong>bold</strong>");
+    // Strong tags carry explicit dark-mode classes so the rendered HTML
+    // stays readable on dark backgrounds (the project doesn't ship the
+    // @tailwindcss/typography plugin).
+    expect(result).toMatch(/<strong[^>]*>bold<\/strong>/);
+    expect(result).toContain("dark:text-white");
   });
 
   it("converts italic to <em>", async () => {

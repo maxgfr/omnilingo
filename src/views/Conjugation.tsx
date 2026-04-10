@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   Check,
   CheckCircle,
+  ChevronLeft,
   Eye,
   Loader2,
   RotateCcw,
@@ -38,6 +39,7 @@ export default function Conjugation() {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [savingVerb, setSavingVerb] = useState(false);
   const [verbSaved, setVerbSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [currentVerb, setCurrentVerb] = useState<Verb | null>(() => {
     if (cachedState?.aiVerb) {
@@ -133,7 +135,12 @@ export default function Conjugation() {
   // ── Example preview translation ─────────────────────────────────
   const { tr: trEx, loading: trExLoading } = useExampleTranslations(
     "conjugation",
-    [CONJUGATION_EXAMPLE.infinitive, CONJUGATION_EXAMPLE.translation],
+    [
+      CONJUGATION_EXAMPLE.infinitive,
+      CONJUGATION_EXAMPLE.translation,
+      ...CONJUGATION_EXAMPLE.persons,
+      ...CONJUGATION_EXAMPLE.forms,
+    ],
   );
 
   // ── AI verb generation ───────────────────────────────────────────
@@ -193,6 +200,13 @@ Rules:
       if (verbTenses.length === 0) {
         throw new Error(t("conjugation.noTensesFound"));
       }
+      // Defensive defaults — the AI prompt asks for these fields but the
+      // model may omit them, which would later break the save flow (the
+      // Rust SaveVerbInput requires `is_separable: bool`, not Option<bool>,
+      // and the "save" button visibility check needs a numeric id < 0).
+      if (typeof parsed.id !== "number") parsed.id = -1;
+      if (typeof parsed.is_separable !== "boolean") parsed.is_separable = false;
+      if (parsed.examples == null || !Array.isArray(parsed.examples)) parsed.examples = null;
       setCurrentVerb(parsed);
       setCurrentTense(verbTenses[0]);
       setAnswers({});
@@ -212,6 +226,7 @@ Rules:
   const handleSaveVerb = useCallback(async () => {
     if (!activePair || !currentVerb || savingVerb) return;
     setSavingVerb(true);
+    setSaveError(null);
     try {
       const newId = await bridge.saveVerb(
         activePair.id,
@@ -220,7 +235,7 @@ Rules:
         currentVerb.level ?? null,
         currentVerb.verb_type ?? null,
         currentVerb.auxiliary ?? null,
-        currentVerb.is_separable,
+        currentVerb.is_separable === true,
         currentVerb.conjugations,
         currentVerb.examples ?? null,
       );
@@ -228,10 +243,24 @@ Rules:
       setVerbSaved(true);
     } catch (err) {
       console.error("Failed to save verb:", err);
+      setSaveError(err instanceof Error ? err.message : String(err));
     } finally {
       setSavingVerb(false);
     }
   }, [activePair, currentVerb, savingVerb]);
+
+  // ── Clear current verb (return to AI input + example preview) ───
+  const handleClearVerb = useCallback(() => {
+    setCurrentVerb(null);
+    setCurrentTense("");
+    setAnswers({});
+    setChecked(false);
+    setRevealed(false);
+    setVerbSaved(false);
+    setGenerationError(null);
+    setView("table");
+    setAiVerbInput("");
+  }, []);
 
   // ── Practice handlers ────────────────────────────────────────────
   function handleAnswerChange(person: string, value: string) {
@@ -330,8 +359,8 @@ Rules:
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               {CONJUGATION_EXAMPLE.persons.map((person, i) => (
                 <div key={i} className="flex items-baseline gap-3">
-                  <span className="w-20 text-right text-xs font-medium text-gray-500 dark:text-gray-400">{person}</span>
-                  <span className="text-sm text-gray-900 dark:text-white">{CONJUGATION_EXAMPLE.forms[i]}</span>
+                  <span className="w-20 text-right text-xs font-medium text-gray-500 dark:text-gray-400">{trEx(person)}</span>
+                  <span className="text-sm text-gray-900 dark:text-white">{trEx(CONJUGATION_EXAMPLE.forms[i])}</span>
                 </div>
               ))}
             </div>
@@ -366,8 +395,11 @@ Rules:
               {t("conjugation.practice")}
             </button>
 
-            {/* Save button — only for AI-generated (unsaved) verbs */}
-            {currentVerb.id < 0 && !verbSaved && (
+            {/* Save button — for AI-generated verbs that aren't yet
+                persisted to the DB. We treat any non-positive id as
+                "not yet saved" so we don't depend on the AI returning
+                exactly -1 (it sometimes returns 0 or omits the field). */}
+            {!verbSaved && (currentVerb.id == null || currentVerb.id <= 0) && (
               <button
                 onClick={handleSaveVerb}
                 disabled={savingVerb}
@@ -382,7 +414,20 @@ Rules:
                 <CheckCircle size={16} /> {t("common.added")}
               </span>
             )}
+
+            {/* Back to the empty/example state */}
+            <button
+              onClick={handleClearVerb}
+              className="inline-flex items-center gap-2 px-4 py-2 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-400 dark:hover:border-amber-500 rounded-lg text-sm font-medium transition-colors"
+            >
+              <ChevronLeft size={16} />
+              {t("common.back")}
+            </button>
           </div>
+
+          {saveError && (
+            <p className="text-xs text-rose-600 dark:text-rose-400">{saveError}</p>
+          )}
 
           {/* Table view: full conjugation table for all tenses */}
           {view === "table" && (

@@ -24,11 +24,12 @@ export function QCM({ question, options, correctIndex, onAnswer }: QCMProps) {
       <p className="font-medium text-gray-900 dark:text-white">{question}</p>
       <div className="space-y-2">
         {options.map((opt, i) => {
-          let style = "border-gray-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-500";
+          // Default unanswered style: neutral border + readable text in both modes.
+          let style = "border-gray-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-500 text-gray-900 dark:text-white";
           if (answered) {
-            if (i === correctIndex) style = "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20";
-            else if (i === selected) style = "border-rose-500 bg-rose-50 dark:bg-rose-900/20";
-            else style = "border-gray-200 dark:border-gray-700 opacity-50";
+            if (i === correctIndex) style = "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200";
+            else if (i === selected) style = "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-200";
+            else style = "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 opacity-60";
           }
           return (
             <button
@@ -38,8 +39,8 @@ export function QCM({ question, options, correctIndex, onAnswer }: QCMProps) {
               className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all text-sm ${style} ${!answered ? "cursor-pointer" : ""}`}
             >
               <span className="flex items-center gap-2">
-                {answered && i === correctIndex && <Check size={16} className="text-emerald-500" />}
-                {answered && i === selected && i !== correctIndex && <X size={16} className="text-rose-500" />}
+                {answered && i === correctIndex && <Check size={16} className="text-emerald-500 dark:text-emerald-400" />}
+                {answered && i === selected && i !== correctIndex && <X size={16} className="text-rose-500 dark:text-rose-400" />}
                 {opt}
               </span>
             </button>
@@ -139,10 +140,10 @@ export function TrueFalse({ statement, isTrue, explanation, onAnswer }: TrueFals
           disabled={answered}
           className={`flex-1 py-3 rounded-lg border-2 font-medium text-sm transition-all ${
             answered && isTrue
-              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700"
+              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
               : answered && userAnswer === true && !isTrue
-              ? "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700"
-              : "border-gray-200 dark:border-gray-700 hover:border-emerald-400"
+              ? "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300"
+              : "border-gray-200 dark:border-gray-700 hover:border-emerald-400 text-gray-900 dark:text-white"
           }`}
         >
           {t("common.true")}
@@ -152,10 +153,10 @@ export function TrueFalse({ statement, isTrue, explanation, onAnswer }: TrueFals
           disabled={answered}
           className={`flex-1 py-3 rounded-lg border-2 font-medium text-sm transition-all ${
             answered && !isTrue
-              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700"
+              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
               : answered && userAnswer === false && isTrue
-              ? "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700"
-              : "border-gray-200 dark:border-gray-700 hover:border-rose-400"
+              ? "border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300"
+              : "border-gray-200 dark:border-gray-700 hover:border-rose-400 text-gray-900 dark:text-white"
           }`}
         >
           {t("common.false")}
