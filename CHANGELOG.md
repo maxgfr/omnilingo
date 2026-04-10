@@ -1,3 +1,17 @@
+# [2.14.0](https://github.com/maxgfr/omnilingo/compare/v2.13.2...v2.14.0) (2026-04-10)
+
+
+### Bug Fixes
+
+* consolidate state management and remove mobile support ([7f3d2f0](https://github.com/maxgfr/omnilingo/commit/7f3d2f020e1e30b2c5c3470f741fa565ad94925b))
+* correct language direction in AI prompts and remove favorites ([977352e](https://github.com/maxgfr/omnilingo/commit/977352eafd2b0369715b0f01a038b5b178abce1c))
+
+
+### Features
+
+* replace SRS flashcards with favorites lists and enhance tools ([6122359](https://github.com/maxgfr/omnilingo/commit/61223595ee385ff93b11fe188b32e50e3440deac))
+* simplify learning features and fix dictionary parsing ([2c09ac8](https://github.com/maxgfr/omnilingo/commit/2c09ac818327b8836e61b75a8ff82ff8bf1cfafe))
+
 ## [2.13.2](https://github.com/maxgfr/omnilingo/compare/v2.13.1...v2.13.2) (2026-04-07)
 
 
