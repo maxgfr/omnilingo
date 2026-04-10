@@ -34,7 +34,10 @@
     "shortcuts": "Shortcuts",
     "navigate": "navigate",
     "speak": "speak",
-    "example": "Example"
+    "example": "Example",
+    "edit": "Edit",
+    "all": "All",
+    "history": "History"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -149,7 +152,14 @@
     "searchTopics": "Search topics...",
     "generateLesson": "Generate lesson with AI",
     "topicPlaceholder": "e.g. Past tense, Articles...",
-    "generating": "Generating lesson..."
+    "generating": "Generating lesson...",
+    "generate": "Generate",
+    "addKeyPoint": "Add a key point",
+    "askAi": "Ask a question",
+    "askAboutTopic": "Ask a question about this lesson...",
+    "dueReview": "To review",
+    "completed": "Completed",
+    "notStarted": "Not started"
   },
   "conjugation": {
     "title": "Conjugation",
@@ -171,10 +181,23 @@
     "futureI": "Future I",
     "subjunctiveII": "Subjunctive II",
     "imperative": "Imperative",
+    "imparfait": "Imparfait",
+    "passeCompose": "Passé composé",
+    "conditional": "Conditional",
+    "subjunctive": "Subjunctive",
     "empty": "(empty)",
     "separable": "separable",
     "correct": "correct",
-    "total": "total"
+    "total": "total",
+    "generateVerb": "Conjugate a verb with AI",
+    "verbPlaceholder": "Type a verb...",
+    "invalidAiResponse": "Invalid AI response: no conjugations",
+    "noTensesFound": "Invalid AI response: no tenses found",
+    "generationFailed": "Generation failed",
+    "notAVerb": "Not a recognized verb",
+    "viewTable": "Table",
+    "practice": "Practice",
+    "tryAgain": "Try again"
   },
   "dictionary": {
     "title": "Dictionary",
@@ -208,8 +231,11 @@
     "noPacksDescription": "Download a dictionary to start learning vocabulary.",
     "exploreWithAi": "Explore with AI",
     "translation": "Translation",
+    "definition": "Definition",
     "examples": "Examples",
-    "plural": "Plural"
+    "plural": "Plural",
+    "deletePair": "Delete this dictionary",
+    "addPair": "Add a dictionary"
   },
   "chat": {
     "title": "AI Chat",
@@ -245,7 +271,25 @@
     "currentConfig": "Current config",
     "keyConfigured": "Key configured",
     "noKey": "No key",
-    "configureAi": "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.",
+    "configureAi": "Configure an AI provider in Settings to use this feature.",
+    "testTakingLong": "Test is taking longer than expected... Check your API key and connection.",
+    "providersApi": "API (requires key)",
+    "providersLocal": "Local (no key needed)",
+    "endpointUrl": "Endpoint URL",
+    "modelsAvailable": "{{count}} models available",
+    "modelNamePlaceholder": "model-name",
+    "providerSuffix": {
+      "anthropic": "Claude API",
+      "openai": "API",
+      "gemini": "Google AI",
+      "mistral": "API",
+      "glm": "Z.ai",
+      "custom": "OpenAI-compatible",
+      "claude-code": "local CLI",
+      "codex": "OpenAI CLI",
+      "ollama": "local",
+      "lmstudio": "local"
+    },
     "appearance": "Appearance",
     "darkMode": "Theme",
     "darkModeDescription": "Dark theme interface",
@@ -489,7 +533,14 @@
       "correcting": "Correcting...",
       "correctedVersion": "Corrected version",
       "corrections": "Corrections",
-      "noErrors": "No errors found — your text is correct!"
+      "noErrors": "No errors found — your text is correct!",
+      "reCorrect": "Re-correct",
+      "scores": {
+        "excellent": "Excellent",
+        "good": "Good",
+        "fair": "Fair",
+        "poor": "Needs work"
+      }
     },
     "rephrase": {
       "inputPlaceholder": "Write a sentence or text to rephrase...",
@@ -508,7 +559,9 @@
       "inputPlaceholder": "Type a word...",
       "subtitle": "Find alternative words and expressions",
       "search": "Search",
-      "searching": "Searching..."
+      "searching": "Searching...",
+      "viewInDictionary": "View in dictionary",
+      "antonyms": "Antonyms"
     },
     "definition": {
       "inputPlaceholder": "Type a word...",
@@ -563,7 +616,8 @@
       "mining": "Extracting...",
       "saved": "Saved",
       "savedSentences": "Saved sentences",
-      "grammarPoint": "Grammar"
+      "grammarPoint": "Grammar",
+      "noGrammarPoint": "—"
     },
     "daily": {
       "title": "Daily Words",
@@ -646,7 +700,13 @@
     "corrections": "Key corrections",
     "summary": "Summary",
     "tryAgain": "Try another scenario",
-    "endConversation": "End & evaluate"
+    "endConversation": "End & evaluate",
+    "export": "Export",
+    "inlineCorrection": "Inline corrections",
+    "history": "History",
+    "scenarioNamePlaceholder": "Scenario name",
+    "scenarioDescPlaceholder": "Short description",
+    "scenarioPromptPlaceholder": "System prompt (instructions for the AI)"
   },
   "learningPath": {
     "title": "Learning Path",

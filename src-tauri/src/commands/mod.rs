@@ -1,7 +1,6 @@
 pub mod settings;
 pub mod memory;
 pub mod ai;
-pub mod import;
 pub mod dictionary;
 
 pub mod grammar;

@@ -18,11 +18,11 @@ interface GrammarCache {
 }
 
 interface ConjugationCache {
-  searchQuery: string;
-  currentVerbId: number | null;
-  mode: string;
-  selectedTense: string;
-  aiVerb: string | null; // JSON-serialized Verb
+  aiVerbInput: string;
+  // JSON-serialized Verb (the last AI-generated verb in the current session)
+  aiVerb: string | null;
+  // "table" | "practice"
+  view: string;
 }
 
 interface ConversationCache {

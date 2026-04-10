@@ -61,8 +61,17 @@ interface PresetDef {
   buildSystemPrompt: (sourceName: string, targetName: string) => string;
 }
 
-const DUAL_LANG_INSTRUCTION = (src: string, tgt: string) =>
-  `\nIMPORTANT: Always respond in both languages. Write the main content in ${tgt} first, then provide the ${src} translation in *italics* on the next line.`;
+// Bilingual output convention:
+//   src = the student's NATIVE language (their mother tongue) — used for translations and ALL explanations.
+//   tgt = the language being LEARNED — used for the main content.
+// Every reply MUST start with the ${tgt} content, then a new line with the ${src} translation in italics.
+// All meta-commentary (corrections, grammar notes, explanations) MUST be in ${src} so the student understands.
+const DUAL_LANG_INSTRUCTION = (src: string, tgt: string) => `
+
+FORMAT — follow this strictly for every reply:
+1. Your main reply in ${tgt} (2-4 sentences max).
+2. On the next line: the ${src} translation of your reply, written in *italics*.
+3. ALL explanations, corrections, grammar notes and meta-commentary MUST be in ${src} (the student's native language). NEVER explain anything in ${tgt} — the student does not understand ${tgt} well enough yet.`;
 
 const PRESET_DEFS: PresetDef[] = [
   {
@@ -70,35 +79,39 @@ const PRESET_DEFS: PresetDef[] = [
     icon: PenLine,
     labelKey: "chat.correctSentence",
     buildSystemPrompt: (src, tgt) =>
-      `You are a language correction assistant for ${tgt}. The student writes sentences and you correct them, explaining errors in ${src}.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a strict ${tgt} writing coach for a ${src} speaker. The student writes text in ${tgt}. For each message:
+1. Show the corrected ${tgt} text first.
+2. Then a ${src} translation in italics.
+3. Then list each mistake on its own line as: "- *${src} explanation of the mistake*". Explanations MUST be in ${src}.
+4. If the text is already perfect, say so in ${src}.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "grammar",
     icon: BookOpen,
     labelKey: "chat.explainGrammar",
     buildSystemPrompt: (src, tgt) =>
-      `You are a ${tgt} grammar teacher. Explain grammar rules and answer questions.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a ${tgt} grammar tutor for a ${src} speaker. Explain ${tgt} grammar rules in ${src} (the student's native language). Always include 1-2 short ${tgt} examples per rule, each followed by its ${src} translation.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "free",
     icon: MessagesSquare,
     labelKey: "chat.freeConversation",
     buildSystemPrompt: (src, tgt) =>
-      `You are a conversation partner. Speak in ${tgt}. Correct mistakes gently.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a friendly ${tgt} conversation partner for a ${src} speaker. Reply naturally in ${tgt} first (2-3 sentences), then add the ${src} translation in italics on the next line. If the student made a mistake, add a final line: "*correction (in ${src}): explanation*".${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "exercises",
     icon: Dumbbell,
     labelKey: "chat.exercises",
     buildSystemPrompt: (src, tgt) =>
-      `You are a language exercise generator for ${tgt} learners. Generate fill-in-blank, translation, and grammar exercises.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a ${tgt} exercise generator for a ${src} speaker. Give one short exercise at a time (fill-in-the-blank, translation, or multiple choice). Write the exercise in ${tgt}, but write the instructions and any hints in ${src}. After the student answers, reveal the correct answer with a brief explanation in ${src}.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "translate",
     icon: Languages,
     labelKey: "chat.translate",
     buildSystemPrompt: (src, tgt) =>
-      `You are a translator between ${src} and ${tgt}. Translate text and explain nuances.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a precise translator between ${src} and ${tgt}. Translate the student's text in both directions. If a word has nuances or false friends, briefly explain in ${src} (NEVER in ${tgt}).${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
 ];
 
@@ -212,6 +225,9 @@ export default function Conversation() {
   const targetName = activePair?.target_name || "the target language";
   const level = "A2";
 
+  // Loading state for the home screen so the user sees feedback during fetch
+  const [homeLoading, setHomeLoading] = useState(false);
+
   // ---- Load home data ----
   const loadHomeData = useCallback(async (forceRefresh = false) => {
     if (!pairId) return;
@@ -220,9 +236,11 @@ export default function Conversation() {
     if (!forceRefresh && _convCache && _convCache.pairId === pairId) {
       setCustomScenarios(_convCache.scenarios);
       setSessions(_convCache.sessions);
+      setHomeLoading(false);
       return;
     }
 
+    setHomeLoading(true);
     try {
       const [scenarios, sessionsData] = await Promise.all([
         bridge.getConversationScenarios(pairId),
@@ -233,12 +251,17 @@ export default function Conversation() {
       setSessions(sessionsData);
     } catch (err) {
       console.error("Failed to load conversation data:", err);
+    } finally {
+      setHomeLoading(false);
     }
   }, [pairId]);
 
+  // Depend on pairId only — recreating loadHomeData on every render would
+  // cause repeated re-fetches.
   useEffect(() => {
     loadHomeData();
-  }, [loadHomeData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairId]);
 
   // Sync view state to Zustand cache
   useEffect(() => {
@@ -291,19 +314,29 @@ export default function Conversation() {
         .map((m) => `${m.role === "user" ? "Student" : role}: ${m.content}`)
         .join("\n");
 
-      if (selectedCustomScenario) {
-        return `${selectedCustomScenario.system_prompt}
-The student is learning ${targetName} and speaks ${sourceName} natively.
-IMPORTANT: Always write your response in ${targetName} first, then provide the ${sourceName} translation in *italics*.
-${history ? `\nConversation so far:\n${history}` : ""}`;
-      }
+      const base = selectedCustomScenario
+        ? selectedCustomScenario.system_prompt
+        : `You are role-playing as a ${role} in a ${targetName} conversation practice.`;
 
-      return `You are playing the role of a ${role} in a ${targetName} conversation practice.
-The student speaks ${sourceName} natively and is learning ${targetName} at ${level} level.
-Stay in character. Speak ONLY in ${targetName}.
-After each student response, give a brief correction in ${sourceName} if needed (grammar/vocab), then continue the conversation.
-Keep your responses concise (2-3 sentences for the in-character part, plus correction if needed).
-IMPORTANT: Always write your in-character response in ${targetName} first, then provide the ${sourceName} translation in *italics*.
+      return `${base}
+
+The student is a NATIVE ${sourceName} speaker who is LEARNING ${targetName} at ${level} level. They do not understand ${targetName} well — ALL meta-commentary, corrections and explanations MUST be written in ${sourceName} so they can follow.
+
+- Stay in character. Speak naturally in ${targetName}.
+- Reply in 2-3 short sentences max.
+
+FORMAT every reply EXACTLY like this (in this order):
+Line 1: Your in-character reply, written in ${targetName}.
+Line 2: *${sourceName} translation of line 1, in italics*
+Line 3 (only if the student made a mistake): 📝 *${sourceName} correction: explain the mistake in ${sourceName}, then give the corrected ${targetName} form*
+
+Example structure (for a French native learning German):
+Hallo! Wie kann ich Ihnen helfen?
+*Bonjour ! Comment puis-je vous aider ?*
+📝 *Correction : "Ich bin Max" — en allemand, "ich" prend toujours une majuscule en début de phrase.*
+
+NEVER write corrections or grammar explanations in ${targetName}. The student does not understand ${targetName} yet.
+
 ${history ? `\nConversation so far:\n${history}` : ""}`;
     },
     [sourceName, targetName, level, selectedCustomScenario],
@@ -315,14 +348,15 @@ ${history ? `\nConversation so far:\n${history}` : ""}`;
         .map((m) => `${m.role === "user" ? "Student" : role}: ${m.content}`)
         .join("\n");
 
-      return `You were playing the role of a ${role} in a ${targetName} conversation practice.
-The student speaks ${sourceName} natively and is learning ${targetName} at ${level} level.
+      return `You just role-played as a ${role} with a ${sourceName} speaker learning ${targetName} (${level}).
 
-Here is the full conversation:
+Conversation:
 ${history}
 
-Now provide an evaluation of the student's performance. Respond ONLY with a JSON object in this exact format, no other text:
-{"fluency": <1-5>, "grammar": <1-5>, "vocabulary": <1-5>, "corrections": ["correction 1 in ${sourceName}", "correction 2 in ${sourceName}"], "summary": "Brief summary in ${sourceName}"}`;
+Evaluate the STUDENT (not your own messages) and respond with ONLY this JSON, no extra text:
+{"fluency": <1-5>, "grammar": <1-5>, "vocabulary": <1-5>, "corrections": ["specific correction in ${sourceName}", ...], "summary": "2-3 sentence summary in ${sourceName}"}
+
+Scoring: 1=struggled, 3=adequate, 5=excellent. Include 2-5 corrections for the student's most important mistakes.`;
     },
     [sourceName, targetName, level],
   );
@@ -345,28 +379,54 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
     if (msgs.length < 2) return "Chat";
     try {
       const summary = msgs.slice(0, 4).map((m) => `${m.role}: ${m.content.slice(0, 80)}`).join("\n");
-      const title = await bridge.askAi(`Give a short title (3-6 words, no quotes) for this conversation:\n${summary}`);
+      const title = await bridge.askAi(
+        `Give a short title (3-6 words, no quotes, no punctuation) in ${sourceName} for this ${targetName} learning conversation. Reply with ONLY the title, nothing else.\n\n${summary}`
+      );
       return title.replace(/^["']|["']$/g, "").trim().slice(0, 60) || "Chat";
     } catch {
       return "Chat";
     }
-  }, []);
+  }, [sourceName, targetName]);
 
   // ---- Save session to DB ----
+  // Save synchronously with the provisional title and refresh history immediately,
+  // then upgrade the title via AI in the background. This avoids blocking the UI
+  // for 2-5 seconds while the title is generated.
   const persistSession = useCallback(
     async (mode: string, title: string, msgs: Message[], scenarioId: number | null = null) => {
       if (!pairId || msgs.length === 0) return;
       try {
-        // Generate AI title for preset conversations
-        const finalTitle = (!scenarioId && msgs.length >= 2)
-          ? await generateTitle(msgs)
-          : title;
-        await bridge.saveConversationSession(pairId, scenarioId, mode, finalTitle, JSON.stringify(msgs));
+        const newId = await bridge.saveConversationSession(
+          pairId,
+          scenarioId,
+          mode,
+          title,
+          JSON.stringify(msgs),
+        );
+        _convCache = null;
+        await loadHomeData(true);
+
+        // Background: generate a nicer AI title for preset (non-scenario) chats
+        // and update the row in place. Failure is silent.
+        if (!scenarioId && msgs.length >= 2) {
+          generateTitle(msgs)
+            .then(async (aiTitle) => {
+              if (!aiTitle || aiTitle === title) return;
+              try {
+                await bridge.updateConversationSessionTitle(newId, aiTitle);
+                _convCache = null;
+                await loadHomeData(true);
+              } catch (err) {
+                console.warn("Failed to update session title:", err);
+              }
+            })
+            .catch(() => {});
+        }
       } catch (err) {
         console.error("Failed to save session:", err);
       }
     },
-    [pairId, generateTitle],
+    [pairId, generateTitle, loadHomeData],
   );
 
   // ===================== ACTIONS =====================
@@ -781,7 +841,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
         {!isAiConfigured && (
           <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 flex items-center gap-3">
             <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
-            <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi", "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.")}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi")}</p>
           </div>
         )}
 
@@ -865,7 +925,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                       setShowNewScenarioForm(true);
                     }}
                     className="p-1 rounded-md text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
-                    title={t("common.edit", "Modifier")}
+                    title={t("common.edit")}
                   >
                     <PenLine size={14} />
                   </button>
@@ -897,7 +957,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {editingScenario ? t("common.edit", "Modifier") : t("common.add")}
+                  {editingScenario ? t("common.edit") : t("common.add")}
                 </h3>
                 <button
                   onClick={() => {
@@ -923,7 +983,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                     type="text"
                     value={newScenario.name}
                     onChange={(e) => setNewScenario((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="Scenario name"
+                    placeholder={t("conversation.scenarioNamePlaceholder")}
                     className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
                   />
                 </div>
@@ -931,13 +991,13 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                   type="text"
                   value={newScenario.description}
                   onChange={(e) => setNewScenario((s) => ({ ...s, description: e.target.value }))}
-                  placeholder="Short description"
+                  placeholder={t("conversation.scenarioDescPlaceholder")}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500"
                 />
                 <textarea
                   value={newScenario.systemPrompt}
                   onChange={(e) => setNewScenario((s) => ({ ...s, systemPrompt: e.target.value }))}
-                  placeholder="System prompt (instructions for the AI)"
+                  placeholder={t("conversation.scenarioPromptPlaceholder")}
                   rows={4}
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 resize-none"
                 />
@@ -966,40 +1026,52 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
         )}
 
         {/* Conversation history */}
-        {sessions.length > 0 && (
+        {(homeLoading || sessions.length > 0) && (
           <section>
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
               <Clock size={16} />
-              <span>History</span>
+              <span>{t("conversation.history")}</span>
+              {homeLoading && <Loader2 size={14} className="animate-spin text-gray-400" />}
             </h2>
-            <div className="space-y-2">
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  onClick={() => viewSession(session)}
-                  className="group flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-amber-400 dark:hover:border-amber-600 cursor-pointer transition-all"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                    <Eye size={16} className="text-gray-500 dark:text-gray-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {session.title}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {modeLabel(session.mode)} &middot; {formatDate(session.created_at)}
-                    </p>
-                  </div>
-                  <button
-                    onClick={(e) => deleteSession(session.id, e)}
-                    className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all"
-                    title={t("common.delete")}
+            {homeLoading && sessions.length === 0 ? (
+              <div className="space-y-2">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-14 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    onClick={() => viewSession(session)}
+                    className="group flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-amber-400 dark:hover:border-amber-600 cursor-pointer transition-all"
                   >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                      <Eye size={16} className="text-gray-500 dark:text-gray-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {session.title}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {modeLabel(session.mode)} &middot; {formatDate(session.created_at)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => deleteSession(session.id, e)}
+                      className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all"
+                      title={t("common.delete")}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -1154,7 +1226,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
               <button
                 onClick={handleExportConversation}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                title={t("conversation.export", "Exporter")}
+                title={t("conversation.export")}
               >
                 <FileDown size={14} />
               </button>
@@ -1198,7 +1270,7 @@ Now provide an evaluation of the student's performance. Respond ONLY with a JSON
                   className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${inlineCorrection ? "translate-x-3.5" : ""}`}
                 />
               </div>
-              <span>{t("conversation.inlineCorrection", "Corrections en ligne")}</span>
+              <span>{t("conversation.inlineCorrection")}</span>
             </label>
           </div>
         )}

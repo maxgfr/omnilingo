@@ -28,7 +28,6 @@ vi.mock("../lib/bridge", () => ({
   getAvailableDictionaries: vi.fn().mockResolvedValue([]),
   getDueCards: vi.fn().mockResolvedValue([]),
   getGrammarTopics: vi.fn().mockResolvedValue([]),
-  getVerbs: vi.fn().mockResolvedValue([]),
   searchWords: vi.fn().mockResolvedValue([]),
 }));
 

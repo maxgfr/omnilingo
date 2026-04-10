@@ -5,7 +5,7 @@ import {
   GrammarSrsStateSchema,
   ConversationScenarioSchema, ConversationSessionSchema,
 } from "../types";
-import type { GrammarTopic, Verb } from "../types";
+import type { GrammarTopic } from "../types";
 import { z } from "zod";
 
 // Centralized error wrapper for IPC calls
@@ -65,21 +65,31 @@ export const deleteGrammarTopic = (topicId: string, pairId: number) =>
   safeInvoke<void>("delete_grammar_topic", { topicId, pairId });
 
 // Conjugation
-export const getVerbs = (pairId: number, query?: string) => safeInvoke<Verb[]>("get_verbs", { pairId, query: query ?? null });
-export const saveVerb = (pairId: number, infinitive: string, translation: string, level: string | null, verbType: string | null, auxiliary: string | null, isSeparable: boolean, conjugations: unknown, examples: unknown | null) =>
+export const saveVerb = (
+  pairId: number,
+  infinitive: string,
+  translation: string,
+  level: string | null,
+  verbType: string | null,
+  auxiliary: string | null,
+  isSeparable: boolean,
+  conjugations: unknown,
+  examples: unknown | null,
+) =>
   safeInvoke<number>("save_verb", {
     input: {
-      pair_id: pairId, infinitive, translation, level,
-      verb_type: verbType, auxiliary, is_separable: isSeparable,
-      conjugations, examples,
+      pair_id: pairId,
+      infinitive,
+      translation,
+      level,
+      verb_type: verbType,
+      auxiliary,
+      is_separable: isSeparable,
+      conjugations,
+      examples,
     },
   });
-export const deleteVerb = (verbId: number) =>
-  safeInvoke<void>("delete_verb", { verbId });
-export const getConjugationStats = (pairId: number) =>
-  safeInvoke<{ total_sessions: number; by_tense: Array<{ tense: string; correct: number; total: number }>; by_verb: Array<{ verb: string; correct: number; total: number }> }>("get_conjugation_stats", { pairId });
-export const logConjugationSession = (pairId: number, verb: string, tense: string, correct: boolean, errors: string[]) =>
-  safeInvoke<void>("log_conjugation_session", { pairId, verb, tense, correct, errors });
+
 
 // Memory
 export const readMemoryFile = (path: string) => safeInvoke<string | null>("read_memory_file", { path });
@@ -99,8 +109,6 @@ export const generateVocabulary = (pairId: number, count: number, level: string,
   safeInvoke<number>("generate_vocabulary", { pairId, count, level, theme: theme ?? null });
 export const generateGrammar = (pairId: number, count: number, level: string) =>
   safeInvoke<number>("generate_grammar", { pairId, count, level });
-export const generateVerbs = (pairId: number, count: number, level: string) =>
-  safeInvoke<number>("generate_verbs", { pairId, count, level });
 
 // Chat persistence
 export const getChatHistory = (pairId: number, limit?: number) =>
@@ -125,23 +133,17 @@ export const saveConversationSession = (pairId: number, scenarioId: number | nul
   safeInvoke<number>("save_conversation_session", { pairId, scenarioId, mode, title, messages });
 export const deleteConversationSession = (sessionId: number) =>
   safeInvoke<void>("delete_conversation_session", { sessionId });
+export const updateConversationSessionTitle = (sessionId: number, title: string) =>
+  safeInvoke<void>("update_conversation_session_title", { sessionId, title });
 
 // Session
 export const logSession = (pairId: number, sessionType: string, sessionData: Record<string, unknown>) =>
   safeInvoke<void>("log_session", { pairId, sessionType, sessionData });
 
-// Import
-export const importBuiltinData = (pairId: number) => safeInvoke<string>("import_builtin_data", { pairId });
-export const importFromFile = (pairId: number, content: string, format: string) =>
-  safeInvoke<string>("import_from_file", { pairId, content, format });
-
 // Download
 export const getAvailableDictionaries = () => invokeAndParseArray("get_available_dictionaries", DictionarySourceSchema);
 export const downloadDictionary = (sourceLang: string, targetLang: string, url: string, sourceName: string, targetName: string, format: string) =>
   safeInvoke<string>("download_dictionary", { sourceLang, targetLang, url, sourceName, targetName, format });
-
-// Export
-export const exportData = () => safeInvoke<string>("export_data");
 
 // Maintenance
 export const deleteAllData = () => safeInvoke<string>("delete_all_data");

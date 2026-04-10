@@ -54,7 +54,7 @@ pub fn run() {
             let _ = std::fs::create_dir_all(base_dir.join("exercises"));
 
             let conn = db::init_database(&base_dir).expect("Failed to init DB");
-            commands::import::ensure_settings_exist(&conn).ok();
+            commands::settings::ensure_settings_exist(&conn).ok();
 
             app.manage(DbState(Mutex::new(conn)));
             app.manage(BaseDirState(base_dir));
@@ -68,7 +68,6 @@ pub fn run() {
             commands::settings::get_language_pairs,
             commands::settings::set_active_language_pair,
             commands::settings::delete_language_pair,
-            commands::settings::export_data,
             // Memory
             commands::memory::read_memory_file,
             commands::memory::write_memory_file,
@@ -81,10 +80,6 @@ pub fn run() {
             commands::ai::set_ai_custom_url,
             commands::ai::generate_vocabulary,
             commands::ai::generate_grammar,
-            commands::ai::generate_verbs,
-            // Import
-            commands::import::import_builtin_data,
-            commands::import::import_from_file,
             // Dictionary
             commands::dictionary::search_words,
             commands::dictionary::get_all_dictionary_words,
@@ -96,11 +91,7 @@ pub fn run() {
             commands::grammar::save_grammar_topic,
             commands::grammar::delete_grammar_topic,
             // Conjugation
-            commands::conjugation::get_verbs,
             commands::conjugation::save_verb,
-            commands::conjugation::delete_verb,
-            commands::conjugation::get_conjugation_stats,
-            commands::conjugation::log_conjugation_session,
             // Dictionary download
             commands::download::get_available_dictionaries,
             commands::download::download_dictionary,
@@ -129,6 +120,7 @@ pub fn run() {
             commands::conversation::get_conversation_sessions,
             commands::conversation::save_conversation_session,
             commands::conversation::delete_conversation_session,
+            commands::conversation::update_conversation_session_title,
             // Global
             log_session,
             delete_all_data,

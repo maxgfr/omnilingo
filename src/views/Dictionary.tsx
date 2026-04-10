@@ -11,7 +11,6 @@ import {
 import { Search } from "lucide-react";
 import Spinner from "../components/ui/Spinner";
 import PageHeader from "../components/ui/PageHeader";
-import ExamplePreview from "../components/ui/ExamplePreview";
 
 import { useApp } from "../store/AppContext";
 import { useAppStore, selectIsAiConfigured, selectReversePairId } from "../store/useAppStore";
@@ -87,16 +86,29 @@ export default function Dictionary() {
     return sets;
   }, [allWords]);
 
-  // Resolve translation/definition for a word, using the reverse pair's word set as fallback
+  // Resolve translation/definition for a word.
+  //
+  // Strategy: when a reverse-pair word set is available, ALWAYS run the
+  // word-set extraction first. This catches cases like "be asleep sleep"
+  // where parseTargetWord would otherwise return the whole string as a
+  // single translation just because there are no semicolons.
+  //
+  // We only fall back to the parseTargetWord output if the extraction
+  // didn't find any reverse-pair matches.
   const resolveTranslation = useCallback((word: Word, parsed: ReturnType<typeof parseTargetWord>) => {
-    // If semicolon-based split already found translations, use them
-    if (parsed.translation) return { translation: parsed.translation, definition: parsed.definition };
-
-    // Otherwise, try matching tokens against the opposite pair's words
     const oppositePairId = word.language_pair_id === activePair?.id ? reversePairId : activePair?.id;
     const oppositeSet = oppositePairId != null ? pairWordSets.get(oppositePairId) : undefined;
+
     if (oppositeSet && oppositeSet.size > 0 && parsed.clean.length > 0) {
-      return extractTranslationsWithWordSet(parsed.clean, oppositeSet);
+      const extracted = extractTranslationsWithWordSet(parsed.clean, oppositeSet);
+      // Only use the extraction result when it found at least one match;
+      // otherwise the parsed semicolon split is more accurate.
+      if (extracted.translation) {
+        return {
+          translation: extracted.translation,
+          definition: extracted.definition ?? parsed.definition,
+        };
+      }
     }
 
     return { translation: parsed.translation, definition: parsed.definition };
@@ -195,32 +207,54 @@ export default function Dictionary() {
     setAiLoading(true);
     setAiContent(null);
     try {
-      const sourceLang = activePair.source_name;
-      const targetLang = activePair.target_name;
-      const prompt = `You are a bilingual language learning assistant for ${sourceLang} and ${targetLang}.
+      // Convention: activePair.source_name = user's native, activePair.target_name = language being learned.
+      // The word being looked up may belong to either direction (source pair or its reverse).
+      // Find the actual pair the word belongs to so we know what language the word is in.
+      const nativeLang = activePair.source_name;
+      const learningLang = activePair.target_name;
+      const wordPair = languagePairs.find((p) => p.id === word.language_pair_id);
+      const wordLang = wordPair?.source_name ?? learningLang;
+      const isWordInLearningLang = wordLang !== nativeLang;
 
-Word: "${word.source_word}" (${sourceLang})
+      const prompt = `You are a bilingual dictionary assistant for a ${nativeLang} speaker who is learning ${learningLang}.
+
+The user looked up the ${wordLang} word: "${word.source_word}"
 ${word.target_word ? `Known translation: ${word.target_word}` : ""}
-${word.gender ? `Gender: ${word.gender}` : ""}
-${word.category ? `Category: ${word.category}` : ""}
 
-Provide a bilingual explanation covering BOTH ${sourceLang} and ${targetLang}:
-1. **Translation** — precise translation(s) between ${sourceLang} ↔ ${targetLang}
-2. **Grammar** — gender, plural form, part of speech, declension/conjugation notes (in both languages)
-3. **Example sentences** — 3 examples, each with the sentence in ${sourceLang} AND its translation in ${targetLang}
-4. **Usage notes** — common expressions, collocations, register (in both languages)
-5. **Related words** — synonyms, antonyms, word family (in both languages)
+Write your entire answer in ${nativeLang} (the user's native language). Use ${learningLang} only when quoting words, phrases, or example sentences.
 
-Format with markdown. Be concise but thorough. Write section titles and explanations in ${targetLang}, but always include both ${sourceLang} and ${targetLang} for vocabulary, examples and expressions.`;
+Output STRICT markdown with these exact sections. ALL section headings MUST be in ${nativeLang}:
+
+## ${isWordInLearningLang ? `Translation in ${nativeLang}` : `${learningLang} equivalent`}
+1-3 short translations on a single line.
+
+## Grammar
+Part of speech, gender, plural, conjugation notes, register — in ${nativeLang}.
+
+## Examples
+Exactly 3 short example sentences. Format EACH as:
+> *${learningLang} sentence* — ${nativeLang} translation
+
+## Usage
+2-3 bullets in ${nativeLang} about register, common collocations, idioms, or false friends.
+
+## Synonyms / Antonyms
+Synonyms and antonyms in ${learningLang}, each followed by its ${nativeLang} gloss in parentheses.
+
+Rules:
+- Translate the section headings themselves into ${nativeLang}.
+- Be concise. No preamble, no closing remarks, no code fences.
+- Every ${learningLang} word or sentence MUST be followed by its ${nativeLang} translation.
+- Omit any section that has no meaningful content.`;
 
       const result = await bridge.askAi(prompt);
       setAiContent(result);
     } catch (err) {
-      setAiContent(`Erreur: ${err}`);
+      setAiContent(`${t("common.error")}: ${err}`);
     } finally {
       setAiLoading(false);
     }
-  }, [activePair]);
+  }, [activePair, languagePairs, t]);
 
   const openWordDetail = useCallback((word: Word) => {
     setSelectedWord(word);
@@ -249,10 +283,20 @@ Format with markdown. Be concise but thorough. Write section titles and explanat
     return () => observer.disconnect();
   }, [hasMore]);
 
-  // Keyboard navigation
+  // Keyboard navigation — skip when focus is on any interactive element
+  // to avoid triggering arrow/Escape shortcuts while the user is clicking a button
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const target = e.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target instanceof HTMLButtonElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         const currentIdx = selectedWord ? visibleWords.findIndex((w) => w.id === selectedWord.id) : -1;
@@ -330,18 +374,8 @@ Format with markdown. Be concise but thorough. Write section titles and explanat
 
       {/* Word list */}
       {filteredWords.length === 0 && !loading ? (
-        <div className="text-center py-16 text-gray-500 dark:text-gray-400 space-y-6">
+        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
           <p className="text-lg font-medium">{t("dictionary.noWordsFound")}</p>
-          <ExamplePreview onClick={() => setSearchQuery("Apfel")}>
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center gap-3 text-left">
-              <span className="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase flex-shrink-0">der</span>
-              <div className="flex-1 min-w-0">
-                <span className="font-bold text-gray-900 dark:text-white text-sm">Apfel</span>
-                <span className="text-sm text-amber-600 dark:text-amber-400 ml-2">la pomme</span>
-              </div>
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 flex-shrink-0">A1</span>
-            </div>
-          </ExamplePreview>
         </div>
       ) : (
         <div className="space-y-2">
@@ -465,7 +499,7 @@ Format with markdown. Be concise but thorough. Write section titles and explanat
                     {resolved.definition && (
                       <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-700/30 p-3">
                         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-                          {t("dictionary.definition", "Définition")}
+                          {t("dictionary.definition")}
                         </p>
                         <div className="space-y-1">
                           {formatDefinition(resolved.definition).map((def, i) => (

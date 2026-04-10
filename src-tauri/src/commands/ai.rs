@@ -271,19 +271,17 @@ pub async fn generate_vocabulary(
         (s, sl, tl, cu)
     };
 
-    let theme_str = theme.as_deref().unwrap_or("general / mixed themes");
+    let theme_str = theme.as_deref().unwrap_or("general everyday vocabulary");
+    let category = theme.as_deref().unwrap_or("general");
     let prompt = format!(
-        "Generate exactly {} vocabulary words for a {} learner studying {}.\n\
-        Native language: {}. Theme: {}.\n\n\
-        Return ONLY a valid JSON array, no markdown fences, no explanation:\n\
-        [{{\"source\": \"word in {}\", \"target\": \"word in {}\", \"gender\": null, \"level\": \"{}\", \"category\": \"{}\"}}]\n\n\
+        "Generate exactly {count} {target_lang} vocabulary words for a {source_lang}-speaking {level} learner. Theme: {theme_str}.\n\n\
+        Return ONLY this JSON array — no markdown fences, no prose:\n\
+        [{{\"source\": \"<word in {source_lang}>\", \"target\": \"<word in {target_lang}>\", \"gender\": \"m\"|\"f\"|\"n\"|null, \"level\": \"{level}\", \"category\": \"{category}\"}}]\n\n\
         Rules:\n\
-        - gender should be \"m\", \"f\", \"n\" for nouns with grammatical gender, or null\n\
-        - source is in the native language, target is in the learning language\n\
-        - include diverse, practical, everyday vocabulary\n\
-        - each word must be unique",
-        count, level, target_lang, source_lang, theme_str,
-        source_lang, target_lang, level, theme.as_deref().unwrap_or("general")
+        - source field = the {source_lang} (native) word; target field = the {target_lang} (learning) word.\n\
+        - gender is only for {target_lang} nouns with grammatical gender; null otherwise.\n\
+        - Pick practical, frequently used words. Each word must be unique.\n\
+        - Match the {level} difficulty exactly."
     );
 
     let cwd = base_dir.0.clone();
@@ -346,34 +344,28 @@ pub async fn generate_grammar(
     };
 
     let prompt = format!(
-        "Generate exactly {} grammar topics for learning {} at the {} level.\n\
-        All explanations should be in {} (the learner's native language).\n\
-        All examples should be in {} with translations in {}.\n\n\
-        Return ONLY a valid JSON array, no markdown fences:\n\
+        "Generate exactly {count} grammar lessons for a {source_lang}-speaking {level} learner studying {target_lang}.\n\n\
+        Return ONLY this JSON array — no markdown fences, no prose:\n\
         [{{\n\
-          \"id\": \"unique-kebab-case-id\",\n\
-          \"title\": \"Topic title in {}\",\n\
-          \"title_source\": \"Topic title in {}\",\n\
-          \"explanation\": \"Detailed explanation in {} (2-3 paragraphs)\",\n\
-          \"key_points\": [\"key point 1\", \"key point 2\", \"key point 3\"],\n\
+          \"id\": \"<unique-kebab-case-id>\",\n\
+          \"title\": \"<topic title in {target_lang}>\",\n\
+          \"title_source\": \"<same title in {source_lang}>\",\n\
+          \"explanation\": \"<2-3 paragraphs in {source_lang}, use **bold** for key terms>\",\n\
+          \"key_points\": [\"<3-5 short rules in {source_lang}>\"],\n\
           \"examples\": [\n\
-            {{\"source\": \"example in {}\", \"target\": \"translation in {}\", \"highlight\": \"highlighted grammar element\"}}\n\
+            {{\"source\": \"<example in {target_lang}>\", \"target\": \"<translation in {source_lang}>\", \"highlight\": \"<key word/phrase>\"}}\n\
           ],\n\
           \"exercises\": [\n\
-            {{\"type\": \"mcq\", \"question\": \"question\", \"options\": [\"a\",\"b\",\"c\",\"d\"], \"correct\": 0}},\n\
-            {{\"type\": \"fill\", \"question\": \"sentence with ___ blank\", \"answer\": \"correct word\"}},\n\
-            {{\"type\": \"true_false\", \"question\": \"statement\", \"answer\": true}}\n\
+            {{\"type\": \"qcm\", \"question\": \"<question>\", \"options\": [\"<a>\",\"<b>\",\"<c>\",\"<d>\"], \"correctIndex\": 0}},\n\
+            {{\"type\": \"fill\", \"sentence\": \"<sentence in {target_lang} with ___ blank>\", \"answer\": \"<correct word>\", \"hint\": \"<short hint in {source_lang}>\"}},\n\
+            {{\"type\": \"trueFalse\", \"statement\": \"<statement in {target_lang}>\", \"isTrue\": true, \"explanation\": \"<why in {source_lang}>\"}}\n\
           ]\n\
         }}]\n\n\
         Rules:\n\
-        - Each topic should have 3-4 examples and 3-4 exercises\n\
-        - Cover fundamental grammar concepts for this level\n\
-        - Mix exercise types (mcq, fill, true_false)\n\
-        - IDs must be unique kebab-case strings",
-        count, target_lang, level,
-        source_lang, target_lang, source_lang,
-        target_lang, source_lang, source_lang,
-        target_lang, source_lang
+        - Each topic: 3-4 examples and 3-6 exercises (mix of qcm, fill, trueFalse).\n\
+        - Cover fundamental grammar concepts at {level}.\n\
+        - IDs must be unique kebab-case strings (e.g. \"present-tense-regular\").\n\
+        - Exercise field names must match exactly: qcm uses correctIndex, trueFalse uses isTrue."
     );
 
     let cwd = base_dir.0.clone();
@@ -416,98 +408,6 @@ pub async fn generate_grammar(
             if stmt.execute(rusqlite::params![
                 id, pair_id, topic_level, max_order + 1 + i as i64,
                 title, title_source, explanation, key_points, examples, exercises
-            ]).is_ok() {
-                inserted += 1;
-            }
-        }
-    }
-
-    db.execute("COMMIT", []).map_err(|e| e.to_string())?;
-    Ok(inserted)
-}
-
-/// Generate verbs with conjugation tables using AI
-#[tauri::command]
-pub async fn generate_verbs(
-    state: State<'_, DbState>,
-    base_dir: State<'_, BaseDirState>,
-    pair_id: i64,
-    count: i64,
-    level: String,
-) -> Result<i64, String> {
-    let (settings, source_lang, target_lang, custom_url) = {
-        let db = state.db();
-        let s = get_ai_settings(&db)?;
-        let cu = get_custom_url(&db);
-        let (sl, tl): (String, String) = db.query_row(
-            "SELECT source_lang, target_lang FROM language_pairs WHERE id = ?1",
-            [pair_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        ).map_err(|e| e.to_string())?;
-        (s, sl, tl, cu)
-    };
-
-    let prompt = format!(
-        "Generate exactly {} common verbs in {} for a {} learner with full conjugation tables.\n\
-        Translations should be in {}.\n\n\
-        Return ONLY a valid JSON array, no markdown fences:\n\
-        [{{\n\
-          \"infinitive\": \"verb infinitive in {}\",\n\
-          \"translation\": \"translation in {}\",\n\
-          \"level\": \"{}\",\n\
-          \"verb_type\": \"regular\" or \"irregular\" or \"modal\",\n\
-          \"auxiliary\": \"haben\" or \"sein\" or null,\n\
-          \"is_separable\": false,\n\
-          \"conjugations\": {{\n\
-            \"present\": {{\"ich\": \"...\", \"du\": \"...\", \"er/sie/es\": \"...\", \"wir\": \"...\", \"ihr\": \"...\", \"sie/Sie\": \"...\"}},\n\
-            \"past\": {{\"ich\": \"...\", \"du\": \"...\", \"er/sie/es\": \"...\", \"wir\": \"...\", \"ihr\": \"...\", \"sie/Sie\": \"...\"}},\n\
-            \"perfect\": {{\"ich\": \"...\", \"du\": \"...\", \"er/sie/es\": \"...\", \"wir\": \"...\", \"ihr\": \"...\", \"sie/Sie\": \"...\"}}\n\
-          }},\n\
-          \"examples\": [{{\"source\": \"example in {}\", \"target\": \"translation in {}\"}}]\n\
-        }}]\n\n\
-        Rules:\n\
-        - Include the most common, practical verbs for this level\n\
-        - Conjugation tenses: adapt to the target language (e.g., for German: present, past, perfect; for French: present, passe compose, imparfait, futur)\n\
-        - Use person forms appropriate for the language\n\
-        - Each verb should have 1-2 example sentences\n\
-        - Mix regular and irregular verbs",
-        count, target_lang, level, source_lang,
-        target_lang, source_lang, level,
-        target_lang, source_lang
-    );
-
-    let cwd = base_dir.0.clone();
-    let messages = vec![ChatMessage { role: "user".into(), content: prompt }];
-    let response = call_with_custom_support(&settings, &messages, &cwd, &custom_url).await?;
-
-    let json_str = extract_json_array(&response)?;
-    let verbs: Vec<serde_json::Value> = serde_json::from_str(&json_str)
-        .map_err(|e| format!("Failed to parse verbs JSON: {}. Response: {}", e, &response[..200.min(response.len())]))?;
-
-    let db = state.db();
-    db.execute("BEGIN", []).map_err(|e| e.to_string())?;
-
-    let mut inserted: i64 = 0;
-    {
-        let mut stmt = db.prepare(
-            "INSERT OR IGNORE INTO verbs (language_pair_id, infinitive, translation, level, verb_type, auxiliary, is_separable, conjugations, examples)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"
-        ).map_err(|e| e.to_string())?;
-
-        for verb in &verbs {
-            let infinitive = verb.get("infinitive").and_then(|v| v.as_str()).unwrap_or("").trim();
-            if infinitive.is_empty() { continue; }
-            let translation = verb.get("translation").and_then(|v| v.as_str()).unwrap_or("").trim();
-            let verb_level = verb.get("level").and_then(|v| v.as_str()).unwrap_or(&level);
-            let verb_type = verb.get("verb_type").and_then(|v| v.as_str());
-            let auxiliary = verb.get("auxiliary").and_then(|v| v.as_str());
-            let is_separable = verb.get("is_separable").and_then(|v| v.as_bool()).unwrap_or(false);
-            let conjugations = verb.get("conjugations").unwrap_or(&serde_json::Value::Object(Default::default())).to_string();
-            let examples = verb.get("examples").map(|v| v.to_string());
-
-            if stmt.execute(rusqlite::params![
-                pair_id, infinitive, translation, verb_level, verb_type, auxiliary,
-                is_separable as i64, conjugations, examples
             ]).is_ok() {
                 inserted += 1;
             }

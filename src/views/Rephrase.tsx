@@ -19,7 +19,7 @@ export default function Rephrase() {
       {!isAiConfigured && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 flex items-center gap-3">
           <AlertTriangle size={16} className="text-amber-500 flex-shrink-0" />
-          <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi", "Configurez un fournisseur IA dans les Paramètres pour utiliser cette fonctionnalité.")}</p>
+          <p className="text-sm text-amber-700 dark:text-amber-400">{t("settings.configureAi")}</p>
         </div>
       )}
       <RephraseTool activePair={activePair} initialWord={cachedInput} onInputChange={onInputChange} />

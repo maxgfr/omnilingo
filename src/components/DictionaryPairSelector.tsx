@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, Trash2, Plus } from "lucide-react";
 import * as bridge from "../lib/bridge";
 import type { LanguagePair } from "../types";
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }: Props) {
+  const { t } = useTranslation();
   const [showAdd, setShowAdd] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }
                   }}
                   disabled={deleting === pair.id || (reverse ? deleting === reverse.id : false)}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                  title="Supprimer ce dictionnaire"
+                  title={t("dictionary.deletePair")}
                 >
                   {deleting === pair.id || (reverse && deleting === reverse.id) ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -91,7 +93,7 @@ export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }
         }`}
       >
         <Plus size={14} />
-        <span>Ajouter un dictionnaire</span>
+        <span>{t("dictionary.addPair")}</span>
       </button>
 
       {/* Language pack downloader */}

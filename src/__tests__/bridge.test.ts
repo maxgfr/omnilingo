@@ -139,47 +139,6 @@ describe("bridge", () => {
     });
   });
 
-  // ── Conjugation ─────────────────────────────────────────────────────
-  describe("conjugation", () => {
-    it("getVerbs passes pairId and query", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
-      const bridge = await getBridge();
-      await bridge.getVerbs(1, "mach");
-      expect(mockInvoke).toHaveBeenCalledWith("get_verbs", { pairId: 1, query: "mach" });
-    });
-
-    it("saveVerb passes input object", async () => {
-      mockInvoke.mockResolvedValueOnce(1);
-      const bridge = await getBridge();
-      const id = await bridge.saveVerb(1, "machen", "faire", "A1", "weak", "haben", false, { present: {} }, null);
-      expect(id).toBe(1);
-      expect(mockInvoke).toHaveBeenCalledWith("save_verb", {
-        input: { pair_id: 1, infinitive: "machen", translation: "faire", level: "A1", verb_type: "weak", auxiliary: "haben", is_separable: false, conjugations: { present: {} }, examples: null },
-      });
-    });
-
-    it("deleteVerb passes verbId", async () => {
-      mockInvoke.mockResolvedValueOnce(undefined);
-      const bridge = await getBridge();
-      await bridge.deleteVerb(5);
-      expect(mockInvoke).toHaveBeenCalledWith("delete_verb", { verbId: 5 });
-    });
-
-    it("getConjugationStats passes pairId", async () => {
-      mockInvoke.mockResolvedValueOnce({ total_sessions: 0, by_tense: [], by_verb: [] });
-      const bridge = await getBridge();
-      await bridge.getConjugationStats(1);
-      expect(mockInvoke).toHaveBeenCalledWith("get_conjugation_stats", { pairId: 1 });
-    });
-
-    it("logConjugationSession passes all params", async () => {
-      mockInvoke.mockResolvedValueOnce(undefined);
-      const bridge = await getBridge();
-      await bridge.logConjugationSession(1, "machen", "present", true, []);
-      expect(mockInvoke).toHaveBeenCalledWith("log_conjugation_session", { pairId: 1, verb: "machen", tense: "present", correct: true, errors: [] });
-    });
-  });
-
   // ── Memory ──────────────────────────────────────────────────────────
   describe("memory", () => {
     it("readMemoryFile passes path", async () => {
@@ -253,12 +212,6 @@ describe("bridge", () => {
       expect(mockInvoke).toHaveBeenCalledWith("generate_grammar", { pairId: 1, count: 3, level: "B1" });
     });
 
-    it("generateVerbs passes pairId, count, level", async () => {
-      mockInvoke.mockResolvedValueOnce(8);
-      const bridge = await getBridge();
-      await bridge.generateVerbs(1, 10, "A1");
-      expect(mockInvoke).toHaveBeenCalledWith("generate_verbs", { pairId: 1, count: 10, level: "A1" });
-    });
   });
 
   // ── Chat ────────────────────────────────────────────────────────────
@@ -352,19 +305,6 @@ describe("bridge", () => {
       expect(mockInvoke).toHaveBeenCalledWith("log_session", { pairId: 1, sessionType: "grammar_error", sessionData: { word: "Haus" } });
     });
 
-    it("importBuiltinData passes pairId", async () => {
-      mockInvoke.mockResolvedValueOnce("OK");
-      const bridge = await getBridge();
-      await bridge.importBuiltinData(1);
-      expect(mockInvoke).toHaveBeenCalledWith("import_builtin_data", { pairId: 1 });
-    });
-
-    it("importFromFile passes pairId, content, format", async () => {
-      mockInvoke.mockResolvedValueOnce("OK");
-      const bridge = await getBridge();
-      await bridge.importFromFile(1, "csv,data", "csv");
-      expect(mockInvoke).toHaveBeenCalledWith("import_from_file", { pairId: 1, content: "csv,data", format: "csv" });
-    });
   });
 
   // ── Download ────────────────────────────────────────────────────────
@@ -386,16 +326,8 @@ describe("bridge", () => {
     });
   });
 
-  // ── Export & Maintenance ────────────────────────────────────────────
-  describe("export and maintenance", () => {
-    it("exportData calls invoke", async () => {
-      mockInvoke.mockResolvedValueOnce("{}");
-      const bridge = await getBridge();
-      const result = await bridge.exportData();
-      expect(mockInvoke).toHaveBeenCalledWith("export_data", undefined);
-      expect(result).toBe("{}");
-    });
-
+  // ── Maintenance ─────────────────────────────────────────────────────
+  describe("maintenance", () => {
     it("deleteAllData calls invoke", async () => {
       mockInvoke.mockResolvedValueOnce("All data deleted");
       const bridge = await getBridge();

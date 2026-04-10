@@ -12,6 +12,7 @@ import ExamplePreview from "../ui/ExamplePreview";
 import RecentSearches from "../ui/RecentSearches";
 
 import { MINING_EXAMPLE, MINING_SAMPLE_INPUT } from "../../lib/exampleData";
+import { useExampleTranslations } from "../../lib/useExampleTranslations";
 import { levelColors } from "../../lib/wordUtils";
 
 interface MinedSentence {
@@ -52,6 +53,20 @@ export default function SentenceMiningTool({ onWordClick, activePair, initialWor
   }, [result]);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Translate example into the active target language
+  const { tr: trEx, loading: trExLoading } = useExampleTranslations(
+    "mining",
+    [
+      MINING_SAMPLE_INPUT,
+      ...MINING_EXAMPLE.flatMap((s) => [
+        s.sentence,
+        s.translation,
+        s.grammar,
+        ...s.keyWords.flatMap((kw) => [kw.word, kw.translation]),
+      ]),
+    ],
+  );
+
   // Restore cached result on mount
   useEffect(() => {
     if (initialWord && activePair) {
@@ -75,25 +90,25 @@ export default function SentenceMiningTool({ onWordClick, activePair, initialWor
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
 
-      const prompt = `Extract useful sentences for language learning from this ${tgtName} text.
-Student level: ${level}. Learning ${tgtName} from ${srcName}.
+      const prompt = `Mine the most useful sentences from this ${tgtName} text for a ${srcName}-speaking ${level} learner.
 
-For each sentence:
-1. Select 3-8 sentences that are most useful for learning (natural, contain useful vocabulary/grammar)
-2. Translate each to ${srcName}
-3. Identify key vocabulary words with translations and CEFR level
-4. Note the grammar point demonstrated
-
-Return ONLY valid JSON:
+Return ONLY this JSON array, no markdown fences:
 [
   {
-    "sentence": "original sentence in ${tgtName}",
-    "translation": "translation in ${srcName}",
-    "keyWords": [{"word":"key word","translation":"translation","level":"A1|A2|B1|B2"}],
-    "grammar": "grammar point this sentence demonstrates"
+    "sentence": "<sentence verbatim from text in ${tgtName}>",
+    "translation": "<translation in ${srcName}>",
+    "keyWords": [
+      { "word": "<key word in ${tgtName}>", "translation": "<in ${srcName}>", "level": "A1" | "A2" | "B1" | "B2" | "C1" }
+    ],
+    "grammar": "<1 sentence in ${srcName} naming the main grammar point>"
   }
 ]
 
+Rules:
+- Select 3-8 sentences. Pick those that are SHORT, NATURAL, and rich in useful vocabulary or grammar.
+- Each sentence must appear verbatim in the original text.
+- 2-4 key words per sentence (focus on words a ${level} learner doesn't yet know).
+- "grammar" should name a single concept (e.g. "passé composé", "modal verbs", "comparative"), not a long explanation.
 ${enriched}
 
 Text to mine:
@@ -152,17 +167,17 @@ ${input.trim()}`;
       </div>
 
       {!result && !loading && !error && (
-        <ExamplePreview onClick={() => { handleInputChange(MINING_SAMPLE_INPUT); }}>
+        <ExamplePreview loading={trExLoading} onClick={() => { handleInputChange(trEx(MINING_SAMPLE_INPUT)); }}>
           <div className="space-y-4">
             {MINING_EXAMPLE.map((sentence, idx) => (
               <div key={idx} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">{sentence.sentence}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{sentence.translation}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">{trEx(sentence.sentence)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{trEx(sentence.translation)}</p>
                   {sentence.grammar && (
                     <div className="mt-2 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-700/50">
                       <p className="text-[11px] text-gray-600 dark:text-gray-400">
-                        <span className="font-semibold">Grammar:</span> {sentence.grammar}
+                        <span className="font-semibold">{t("tools.mining.grammarPoint")}:</span> {trEx(sentence.grammar)}
                       </p>
                     </div>
                   )}
@@ -170,9 +185,9 @@ ${input.trim()}`;
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {sentence.keyWords.map((kw, ki) => (
                     <div key={ki} className="flex items-center gap-3 px-4 py-2">
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{kw.level}</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{kw.word}</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">— {kw.translation}</span>
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${levelColors[kw.level] || "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"}`}>{kw.level}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{trEx(kw.word)}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">— {trEx(kw.translation)}</span>
                     </div>
                   ))}
                 </div>
@@ -215,7 +230,7 @@ ${input.trim()}`;
                 </p>
               </div>
             ) : (
-              <span className="text-xs text-gray-400 italic mt-2 inline-block">{t("tools.mining.noGrammarPoint", "—")}</span>
+              <span className="text-xs text-gray-400 italic mt-2 inline-block">{t("tools.mining.noGrammarPoint")}</span>
             )}
           </div>
 

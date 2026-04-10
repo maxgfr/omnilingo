@@ -245,10 +245,12 @@ describe("extractTranslationsWithWordSet", () => {
     expect(result.translation).toContain("chat");
   });
 
-  it("returns null translation when no words match", () => {
+  it("returns the whole text as translation when no words match and no definition marker", () => {
     const result = extractTranslationsWithWordSet("completely unknown text here", reverseWords);
-    expect(result.translation).toBeNull();
-    expect(result.definition).toBeTruthy();
+    // No reverse-set matches and no definition marker → fall back to treating
+    // the whole text as a single translation phrase rather than fragmenting it.
+    expect(result.translation).toBe("completely unknown text here");
+    expect(result.definition).toBeNull();
   });
 
   it("handles text with definition markers (parentheses)", () => {
@@ -259,7 +261,7 @@ describe("extractTranslationsWithWordSet", () => {
 
   it("handles empty text", () => {
     const result = extractTranslationsWithWordSet("", reverseWords);
-    expect(result.translation).toBe("");
+    expect(result.translation).toBeNull();
     expect(result.definition).toBeNull();
   });
 

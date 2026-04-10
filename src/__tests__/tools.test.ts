@@ -13,7 +13,6 @@ vi.mock("../lib/bridge", () => ({
   }]),
   askAi: vi.fn().mockResolvedValue('{"translation":"maison"}'),
   searchWords: vi.fn().mockResolvedValue([]),
-  getVerbs: vi.fn().mockResolvedValue([]),
   readMemoryFile: vi.fn().mockResolvedValue(null),
   setActiveLanguagePair: vi.fn().mockResolvedValue(undefined),
   updateSetting: vi.fn().mockResolvedValue(undefined),

@@ -68,20 +68,32 @@ function StatusToast({ message, variant = "success", onClose }: { message: strin
 
 // ---------------------------------------------------------------------------
 // Provider list
+// Brand names are kept verbatim (they're proper nouns); the descriptive
+// suffix in parentheses is composed at render time from i18n keys.
 // ---------------------------------------------------------------------------
-const AI_PROVIDERS = [
+type ProviderLabelKey = "anthropic" | "openai" | "gemini" | "mistral" | "glm" | "custom" | "claude-code" | "codex" | "ollama" | "lmstudio";
+
+const AI_PROVIDERS: Array<{
+  value: string;
+  brand: string;
+  labelKey: ProviderLabelKey;
+  defaultModel: string;
+  placeholder: string;
+  noKey?: boolean;
+  group: "api" | "local";
+}> = [
   // API providers
-  { value: "anthropic", label: "Anthropic (Claude API)", defaultModel: "claude-sonnet-4-6", placeholder: "claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-6", group: "api" },
-  { value: "openai", label: "OpenAI", defaultModel: "gpt-4o-mini", placeholder: "gpt-4o-mini, gpt-4o, gpt-4.1, o3-mini", group: "api" },
-  { value: "gemini", label: "Google Gemini", defaultModel: "gemini-2.0-flash", placeholder: "gemini-2.0-flash, gemini-2.5-pro", group: "api" },
-  { value: "mistral", label: "Mistral AI", defaultModel: "mistral-small-latest", placeholder: "mistral-small-latest, mistral-large-latest, codestral-latest", group: "api" },
-  { value: "glm", label: "GLM (Z.ai)", defaultModel: "glm-4.7-flash", placeholder: "glm-4.7-flash, glm-4.7, glm-5, glm-4.5-flash", group: "api" },
-  { value: "custom", label: "Custom (OpenAI-compatible)", defaultModel: "", placeholder: "your-model-name", group: "api" },
+  { value: "anthropic", brand: "Anthropic", labelKey: "anthropic", defaultModel: "claude-sonnet-4-6", placeholder: "claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-6", group: "api" },
+  { value: "openai", brand: "OpenAI", labelKey: "openai", defaultModel: "gpt-4o-mini", placeholder: "gpt-4o-mini, gpt-4o, gpt-4.1, o3-mini", group: "api" },
+  { value: "gemini", brand: "Google Gemini", labelKey: "gemini", defaultModel: "gemini-2.0-flash", placeholder: "gemini-2.0-flash, gemini-2.5-pro", group: "api" },
+  { value: "mistral", brand: "Mistral AI", labelKey: "mistral", defaultModel: "mistral-small-latest", placeholder: "mistral-small-latest, mistral-large-latest, codestral-latest", group: "api" },
+  { value: "glm", brand: "GLM", labelKey: "glm", defaultModel: "glm-4.7-flash", placeholder: "glm-4.7-flash, glm-4.7, glm-5, glm-4.5-flash", group: "api" },
+  { value: "custom", brand: "Custom", labelKey: "custom", defaultModel: "", placeholder: "your-model-name", group: "api" },
   // Local CLI tools (no API key)
-  { value: "claude-code", label: "Claude Code (local CLI)", defaultModel: "claude-sonnet-4-6", placeholder: "claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-6", noKey: true, group: "local" },
-  { value: "codex", label: "Codex CLI (OpenAI)", defaultModel: "codex-mini-latest", placeholder: "codex-mini-latest", noKey: true, group: "local" },
-  { value: "ollama", label: "Ollama (local)", defaultModel: "", placeholder: "llama3.2, mistral, gemma3, qwen3, deepseek-r1", noKey: true, group: "local" },
-  { value: "lmstudio", label: "LM Studio (local)", defaultModel: "", placeholder: "nom du modèle chargé dans LM Studio", noKey: true, group: "local" },
+  { value: "claude-code", brand: "Claude Code", labelKey: "claude-code", defaultModel: "claude-sonnet-4-6", placeholder: "claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-6", noKey: true, group: "local" },
+  { value: "codex", brand: "Codex CLI", labelKey: "codex", defaultModel: "codex-mini-latest", placeholder: "codex-mini-latest", noKey: true, group: "local" },
+  { value: "ollama", brand: "Ollama", labelKey: "ollama", defaultModel: "", placeholder: "llama3.2, mistral, gemma3, qwen3, deepseek-r1", noKey: true, group: "local" },
+  { value: "lmstudio", brand: "LM Studio", labelKey: "lmstudio", defaultModel: "", placeholder: "", noKey: true, group: "local" },
 ];
 
 
@@ -105,7 +117,6 @@ export default function Settings() {
   const [newModel, setNewModel] = useState("claude-sonnet-4-6");
   const [newProvider, setNewProvider] = useState("claude-code");
   const [newCustomUrl, setNewCustomUrl] = useState("");
-  const [exporting, setExporting] = useState(false);
   const storeSetAiConfig = useAppStore((s) => s.setAiConfig);
   const [status, setStatus] = useState<{ message: string; variant: "success" | "error" } | null>(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -258,22 +269,6 @@ export default function Settings() {
     }
   };
 
-  const handleExportBeforeDelete = async () => {
-    try {
-      const data = await bridge.exportData();
-      const blob = new Blob([data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `omnilingo-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Failed to export:", err);
-    }
-    await handleDeleteAllData();
-  };
-
   // Map provider to catalog key
   const providerToCatalog: Record<string, string> = {
     anthropic: "anthropic",
@@ -395,14 +390,18 @@ export default function Settings() {
                 onChange={(e) => handleProviderChange(e.target.value)}
                 className="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 pr-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
-                <optgroup label="API (requires key)">
+                <optgroup label={t("settings.providersApi")}>
                   {availableProviders.filter(p => p.group === "api").map((p) => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
+                    <option key={p.value} value={p.value}>
+                      {p.brand} ({t(`settings.providerSuffix.${p.labelKey}`)})
+                    </option>
                   ))}
                 </optgroup>
-                <optgroup label="Local (no key needed)">
+                <optgroup label={t("settings.providersLocal")}>
                   {availableProviders.filter(p => p.group === "local").map((p) => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
+                    <option key={p.value} value={p.value}>
+                      {p.brand} ({t(`settings.providerSuffix.${p.labelKey}`)})
+                    </option>
                   ))}
                 </optgroup>
               </select>
@@ -442,7 +441,7 @@ export default function Settings() {
           {newProvider === "custom" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Endpoint URL
+                {t("settings.endpointUrl")}
               </label>
               <input
                 type="url"
@@ -459,7 +458,9 @@ export default function Settings() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               {t("settings.model")}
               {catalogModels.length > 0 && (
-                <span className="ml-2 text-xs text-gray-400 font-normal">({catalogModels.length} models available)</span>
+                <span className="ml-2 text-xs text-gray-400 font-normal">
+                  ({t("settings.modelsAvailable", { count: catalogModels.length })})
+                </span>
               )}
             </label>
             <input
@@ -467,7 +468,7 @@ export default function Settings() {
               list="model-suggestions"
               value={newModel}
               onChange={(e) => setNewModel(e.target.value)}
-              placeholder={availableProviders.find(p => p.value === newProvider)?.placeholder || "model-name"}
+              placeholder={availableProviders.find(p => p.value === newProvider)?.placeholder || t("settings.modelNamePlaceholder")}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
             />
             <datalist id="model-suggestions">
@@ -527,7 +528,7 @@ export default function Settings() {
           {testing && testTimer >= 10 && (
             <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-400">
               <AlertTriangle size={14} className="flex-shrink-0" />
-              {t("settings.testTakingLong", "Le test prend plus de temps que prévu... Vérifiez votre clé API et votre connexion.")}
+              {t("settings.testTakingLong")}
             </div>
           )}
 
@@ -569,78 +570,6 @@ export default function Settings() {
       {/* ================= 4. DONNEES ================= */}
       <Section icon={Database} title={t("settings.data")} iconColor="text-gray-500 dark:text-gray-400">
         <div className="space-y-3">
-          {/* Export data */}
-          <button
-            onClick={async () => {
-              setExporting(true);
-              try {
-                const data = await bridge.exportData();
-                const blob = new Blob([data], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `omnilingo-export-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showStatus(t("settings.exportSuccess", "Export terminé"));
-              } catch (err) {
-                showStatus(`${t("common.error")}: ${err}`, "error");
-              } finally {
-                setExporting(false);
-              }
-            }}
-            disabled={exporting}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {exporting ? (
-              <Loader2 size={18} className="animate-spin text-gray-500" />
-            ) : (
-              <Download size={18} className="text-gray-500" />
-            )}
-            <div className="text-left">
-              <p>{t("settings.exportData", "Exporter les données")}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                {t("settings.exportDescription", "Mots, progression SRS, favoris — format JSON")}
-              </p>
-            </div>
-          </button>
-
-          {/* Import data */}
-          <label className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-900 dark:text-white transition-colors cursor-pointer">
-            <Download size={18} className="text-gray-500 rotate-180" />
-            <div className="text-left">
-              <p>{t("settings.importData", "Importer des données")}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                {t("settings.importDescription", "CSV, TSV ou JSON — vers la paire active")}
-              </p>
-            </div>
-            <input
-              type="file"
-              accept=".csv,.tsv,.json,.txt"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const activePairId = useAppStore.getState().activePairId;
-                if (!activePairId) {
-                  showStatus(t("common.error") + ": No active language pair", "error");
-                  return;
-                }
-                try {
-                  const content = await file.text();
-                  const ext = file.name.split(".").pop()?.toLowerCase() ?? "csv";
-                  const format = ext === "tsv" || ext === "txt" ? "tsv" : ext === "json" ? "json" : "csv";
-                  const result = await bridge.importFromFile(activePairId, content, format);
-                  showStatus(result);
-                  await reloadSettings();
-                } catch (err) {
-                  showStatus(`${t("common.error")}: ${err}`, "error");
-                }
-                e.target.value = "";
-              }}
-            />
-          </label>
-
           {/* Delete all data */}
           {!showDeleteAllConfirm ? (
             <button
@@ -663,28 +592,17 @@ export default function Settings() {
                   {t("settings.areYouSure")}
                 </p>
               </div>
-              <p className="text-xs text-red-600 dark:text-red-400/80 mb-2">
+              <p className="text-xs text-red-600 dark:text-red-400/80 mb-4">
                 {t("settings.deleteAllWarning")}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
-                {t("settings.exportBeforeDelete", "Exporter vos données avant de supprimer ?")}
-              </p>
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handleExportBeforeDelete}
-                  disabled={deletingAll}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {deletingAll ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                  {t("settings.exportAndDelete", "Exporter & Supprimer")}
-                </button>
                 <button
                   onClick={handleDeleteAllData}
                   disabled={deletingAll}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white text-sm font-medium transition-colors disabled:opacity-50"
                 >
                   {deletingAll ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  {t("settings.deleteWithoutExport", "Supprimer sans exporter")}
+                  {t("settings.deleteAll")}
                 </button>
                 <button
                   onClick={() => setShowDeleteAllConfirm(false)}

@@ -45,6 +45,24 @@ export function formatDefinition(text: string): string[] {
 const DEFINITION_RE =
   /[:()（）]|^(?:intransitiv|transitiv|reflexiv|intransitif|transitif|pronominal|figuré|familier|bildlich|umgangssprachlich|übertragen|soutenu|vulgaire|péjoratif|archaïque|littéraire|technique|juridique|Geschlecht|gehoben|abwertend|veraltend|mundartlich|regional|schweizerisch|österreichisch|süddeutsch)/i;
 
+/**
+ * StarDict/FreeDict metadata tokens that occasionally leak into the target_word
+ * field as standalone "translations". These are grammar abbreviations or
+ * articles that should never appear in the user-visible translation list.
+ */
+const METADATA_TOKENS = new Set([
+  "art", "art.", "artikel", "wortart",
+  "der", "die", "das",
+  "le", "la", "les", "un", "une",
+  "m", "m.", "f", "f.", "n", "n.",
+  "masc", "masc.", "fem", "fem.", "neut", "neut.",
+  "verb", "noun", "adj", "adj.", "adv", "adv.",
+  "pl", "pl.", "sg", "sg.",
+]);
+function isMetadataToken(part: string): boolean {
+  return METADATA_TOKENS.has(part.toLowerCase());
+}
+
 /** Parse target_word to separate IPA, POS, clean text, and split translation vs definition. */
 export function parseTargetWord(text: string, category?: string | null, tags?: string | null) {
   let remaining = text;
@@ -84,7 +102,12 @@ export function parseTargetWord(text: string, category?: string | null, tags?: s
   }
 
   // Split clean text into short translation vs long definition
-  const parts = remaining.split(/\s*;\s*/).filter((p) => p.trim());
+  const parts = remaining
+    .split(/\s*;\s*/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    // Drop FreeDict/StarDict metadata tokens that leak into the target field
+    .filter((p) => !isMetadataToken(p));
   const translations: string[] = [];
   const definitions: string[] = [];
 
@@ -106,46 +129,105 @@ export function parseTargetWord(text: string, category?: string | null, tags?: s
 }
 
 /**
- * Extract translations from target_word text by matching tokens against a known word set
- * from the reverse language pair. This handles messy Kaikki data where definitions and
- * translations are concatenated without clear separators.
+ * Pull foreign-language words out of a free-form target_word string.
+ *
+ * Many StarDict / FreeDict / Kaikki entries cram both the source-language
+ * definition AND the target-language equivalent into the same field, e.g.
+ *
+ *   "(Intransitif) Se reposer dans un état inconscient, de sommeil schlafen"
+ *
+ * The user wants "schlafen" surfaced separately as the actual translation,
+ * not buried at the end of the French definition.
+ *
+ * Strategy:
+ *   1. Tokenise the text and look up each token (and 2-/3-grams) against
+ *      the OPPOSITE pair's source-word set. Tokens that are present in the
+ *      opposite dictionary are foreign-language equivalents.
+ *   2. Collect those equivalents in the order they appear, deduplicated.
+ *   3. Use the matches as the translation; remove them from the text to
+ *      build the definition.
+ *   4. If nothing matches, fall back to splitting on a definition marker,
+ *      otherwise return the whole text as the translation.
+ *
+ * Multi-word matches are kept intact; the join character is " ; " which
+ * formatDefinition() splits on, so multiple distinct equivalents become
+ * separate numbered items.
  */
 export function extractTranslationsWithWordSet(
   text: string,
   reverseWords: Set<string>,
 ): { translation: string | null; definition: string | null } {
-  const tokens = text.split(/\s+/);
-  if (tokens.length <= 3 && !DEFINITION_RE.test(text)) {
-    return { translation: text, definition: null };
-  }
+  const cleaned = text.trim();
+  if (!cleaned) return { translation: null, definition: null };
 
-  const found: string[] = [];
-  const defTokens: string[] = [];
+  // Strip parentheticals from matching (they bias towards definitions but are
+  // useful to keep in the visible definition output)
+  const tokens = cleaned.split(/\s+/);
+  const matchedRanges: Array<{ start: number; end: number; phrase: string }> = [];
 
   let i = 0;
   while (i < tokens.length) {
-    // Try 3-word, 2-word, then 1-word match against reverse dictionary
     let matched = false;
-    for (let len = 3; len >= 1; len--) {
-      if (i + len > tokens.length) continue;
-      const phrase = tokens.slice(i, i + len).join(" ");
-      const normPhrase = normalizeForSearch(phrase);
-      if (reverseWords.has(normPhrase) && phrase.length > 2) {
-        if (!found.includes(phrase)) found.push(phrase);
+    // Prefer the longest match (3-gram > 2-gram > 1-gram)
+    for (let len = Math.min(3, tokens.length - i); len >= 1; len--) {
+      const slice = tokens.slice(i, i + len);
+      // Skip slices that contain punctuation noise; reject very short single tokens
+      const phrase = slice.join(" ").replace(/[(),:;.]/g, "").trim();
+      if (!phrase || (len === 1 && phrase.length < 3)) continue;
+      const norm = normalizeForSearch(phrase);
+      if (reverseWords.has(norm) && !isMetadataToken(phrase)) {
+        matchedRanges.push({ start: i, end: i + len, phrase });
         i += len;
         matched = true;
         break;
       }
     }
-    if (!matched) {
-      defTokens.push(tokens[i]);
-      i++;
-    }
+    if (!matched) i++;
   }
 
-  const defText = defTokens.join(" ").trim();
-  return {
-    translation: found.length > 0 ? found.join(" ; ") : null,
-    definition: defText.length > 0 ? defText : null,
-  };
+  if (matchedRanges.length > 0) {
+    // Deduplicate phrases (case-insensitive) while preserving first-appearance order
+    const seen = new Set<string>();
+    const uniquePhrases: string[] = [];
+    for (const m of matchedRanges) {
+      const key = m.phrase.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniquePhrases.push(m.phrase);
+      }
+    }
+
+    // Build the definition by removing matched ranges from the token list
+    const removed = new Set<number>();
+    for (const m of matchedRanges) {
+      for (let k = m.start; k < m.end; k++) removed.add(k);
+    }
+    const definitionTokens = tokens.filter((_, idx) => !removed.has(idx));
+    const definition = definitionTokens.join(" ").replace(/\s+/g, " ").trim();
+
+    // Drop noise-only definitions (e.g. lone connectors like "be" or "to")
+    const meaningfulDef = definition
+      .split(/\s+/)
+      .filter((tok) => tok.replace(/[(),:;.]/g, "").length >= 3)
+      .join(" ");
+
+    return {
+      translation: uniquePhrases.join(" ; "),
+      definition: meaningfulDef.length >= 4 ? definition : null,
+    };
+  }
+
+  // No reverse matches: fall back to definition-marker splitting
+  const markerMatch = cleaned.match(DEFINITION_RE);
+  if (markerMatch && markerMatch.index !== undefined && markerMatch.index > 0) {
+    const trans = cleaned.slice(0, markerMatch.index).trim().replace(/[;,]\s*$/, "");
+    const def = cleaned.slice(markerMatch.index).trim();
+    return {
+      translation: trans.length > 0 ? trans : null,
+      definition: def.length > 0 ? def : null,
+    };
+  }
+
+  // Otherwise treat the whole text as a single translation phrase
+  return { translation: cleaned, definition: null };
 }

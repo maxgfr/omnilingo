@@ -52,7 +52,10 @@ export default function CommandPalette() {
         setOpen(prev => !prev);
         setQuery("");
         setSelectedIndex(0);
+        return;
       }
+      // Only handle Escape if the palette itself is open; don't hijack
+      // Escape when the user is interacting with buttons or other inputs.
       if (e.key === "Escape" && open) {
         setOpen(false);
       }

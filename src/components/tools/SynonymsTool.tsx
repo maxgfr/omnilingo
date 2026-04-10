@@ -9,6 +9,7 @@ import { useAppStore } from "../../store/useAppStore";
 import ExamplePreview from "../ui/ExamplePreview";
 import RecentSearches from "../ui/RecentSearches";
 import { SYNONYMS_EXAMPLE } from "../../lib/exampleData";
+import { useExampleTranslations } from "../../lib/useExampleTranslations";
 
 interface SynonymEntry { word: string; register: string; definition: string; example: { source: string; target: string }; }
 interface SynonymsResult { synonyms: SynonymEntry[]; antonyms?: { word: string; definition: string }[]; }
@@ -45,6 +46,20 @@ export default function SynonymsTool({ onWordClick, initialWord, activePair, onI
   const [loading, setLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Translate example into the active target language
+  const { tr: trEx, loading: trExLoading } = useExampleTranslations(
+    "synonyms",
+    [
+      SYNONYMS_EXAMPLE.sampleInput,
+      ...SYNONYMS_EXAMPLE.synonyms.flatMap((s) => [
+        s.word,
+        s.definition,
+        s.example.source,
+        s.example.target,
+      ]),
+    ],
+  );
+
   useEffect(() => {
     if (structured || fallback) {
       useAppStore.getState().setToolResult("synonyms", JSON.stringify({ structured, fallback }));
@@ -59,15 +74,36 @@ export default function SynonymsTool({ onWordClick, initialWord, activePair, onI
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
-      const prompt = `Student learning ${tgtName} at ${level}. Synonyms and antonyms for "${input.trim()}", return JSON:
-{"synonyms":[{"word":"synonym","register":"formal|neutral|informal|literary|colloquial|technical","definition":"meaning in ${srcName}","example":{"source":"sentence with **synonym** bold","target":"translation with **equiv** bold"}}],"antonyms":[{"word":"antonym","definition":"meaning in ${srcName}"}]}
-5-10 synonyms sorted by relevance. 3-5 antonyms if applicable. ONLY valid JSON.
+      const prompt = `Find ${tgtName} synonyms and antonyms for "${input.trim()}" for a ${srcName}-speaking ${level} learner.
+
+Return ONLY this JSON, no markdown fences:
+{
+  "synonyms": [
+    {
+      "word": "<${tgtName} synonym>",
+      "register": "formal" | "neutral" | "informal" | "literary" | "colloquial" | "technical",
+      "definition": "<short meaning in ${srcName}>",
+      "example": {
+        "source": "<${tgtName} sentence with **synonym** in bold>",
+        "target": "<${srcName} translation with **equivalent** in bold>"
+      }
+    }
+  ],
+  "antonyms": [
+    { "word": "<${tgtName} antonym>", "definition": "<short meaning in ${srcName}>" }
+  ]
+}
+
+Rules:
+- 5-10 synonyms ordered from most common to most rare.
+- 3-5 antonyms when applicable, otherwise empty array.
+- Examples must clearly show the word in context.
 ${enriched}`;
       addToHistory(activePair.id, "synonyms", input.trim());
       const response = await cachedAskAi("synonyms", input.trim(), activePair.id, prompt);
       const parsed = parseAiJson<SynonymsResult>(response);
       if (parsed?.synonyms?.length) setStructured(parsed); else setFallback(response);
-    } catch (err) { setFallback(`Error: ${err}`); }
+    } catch (err) { setFallback(`${t("common.error")}: ${err}`); }
     finally { setLoading(false); }
   }, [input, loading, activePair]);
 
@@ -98,19 +134,19 @@ ${enriched}`;
       </div>
 
       {!structured && !fallback && !loading && (
-        <ExamplePreview onClick={() => { handleInputChange(SYNONYMS_EXAMPLE.sampleInput); }}>
+        <ExamplePreview loading={trExLoading} onClick={() => { handleInputChange(trEx(SYNONYMS_EXAMPLE.sampleInput)); }}>
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
               {SYNONYMS_EXAMPLE.synonyms.map((syn, i) => (
                 <div key={i} className="px-5 py-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="font-semibold text-gray-900 dark:text-white">{syn.word}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{trEx(syn.word)}</span>
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${REGISTER_STYLES[syn.register] || REGISTER_STYLES.neutral}`}>{syn.register}</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 italic ml-auto">{syn.definition}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 italic ml-auto">{trEx(syn.definition)}</span>
                   </div>
                   <div className="ml-8 border-l-2 border-amber-200 dark:border-amber-800 pl-3">
-                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{syn.example.source}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{syn.example.target}</p>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{trEx(syn.example.source)}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{trEx(syn.example.target)}</p>
                   </div>
                 </div>
               ))}
@@ -134,7 +170,7 @@ ${enriched}`;
                         navigate("/dictionary");
                       }}
                       className="p-1 rounded text-gray-400 hover:text-amber-500 transition-colors"
-                      title={t("tools.synonyms.viewInDictionary", "Voir dans le dictionnaire")}
+                      title={t("tools.synonyms.viewInDictionary")}
                     >
                       <BookOpen size={12} />
                     </button>
@@ -153,7 +189,7 @@ ${enriched}`;
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
               <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t("tools.synonyms.antonyms", "Antonymes")}
+                  {t("tools.synonyms.antonyms")}
                 </span>
               </div>
               <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -167,7 +203,7 @@ ${enriched}`;
                         navigate("/dictionary");
                       }}
                       className="p-1 rounded text-gray-400 hover:text-amber-500 transition-colors"
-                      title={t("tools.synonyms.viewInDictionary", "Voir dans le dictionnaire")}
+                      title={t("tools.synonyms.viewInDictionary")}
                     >
                       <BookOpen size={12} />
                     </button>

@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { useFeaturePair } from "../lib/useFeaturePair";
 import { useAppStore, selectIsAiConfigured } from "../store/useAppStore";
-import { addToHistory } from "../lib/ai-cache";
 import { formatMessage } from "../lib/markdown";
 import * as bridge from "../lib/bridge";
 import { QCM, FillBlank, TrueFalse } from "../components/Exercise";
@@ -25,8 +24,8 @@ import Spinner from "../components/ui/Spinner";
 import PageHeader from "../components/ui/PageHeader";
 import SearchInput from "../components/ui/SearchInput";
 import ExamplePreview from "../components/ui/ExamplePreview";
-import RecentSearches from "../components/ui/RecentSearches";
 import { GRAMMAR_EXAMPLE } from "../lib/exampleData";
+import { useExampleTranslations } from "../lib/useExampleTranslations";
 import type { GrammarTopic, GrammarSrsState, Exercise } from "../types";
 
 // Module-level cache to avoid reloading on tab switch
@@ -100,7 +99,16 @@ export default function Grammar() {
   const [aiTopic, setAiTopic] = useState(cachedState?.aiTopic ?? "");
   const [aiLesson, setAiLesson] = useState<GrammarTopic | null>(null);
   const [generatingLesson, setGeneratingLesson] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+
+  // AI translation of grammar example into the active target language
+  const { tr: trEx, loading: trExLoading } = useExampleTranslations(
+    "grammar",
+    [
+      GRAMMAR_EXAMPLE.title,
+      GRAMMAR_EXAMPLE.explanation,
+      ...GRAMMAR_EXAMPLE.examples.flatMap((ex) => [ex.source, ex.target]),
+    ],
+  );
 
   // Sync view state to Zustand cache
   useEffect(() => {
@@ -290,31 +298,37 @@ export default function Grammar() {
     if (!activePair || !aiTopic.trim() || generatingLesson) return;
     setGeneratingLesson(true);
     try {
-      addToHistory(activePair.id, "grammar", aiTopic.trim());
       const sourceName = activePair.source_name;
       const targetName = activePair.target_name;
-      const prompt = `Generate a grammar lesson about "${aiTopic.trim()}" for a ${sourceName}-${targetName} learner.
-Return a JSON object with this exact structure:
+      const prompt = `Create a ${targetName} grammar lesson about "${aiTopic.trim()}" for a ${sourceName}-speaking A2 learner.
+
+Return ONLY this JSON object — no markdown fences, no prose:
 {
   "id": "ai-generated",
   "language_pair_id": ${activePair.id},
   "level": "A2",
   "display_order": 0,
-  "title": "lesson title in ${targetName}",
-  "title_source": "lesson title in ${sourceName}",
-  "explanation": "detailed explanation in ${sourceName} with **bold** for important terms",
-  "key_points": ["key point 1", "key point 2", "key point 3"],
-  "examples": [{"source": "example in ${targetName}", "target": "translation in ${sourceName}", "highlight": "key word to highlight"}],
+  "title": "<lesson title in ${targetName}>",
+  "title_source": "<same title in ${sourceName}>",
+  "explanation": "<2-3 paragraphs in ${sourceName}, use **bold** for key terms>",
+  "key_points": ["<3-5 short rules in ${sourceName}>"],
+  "examples": [
+    { "source": "<example sentence in ${targetName}>", "target": "<translation in ${sourceName}>", "highlight": "<key word/phrase>" }
+  ],
   "exercises": [
-    {"type": "qcm", "question": "question text", "options": ["option1", "option2", "option3", "option4"], "correctIndex": 0},
-    {"type": "fill", "sentence": "sentence with ___ blank", "answer": "correct answer", "hint": "hint"},
-    {"type": "trueFalse", "statement": "a statement", "isTrue": true, "explanation": "why"}
+    { "type": "qcm", "question": "<question in ${sourceName} or ${targetName}>", "options": ["<opt1>","<opt2>","<opt3>","<opt4>"], "correctIndex": 0 },
+    { "type": "fill", "sentence": "<sentence in ${targetName} with ___ blank>", "answer": "<correct word>", "hint": "<hint in ${sourceName}>" },
+    { "type": "trueFalse", "statement": "<statement in ${targetName}>", "isTrue": true, "explanation": "<why in ${sourceName}>" }
   ],
   "completed": false,
   "score_correct": 0,
   "score_total": 0
 }
-Return ONLY valid JSON, no markdown fences.`;
+
+Rules:
+- 3-5 example sentences and 3-6 exercises (mix of all 3 exercise types).
+- Examples must illustrate the rule clearly.
+- Be precise and pedagogical.`;
       const response = await bridge.askAi(prompt);
       let jsonStr = response.trim();
       if (jsonStr.startsWith("```")) {
@@ -430,10 +444,11 @@ Return ONLY valid JSON, no markdown fences.`;
     setChatLoading(true);
 
     try {
-      const systemPrompt = `You are a bilingual grammar tutor for ${activePair.source_name} and ${activePair.target_name}.
-The current lesson is about "${selectedTopic.title}".
-Lesson content: ${selectedTopic.explanation}
-Answer questions about this topic. Be concise. Write explanations in ${activePair.source_name}, but always include examples and grammar forms in both ${activePair.source_name} and ${activePair.target_name}.`;
+      const systemPrompt = `You are a ${activePair.target_name} grammar tutor helping a ${activePair.source_name} speaker.
+Current lesson: "${selectedTopic.title}".
+Lesson summary: ${selectedTopic.explanation}
+
+Answer the student's question concisely. Write explanations in ${activePair.source_name}. When giving examples or grammar forms, ALWAYS show both ${activePair.target_name} and the ${activePair.source_name} translation.`;
 
       const apiMessages = [
         { role: "system", content: systemPrompt },
@@ -442,11 +457,11 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
       const response = await bridge.askAiConversation(apiMessages);
       setChatMessages((prev) => [...prev, { role: "assistant", content: response }]);
     } catch (err) {
-      setChatMessages((prev) => [...prev, { role: "assistant", content: `Erreur: ${err}` }]);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: `${t("common.error")}: ${err}` }]);
     } finally {
       setChatLoading(false);
     }
-  }, [chatInput, chatLoading, chatMessages, selectedTopic, activePair]);
+  }, [chatInput, chatLoading, chatMessages, selectedTopic, activePair, t]);
 
   // Loading state
   if (loading) {
@@ -465,19 +480,14 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
             {t("grammar.generateLesson")}
           </p>
           <div className="flex gap-3">
-            <div className="relative flex-1">
-              <input
-                placeholder={t("grammar.topicPlaceholder")}
-                value={aiTopic}
-                onChange={(e) => setAiTopic(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleGenerateLesson()}
-                onFocus={() => !aiTopic.trim() && setShowHistory(true)}
-                onBlur={() => setTimeout(() => setShowHistory(false), 150)}
-                autoComplete="off"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
-              />
-              {activePair && <RecentSearches tool="grammar" pairId={activePair.id} visible={showHistory && !aiTopic.trim()} onSelect={(q) => { setAiTopic(q); setShowHistory(false); }} />}
-            </div>
+            <input
+              placeholder={t("grammar.topicPlaceholder")}
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleGenerateLesson()}
+              autoComplete="off"
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all placeholder:text-gray-400"
+            />
             <button
               onClick={handleGenerateLesson}
               disabled={!aiTopic.trim() || generatingLesson}
@@ -491,26 +501,26 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
               ) : (
                 <>
                   <Wand2 size={16} />
-                  {t("grammar.generate", "Générer")}
+                  {t("grammar.generate")}
                 </>
               )}
             </button>
           </div>
         </div>
 
-        <ExamplePreview onClick={() => setAiTopic(GRAMMAR_EXAMPLE.title)}>
+        <ExamplePreview loading={trExLoading} onClick={() => setAiTopic(trEx(GRAMMAR_EXAMPLE.title))}>
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 text-left">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">A2</span>
             </div>
-            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{GRAMMAR_EXAMPLE.title}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">{GRAMMAR_EXAMPLE.explanation}</p>
+            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{trEx(GRAMMAR_EXAMPLE.title)}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">{trEx(GRAMMAR_EXAMPLE.explanation)}</p>
             <div className="mt-3 space-y-1">
               {GRAMMAR_EXAMPLE.examples.map((ex, i) => (
                 <div key={i} className="flex gap-3 text-xs">
-                  <span className="text-gray-900 dark:text-white">{ex.source}</span>
+                  <span className="text-gray-900 dark:text-white">{trEx(ex.source)}</span>
                   <span className="text-gray-400">—</span>
-                  <span className="text-gray-500">{ex.target}</span>
+                  <span className="text-gray-500">{trEx(ex.target)}</span>
                 </div>
               ))}
             </div>
@@ -629,7 +639,7 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
                 onClick={() => setEditForm({ ...editForm, keyPoints: [...editForm.keyPoints, ""] })}
                 className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium"
               >
-                + {t("grammar.addKeyPoint", "Ajouter un point")}
+                + {t("grammar.addKeyPoint")}
               </button>
             </div>
           </div>
@@ -828,7 +838,7 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
               }`}
             >
               <MessageCircle size={16} />
-              {t("grammar.askAi", "Poser une question")}
+              {t("grammar.askAi")}
             </button>
           )}
 
@@ -891,7 +901,7 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
             <div className="max-h-64 overflow-y-auto p-4 space-y-3">
               {chatMessages.length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-4">
-                  {t("grammar.askAboutTopic", "Posez une question sur cette leçon...")}
+                  {t("grammar.askAboutTopic")}
                 </p>
               )}
               {chatMessages.map((msg, i) => (
@@ -920,7 +930,7 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleChatSend()}
-                placeholder={t("grammar.askAboutTopic", "Posez une question...")}
+                placeholder={t("grammar.askAboutTopic")}
                 className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder:text-gray-400"
               />
               <button
@@ -980,7 +990,7 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
             ) : (
               <>
                 <Wand2 size={16} />
-                {t("grammar.generate", "Générer")}
+                {t("grammar.generate")}
               </>
             )}
           </button>
@@ -1000,10 +1010,10 @@ Answer questions about this topic. Be concise. Write explanations in ${activePai
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
           >
-            {filter === "all" ? t("common.all", "Tous")
-              : filter === "due" ? t("grammar.dueReview", "À réviser")
-              : filter === "completed" ? t("grammar.completed", "Complété")
-              : t("grammar.notStarted", "Non commencé")}
+            {filter === "all" ? t("common.all")
+              : filter === "due" ? t("grammar.dueReview")
+              : filter === "completed" ? t("grammar.completed")
+              : t("grammar.notStarted")}
             {filter === "due" && dueTopics.length > 0 && (
               <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-600 text-white text-[10px]">{dueTopics.length}</span>
             )}

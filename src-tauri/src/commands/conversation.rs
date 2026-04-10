@@ -182,3 +182,18 @@ pub fn delete_conversation_session(
     .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+#[tauri::command]
+pub fn update_conversation_session_title(
+    state: State<'_, DbState>,
+    session_id: i64,
+    title: String,
+) -> Result<(), String> {
+    let db = state.db();
+    db.execute(
+        "UPDATE conversation_sessions SET title = ?1 WHERE id = ?2",
+        rusqlite::params![title, session_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}

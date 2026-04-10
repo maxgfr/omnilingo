@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
 import { getSearchHistory } from "../../lib/ai-cache";
 
@@ -10,6 +11,7 @@ interface RecentSearchesProps {
 }
 
 export default function RecentSearches({ tool, pairId, onSelect, visible }: RecentSearchesProps) {
+  const { t } = useTranslation();
   const entries = useMemo(() => {
     if (!visible) return [];
     return getSearchHistory(pairId)
@@ -22,7 +24,7 @@ export default function RecentSearches({ tool, pairId, onSelect, visible }: Rece
   return (
     <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden">
       <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Historique</span>
+        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("common.history")}</span>
       </div>
       <div className="max-h-48 overflow-y-auto">
         {entries.map((entry, i) => (

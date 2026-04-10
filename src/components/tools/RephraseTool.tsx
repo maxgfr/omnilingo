@@ -8,6 +8,7 @@ import { useAppStore } from "../../store/useAppStore";
 import ExamplePreview from "../ui/ExamplePreview";
 import RecentSearches from "../ui/RecentSearches";
 import { REPHRASE_EXAMPLE } from "../../lib/exampleData";
+import { useExampleTranslations } from "../../lib/useExampleTranslations";
 
 interface RephraseAlternative { text: string; tone: string; note: string; }
 interface RephraseResult { alternatives: RephraseAlternative[]; }
@@ -54,6 +55,15 @@ export default function RephraseTool({ initialWord, activePair, onInputChange }:
   const [showHistory, setShowHistory] = useState(false);
   const [selectedTones, setSelectedTones] = useState<Set<string>>(new Set());
 
+  // Translate example into the active target language
+  const { tr: trEx, loading: trExLoading } = useExampleTranslations(
+    "rephrase",
+    [
+      REPHRASE_EXAMPLE.sampleInput,
+      ...REPHRASE_EXAMPLE.alternatives.flatMap((a) => [a.text, a.note]),
+    ],
+  );
+
   const handleRephrase = useCallback(async () => {
     if (!input.trim() || loading || !activePair) return;
     setLoading(true); setStructured(null); setFallback(null);
@@ -63,18 +73,30 @@ export default function RephraseTool({ initialWord, activePair, onInputChange }:
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
       const tonesStr = selectedTones.size > 0
-        ? `Only these tones: ${[...selectedTones].join(", ")}.`
-        : "3-5 diverse alternatives with different tones.";
-      const prompt = `Student learning ${tgtName} at ${level}. Rephrase text, return JSON:
-{"alternatives":[{"text":"rephrased in ${tgtName}","tone":"formal|informal|simple|professional|creative|academic|polite|casual","note":"what changed, in ${srcName}"}]}
-${tonesStr} ONLY valid JSON.
+        ? `Generate ONE alternative for each of these tones: ${[...selectedTones].join(", ")}.`
+        : "Generate 3-5 alternatives with diverse tones.";
+      const prompt = `Rephrase this ${tgtName} text in different ways for a ${srcName}-speaking ${level} learner.
+
+Return ONLY this JSON, no markdown fences:
+{
+  "alternatives": [
+    {
+      "text": "<rephrased version in ${tgtName}>",
+      "tone": "formal" | "informal" | "simple" | "professional" | "creative" | "academic" | "polite" | "casual",
+      "note": "<1 short sentence in ${srcName} explaining what changed and when to use it>"
+    }
+  ]
+}
+
+${tonesStr}
 ${enriched}
-Text: ${input.trim()}`;
+
+Original text: ${input.trim()}`;
       addToHistory(activePair.id, "rephrase", input.trim());
       const response = await cachedAskAi("rephrase", input.trim(), activePair.id, prompt);
       const parsed = parseAiJson<RephraseResult>(response);
       if (parsed?.alternatives?.length) setStructured(parsed); else setFallback(response);
-    } catch (err) { setFallback(`Error: ${err}`); }
+    } catch (err) { setFallback(`${t("common.error")}: ${err}`); }
     finally { setLoading(false); }
   }, [input, loading, activePair, selectedTones]);
 
@@ -146,7 +168,7 @@ Text: ${input.trim()}`;
       </div>
 
       {!structured && !fallback && !loading && (
-        <ExamplePreview onClick={() => { handleInputChange(REPHRASE_EXAMPLE.sampleInput); }}>
+        <ExamplePreview loading={trExLoading} onClick={() => { handleInputChange(trEx(REPHRASE_EXAMPLE.sampleInput)); }}>
           <div className="space-y-3">
             {REPHRASE_EXAMPLE.alternatives.map((alt, i) => {
               const ts = TONE_STYLES[alt.tone] || TONE_STYLES.neutral;
@@ -154,8 +176,8 @@ Text: ${input.trim()}`;
                 <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
                   <div className="flex-1">
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${ts.bg} ${ts.text}`}>{alt.tone}</span>
-                    <p className="text-sm text-gray-900 dark:text-white leading-relaxed mt-2">{alt.text}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">{alt.note}</p>
+                    <p className="text-sm text-gray-900 dark:text-white leading-relaxed mt-2">{trEx(alt.text)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">{trEx(alt.note)}</p>
                   </div>
                 </div>
               );

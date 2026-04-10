@@ -1,100 +1,140 @@
-// Static example data for all features — shown when no results yet
-// All content in DE-FR (German source, French target)
+// Static example data for all features — shown when no results yet.
+// Base content is in English. The translateExamples() helper produces a
+// per-pair AI-translated copy that's cached in localStorage.
 
 export const REPHRASE_EXAMPLE = {
-  sampleInput: "Kannst du mir den Bericht schicken?",
+  sampleInput: "Can you send me the report?",
   alternatives: [
-    { text: "Ich wäre Ihnen dankbar, wenn Sie mir den Bericht zusenden könnten.", tone: "formal", note: "Plus poli, adapté aux e-mails professionnels" },
-    { text: "Könntest du mir den Bericht schicken?", tone: "simple", note: "Direct et clair, adapté à la plupart des contextes" },
-    { text: "Hey, schick mir mal den Bericht!", tone: "informal", note: "Ton familier, entre amis ou collègues proches" },
+    {
+      text: "I would be grateful if you could forward me the report.",
+      tone: "formal",
+      note: "Polite, suited for professional emails",
+    },
+    {
+      text: "Could you send me the report?",
+      tone: "simple",
+      note: "Direct and clear, fits most contexts",
+    },
+    {
+      text: "Hey, shoot me that report!",
+      tone: "informal",
+      note: "Casual tone, between friends or close colleagues",
+    },
   ],
 };
 
 export const CORRECTOR_EXAMPLE = {
-  sampleInput: "Ich habe ein Hund und er laufen gern im Park.",
-  corrected: "Ich habe einen Hund und er läuft gern im Park.",
+  sampleInput: "I have a dog and he run happy in the park.",
+  corrected: "I have a dog and he runs happily in the park.",
   corrections: [
-    { wrong: "ein Hund", right: "einen Hund", explanation: "L'accusatif est requis après 'haben' : 'ein' devient 'einen' au masculin" },
-    { wrong: "er laufen", right: "er läuft", explanation: "Le verbe doit être conjugué à la 3e personne du singulier : 'laufen' → 'läuft'" },
+    {
+      wrong: "he run",
+      right: "he runs",
+      explanation: "Third-person singular verbs take an -s ending in the present tense.",
+    },
+    {
+      wrong: "happy",
+      right: "happily",
+      explanation: "Use the adverb 'happily' to modify the verb 'runs'.",
+    },
   ],
   score: "fair" as const,
-  feedback: "Bon effort ! Attention à l'accusatif avec 'haben' et à la conjugaison des verbes irréguliers.",
+  feedback: "Good attempt! Watch subject-verb agreement and adverb forms.",
 };
 
 export const SYNONYMS_EXAMPLE = {
-  sampleInput: "froh",
+  sampleInput: "happy",
   synonyms: [
     {
-      word: "glücklich",
+      word: "joyful",
       register: "neutral",
-      definition: "qui ressent du bonheur ou du contentement",
-      example: { source: "Ich bin **glücklich**, dir zu helfen.", target: "Je suis **content** de t'aider." },
+      definition: "feeling great pleasure or contentment",
+      example: {
+        source: "She gave a **joyful** laugh.",
+        target: "She gave a **joyful** laugh.",
+      },
     },
     {
-      word: "erfreut",
+      word: "delighted",
       register: "formal",
-      definition: "qui éprouve de la joie, du plaisir",
-      example: { source: "Ich bin **erfreut**, Sie kennenzulernen.", target: "Je suis **ravi** de faire votre connaissance." },
+      definition: "feeling or showing great pleasure",
+      example: {
+        source: "I am **delighted** to meet you.",
+        target: "I am **delighted** to meet you.",
+      },
     },
     {
-      word: "fröhlich",
+      word: "cheerful",
       register: "neutral",
-      definition: "visiblement joyeux et optimiste",
-      example: { source: "Sie hat eine **fröhliche** Persönlichkeit.", target: "Elle a une personnalité **enjouée**." },
+      definition: "noticeably happy and optimistic",
+      example: {
+        source: "She has a **cheerful** personality.",
+        target: "She has a **cheerful** personality.",
+      },
     },
   ],
 };
 
-export const MINING_SAMPLE_INPUT = "Der Wetterbericht sagt Regen für das Wochenende voraus. Ich lerne seit drei Jahren Deutsch und finde die Grammatik immer noch schwierig.";
+export const MINING_SAMPLE_INPUT =
+  "The weather forecast predicts rain for the weekend. I have been learning English for three years and still find the grammar tricky.";
 
 export const MINING_EXAMPLE = [
   {
-    sentence: "Der Wetterbericht sagt Regen für das Wochenende voraus.",
-    translation: "La météo prévoit de la pluie pour le week-end.",
+    sentence: "The weather forecast predicts rain for the weekend.",
+    translation: "The weather forecast predicts rain for the weekend.",
     keyWords: [
-      { word: "Wetterbericht", translation: "bulletin météo", level: "B1" },
-      { word: "voraussagen", translation: "prévoir", level: "B1" },
-      { word: "Wochenende", translation: "week-end", level: "A1" },
+      { word: "weather forecast", translation: "weather forecast", level: "B1" },
+      { word: "predict", translation: "predict", level: "B1" },
+      { word: "weekend", translation: "weekend", level: "A1" },
     ],
-    grammar: "Verbe à particule séparable : 'voraus|sagen' — le préfixe va en fin de phrase",
+    grammar: "Present simple for general predictions and stated facts.",
   },
   {
-    sentence: "Ich lerne seit drei Jahren Deutsch.",
-    translation: "J'apprends l'allemand depuis trois ans.",
+    sentence: "I have been learning English for three years.",
+    translation: "I have been learning English for three years.",
     keyWords: [
-      { word: "lernen", translation: "apprendre", level: "A1" },
-      { word: "seit", translation: "depuis", level: "A2" },
+      { word: "learn", translation: "learn", level: "A1" },
+      { word: "for", translation: "for", level: "A2" },
     ],
-    grammar: "'Seit' + datif pour exprimer la durée (équivalent de 'depuis' en français)",
+    grammar: "Present perfect continuous to express duration up to now.",
   },
 ];
 
 export const CONJUGATION_EXAMPLE = {
-  infinitive: "machen",
-  translation: "faire",
-  persons: ["ich", "du", "er/sie/es", "wir", "ihr", "sie/Sie"],
-  forms: ["mache", "machst", "macht", "machen", "macht", "machen"],
-  tense: "Präsens",
+  infinitive: "to make",
+  translation: "to make",
+  persons: ["I", "you", "he/she/it", "we", "you (pl)", "they"],
+  forms: ["make", "make", "makes", "make", "make", "make"],
+  tense: "Present",
 };
 
 export const GRAMMAR_EXAMPLE = {
-  title: "Nominativ und Akkusativ",
+  title: "Subject and Object",
   level: "A1",
-  explanation: "Le **nominatif** est le cas du sujet. L'**accusatif** est le cas du complément d'objet direct. En allemand, l'article change selon le cas.",
+  explanation:
+    "The **subject** performs the action. The **object** receives it. Word order in English is generally Subject-Verb-Object.",
   keyPoints: [
-    "Nominatif : Der Hund ist groß (Le chien est grand)",
-    "Accusatif : Ich sehe den Hund (Je vois le chien)",
-    "Seuls les articles masculins changent : der → den, ein → einen",
+    "Subject: The dog is big.",
+    "Object: I see the dog.",
+    "Pronouns change form: I/me, he/him, she/her, they/them.",
   ],
   examples: [
-    { source: "Der Mann liest ein Buch.", target: "L'homme lit un livre." },
-    { source: "Ich kaufe den Kuchen.", target: "J'achète le gâteau." },
+    { source: "The man reads a book.", target: "The man reads a book." },
+    { source: "I buy the cake.", target: "I buy the cake." },
   ],
 };
 
-
 export const CONVERSATION_EXAMPLE = [
-  { role: "assistant" as const, content: "Guten Tag! Willkommen im Restaurant. Haben Sie reserviert?" },
-  { role: "user" as const, content: "Ja, ich habe einen Tisch für zwei Personen reserviert." },
-  { role: "assistant" as const, content: "Sehr gut! Hier ist die Speisekarte. Möchten Sie etwas zu trinken bestellen?" },
+  {
+    role: "assistant" as const,
+    content: "Good evening! Welcome to the restaurant. Do you have a reservation?",
+  },
+  {
+    role: "user" as const,
+    content: "Yes, I booked a table for two.",
+  },
+  {
+    role: "assistant" as const,
+    content: "Great! Here is the menu. Would you like something to drink?",
+  },
 ];
