@@ -1,3 +1,10 @@
+# [2.16.0](https://github.com/maxgfr/omnilingo/compare/v2.15.0...v2.16.0) (2026-04-10)
+
+
+### Features
+
+* improve dictionary search with stop words and multi-token matching ([7a8ecc9](https://github.com/maxgfr/omnilingo/commit/7a8ecc9dde1c5840b83b9fbd005e6ba2314296e4))
+
 # [2.15.0](https://github.com/maxgfr/omnilingo/compare/v2.14.4...v2.15.0) (2026-04-10)
 
 
