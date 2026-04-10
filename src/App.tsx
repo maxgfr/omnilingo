@@ -3,7 +3,6 @@ import { AppProvider } from "./store/AppContext";
 import Layout from "./components/Layout";
 import CommandPalette from "./components/CommandPalette";
 import Dictionary from "./views/Dictionary";
-import Favorites from "./views/Favorites";
 import Grammar from "./views/Grammar";
 import Conjugation from "./views/Conjugation";
 
@@ -23,7 +22,6 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<Navigate to="/dictionary" replace />} />
               <Route path="/dictionary" element={<Dictionary />} />
-              <Route path="/favorites" element={<Favorites />} />
               <Route path="/grammar" element={<Grammar />} />
               <Route path="/conjugation" element={<Conjugation />} />
 

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
-  BookOpen, Heart, BookText, Languages, MessageSquare,
+  BookOpen, BookText, Languages, MessageSquare,
   RefreshCw, SpellCheck, ArrowRightLeft, FileSearch,
   Settings as SettingsIcon, Menu, X, ChevronDown,
 } from "lucide-react";
@@ -12,7 +12,6 @@ const navSections = [
   {
     items: [
       { to: "/dictionary", icon: BookOpen, labelKey: "nav.dictionary" },
-      { to: "/favorites", icon: Heart, labelKey: "nav.favorites" },
       { to: "/grammar", icon: BookText, labelKey: "nav.grammar" },
       { to: "/conjugation", icon: Languages, labelKey: "nav.conjugation" },
 
@@ -183,7 +182,7 @@ export default function Layout() {
               </div>
             </div>
           ) : (
-            <div className="animate-fadeIn">
+            <div>
               <Outlet />
             </div>
           )}

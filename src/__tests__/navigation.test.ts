@@ -30,7 +30,6 @@ vi.mock("../lib/bridge", () => ({
   getGrammarTopics: vi.fn().mockResolvedValue([]),
   getVerbs: vi.fn().mockResolvedValue([]),
   searchWords: vi.fn().mockResolvedValue([]),
-  getFavorites: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock i18n

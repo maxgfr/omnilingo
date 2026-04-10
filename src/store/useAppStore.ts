@@ -31,13 +31,6 @@ interface ConversationCache {
   messages: Array<{ role: string; content: string }>;
 }
 
-interface FavoritesCache {
-  searchQuery: string;
-  selectedWordId: number | null;
-  activeListId: number | null;
-  aiContent: string | null;
-}
-
 // ─── State shape ─────────────────────────────────────────────────────
 export interface AppState {
   // Core
@@ -56,7 +49,6 @@ export interface AppState {
 
   // View caches (session-scoped, NOT persisted to localStorage)
   dictionaryCache: DictionaryCache | null;
-  favoritesCache: FavoritesCache | null;
   grammarCache: GrammarCache | null;
   conjugationCache: ConjugationCache | null;
   conversationCache: ConversationCache | null;
@@ -74,7 +66,6 @@ export interface AppState {
 
   // Actions – view caches
   setDictionaryCache: (cache: DictionaryCache | null) => void;
-  setFavoritesCache: (cache: FavoritesCache | null) => void;
   setGrammarCache: (cache: GrammarCache | null) => void;
   setConjugationCache: (cache: ConjugationCache | null) => void;
   setConversationCache: (cache: ConversationCache | null) => void;
@@ -98,7 +89,6 @@ export const useAppStore = create<AppState>()(
       aiModel: "",
       aiCustomUrl: "",
       dictionaryCache: null,
-      favoritesCache: null,
       grammarCache: null,
       conjugationCache: null,
       conversationCache: null,
@@ -150,7 +140,6 @@ export const useAppStore = create<AppState>()(
           activePairId: pairId,
           // Invalidate all view caches on pair switch
           dictionaryCache: null,
-          favoritesCache: null,
           grammarCache: null,
           conjugationCache: null,
           conversationCache: null,
@@ -186,7 +175,6 @@ export const useAppStore = create<AppState>()(
       resetAllState: () =>
         set({
           dictionaryCache: null,
-          favoritesCache: null,
           grammarCache: null,
           conjugationCache: null,
           conversationCache: null,
@@ -196,7 +184,6 @@ export const useAppStore = create<AppState>()(
 
       // ── View cache actions ─────────────────────────────────────────
       setDictionaryCache: (cache) => set({ dictionaryCache: cache }),
-      setFavoritesCache: (cache) => set({ favoritesCache: cache }),
       setGrammarCache: (cache) => set({ grammarCache: cache }),
       setConjugationCache: (cache) => set({ conjugationCache: cache }),
       setConversationCache: (cache) => set({ conversationCache: cache }),

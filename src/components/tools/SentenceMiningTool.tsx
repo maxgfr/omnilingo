@@ -4,14 +4,12 @@ import {
   Loader2, Pickaxe,
   Trash2, AlertTriangle,
 } from "lucide-react";
-import * as bridge from "../../lib/bridge";
 import { cachedAskAi, getCachedResult, addToHistory, getPromptContext, clearToolHistory } from "../../lib/ai-cache";
 import type { LanguagePair } from "../../types";
 import { useAppStore } from "../../store/useAppStore";
 import { parseAiJson, renderClickable } from "../../lib/markdown";
 import ExamplePreview from "../ui/ExamplePreview";
 import RecentSearches from "../ui/RecentSearches";
-import FavoriteButton from "../FavoriteButton";
 
 import { MINING_EXAMPLE, MINING_SAMPLE_INPUT } from "../../lib/exampleData";
 import { levelColors } from "../../lib/wordUtils";
@@ -29,53 +27,6 @@ interface ToolProps {
   activePair?: LanguagePair | null;
   initialWord?: string;
   onInputChange?: (value: string) => void;
-}
-
-function KeywordActions({
-  word,
-  resolveWordId,
-  favoriteIds,
-  toggleFavorite,
-  pairId,
-}: {
-  word: string;
-  resolveWordId: (w: string) => Promise<number | null>;
-  favoriteIds: Set<number>;
-  toggleFavorite: (id: number) => void;
-  pairId?: number;
-}) {
-  const [wordId, setWordId] = useState<number | null>(null);
-  const [resolving, setResolving] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setResolving(true);
-    resolveWordId(word).then((id) => {
-      if (!cancelled) {
-        setWordId(id);
-        setResolving(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [word, resolveWordId]);
-
-  if (resolving) {
-    return <Loader2 size={12} className="ml-auto animate-spin text-gray-400 flex-shrink-0" />;
-  }
-
-  if (wordId == null) return null;
-
-  return (
-    <div className="ml-auto flex items-center gap-1 flex-shrink-0">
-      <FavoriteButton
-        wordId={wordId}
-        isFavorite={favoriteIds.has(wordId)}
-        onToggle={() => toggleFavorite(wordId)}
-        pairId={pairId}
-        className="!p-1"
-      />
-    </div>
-  );
 }
 
 export default function SentenceMiningTool({ onWordClick, activePair, initialWord, onInputChange }: ToolProps) {
@@ -100,15 +51,6 @@ export default function SentenceMiningTool({ onWordClick, activePair, initialWor
     }
   }, [result]);
   const [showHistory, setShowHistory] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
-  const [wordIdMap, setWordIdMap] = useState<Map<string, number>>(new Map());
-
-  useEffect(() => {
-    if (!activePair) return;
-    bridge.getFavorites(activePair.id).then((favs) => {
-      setFavoriteIds(new Set(favs.map((f) => f.word_id)));
-    }).catch(console.error);
-  }, [activePair]);
 
   // Restore cached result on mount
   useEffect(() => {
@@ -126,7 +68,6 @@ export default function SentenceMiningTool({ onWordClick, activePair, initialWor
     setLoading(true);
     setResult(null);
     setError(null);
-    setWordIdMap(new Map());
 
     try {
       const level = "A2";
@@ -134,20 +75,20 @@ export default function SentenceMiningTool({ onWordClick, activePair, initialWor
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
 
-      const prompt = `Extract useful sentences for language learning from this ${srcName} text.
-Student level: ${level}. Learning ${srcName} from ${tgtName}.
+      const prompt = `Extract useful sentences for language learning from this ${tgtName} text.
+Student level: ${level}. Learning ${tgtName} from ${srcName}.
 
 For each sentence:
 1. Select 3-8 sentences that are most useful for learning (natural, contain useful vocabulary/grammar)
-2. Translate each to ${tgtName}
+2. Translate each to ${srcName}
 3. Identify key vocabulary words with translations and CEFR level
 4. Note the grammar point demonstrated
 
 Return ONLY valid JSON:
 [
   {
-    "sentence": "original sentence in ${srcName}",
-    "translation": "translation in ${tgtName}",
+    "sentence": "original sentence in ${tgtName}",
+    "translation": "translation in ${srcName}",
     "keyWords": [{"word":"key word","translation":"translation","level":"A1|A2|B1|B2"}],
     "grammar": "grammar point this sentence demonstrates"
   }
@@ -171,29 +112,6 @@ ${input.trim()}`;
       setLoading(false);
     }
   }, [input, loading, activePair]);
-
-
-  const resolveWordId = useCallback(async (word: string): Promise<number | null> => {
-    if (wordIdMap.has(word)) return wordIdMap.get(word)!;
-    if (!activePair) return null;
-    try {
-      const words = await bridge.searchWords(activePair.id, word);
-      if (words.length > 0) {
-        setWordIdMap((prev) => new Map(prev).set(word, words[0].id));
-        return words[0].id;
-      }
-    } catch { /* ignore */ }
-    return null;
-  }, [activePair, wordIdMap]);
-
-  const toggleFavorite = useCallback((wordId: number) => {
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(wordId)) next.delete(wordId);
-      else next.add(wordId);
-      return next;
-    });
-  }, []);
 
 
   return (
@@ -226,7 +144,7 @@ ${input.trim()}`;
         {activePair && (
           <button onClick={() => {
             clearToolHistory(activePair.id, "mining");
-            setResult(null); handleInputChange(""); setWordIdMap(new Map()); useAppStore.getState().setToolResult("mining", null);
+            setResult(null); handleInputChange(""); useAppStore.getState().setToolResult("mining", null);
           }} className="flex items-center px-4 py-2.5 text-gray-400 hover:text-red-500 text-sm rounded-xl transition-colors" title={t("common.clear")}>
             <Trash2 size={16} />
           </button>
@@ -314,13 +232,6 @@ ${input.trim()}`;
                     {kw.word}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">— {kw.translation}</span>
-                  <KeywordActions
-                    word={kw.word}
-                    resolveWordId={resolveWordId}
-                    favoriteIds={favoriteIds}
-                    toggleFavorite={toggleFavorite}
-                    pairId={activePair?.id}
-                  />
                 </div>
               ))}
             </div>

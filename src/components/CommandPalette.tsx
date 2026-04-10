@@ -3,7 +3,7 @@ import Fuse from "fuse.js";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Search, BookOpen, Heart, BookText, Languages, MessageSquare,
+  Search, BookOpen, BookText, Languages, MessageSquare,
   RefreshCw, SpellCheck, ArrowRightLeft, FileSearch, Settings,
 } from "lucide-react";
 
@@ -25,7 +25,6 @@ export default function CommandPalette() {
 
   const commands: CommandItem[] = useMemo(() => [
     { id: "dictionary", label: t("nav.dictionary"), icon: BookOpen, action: () => navigate("/dictionary"), keywords: "words search find dictionnaire" },
-    { id: "favorites", label: t("nav.favorites"), icon: Heart, action: () => navigate("/favorites"), keywords: "favoris favorite liked saved bookmarked heart" },
     { id: "grammar", label: t("nav.grammar"), icon: BookText, action: () => navigate("/grammar"), keywords: "rules syntax grammaire" },
     { id: "conjugation", label: t("nav.conjugation"), icon: Languages, action: () => navigate("/conjugation"), keywords: "verbs tenses conjugaison" },
 

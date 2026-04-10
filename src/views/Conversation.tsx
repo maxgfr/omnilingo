@@ -62,7 +62,7 @@ interface PresetDef {
 }
 
 const DUAL_LANG_INSTRUCTION = (src: string, tgt: string) =>
-  `\nIMPORTANT: Always respond in both languages. Write the main content in ${src} first, then provide the ${tgt} translation in *italics* on the next line.`;
+  `\nIMPORTANT: Always respond in both languages. Write the main content in ${tgt} first, then provide the ${src} translation in *italics* on the next line.`;
 
 const PRESET_DEFS: PresetDef[] = [
   {
@@ -70,28 +70,28 @@ const PRESET_DEFS: PresetDef[] = [
     icon: PenLine,
     labelKey: "chat.correctSentence",
     buildSystemPrompt: (src, tgt) =>
-      `You are a language correction assistant for ${src}. The student writes sentences and you correct them, explaining errors in ${tgt}.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a language correction assistant for ${tgt}. The student writes sentences and you correct them, explaining errors in ${src}.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "grammar",
     icon: BookOpen,
     labelKey: "chat.explainGrammar",
     buildSystemPrompt: (src, tgt) =>
-      `You are a ${src} grammar teacher. Explain grammar rules and answer questions.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a ${tgt} grammar teacher. Explain grammar rules and answer questions.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "free",
     icon: MessagesSquare,
     labelKey: "chat.freeConversation",
     buildSystemPrompt: (src, tgt) =>
-      `You are a conversation partner. Speak in ${src}. Correct mistakes gently.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a conversation partner. Speak in ${tgt}. Correct mistakes gently.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "exercises",
     icon: Dumbbell,
     labelKey: "chat.exercises",
     buildSystemPrompt: (src, tgt) =>
-      `You are a language exercise generator for ${src} learners. Generate fill-in-blank, translation, and grammar exercises.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
+      `You are a language exercise generator for ${tgt} learners. Generate fill-in-blank, translation, and grammar exercises.${DUAL_LANG_INSTRUCTION(src, tgt)}`,
   },
   {
     mode: "translate",
@@ -208,8 +208,8 @@ export default function Conversation() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const pairId = activePair?.id ?? 0;
-  const sourceName = activePair?.source_name || "the target language";
-  const targetName = activePair?.target_name || "the native language";
+  const sourceName = activePair?.source_name || "the native language";
+  const targetName = activePair?.target_name || "the target language";
   const level = "A2";
 
   // ---- Load home data ----
@@ -293,17 +293,17 @@ export default function Conversation() {
 
       if (selectedCustomScenario) {
         return `${selectedCustomScenario.system_prompt}
-The student is learning ${sourceName} and speaks ${targetName} natively.
-IMPORTANT: Always write your response in ${sourceName} first, then provide the ${targetName} translation in *italics*.
+The student is learning ${targetName} and speaks ${sourceName} natively.
+IMPORTANT: Always write your response in ${targetName} first, then provide the ${sourceName} translation in *italics*.
 ${history ? `\nConversation so far:\n${history}` : ""}`;
       }
 
-      return `You are playing the role of a ${role} in a ${sourceName} conversation practice.
-The student speaks ${targetName} natively and is learning ${sourceName} at ${level} level.
-Stay in character. Speak ONLY in ${sourceName}.
-After each student response, give a brief correction in ${targetName} if needed (grammar/vocab), then continue the conversation.
+      return `You are playing the role of a ${role} in a ${targetName} conversation practice.
+The student speaks ${sourceName} natively and is learning ${targetName} at ${level} level.
+Stay in character. Speak ONLY in ${targetName}.
+After each student response, give a brief correction in ${sourceName} if needed (grammar/vocab), then continue the conversation.
 Keep your responses concise (2-3 sentences for the in-character part, plus correction if needed).
-IMPORTANT: Always write your in-character response in ${sourceName} first, then provide the ${targetName} translation in *italics*.
+IMPORTANT: Always write your in-character response in ${targetName} first, then provide the ${sourceName} translation in *italics*.
 ${history ? `\nConversation so far:\n${history}` : ""}`;
     },
     [sourceName, targetName, level, selectedCustomScenario],
@@ -315,14 +315,14 @@ ${history ? `\nConversation so far:\n${history}` : ""}`;
         .map((m) => `${m.role === "user" ? "Student" : role}: ${m.content}`)
         .join("\n");
 
-      return `You were playing the role of a ${role} in a ${sourceName} conversation practice.
-The student speaks ${targetName} natively and is learning ${sourceName} at ${level} level.
+      return `You were playing the role of a ${role} in a ${targetName} conversation practice.
+The student speaks ${sourceName} natively and is learning ${targetName} at ${level} level.
 
 Here is the full conversation:
 ${history}
 
 Now provide an evaluation of the student's performance. Respond ONLY with a JSON object in this exact format, no other text:
-{"fluency": <1-5>, "grammar": <1-5>, "vocabulary": <1-5>, "corrections": ["correction 1 in ${targetName}", "correction 2 in ${targetName}"], "summary": "Brief summary in ${targetName}"}`;
+{"fluency": <1-5>, "grammar": <1-5>, "vocabulary": <1-5>, "corrections": ["correction 1 in ${sourceName}", "correction 2 in ${sourceName}"], "summary": "Brief summary in ${sourceName}"}`;
     },
     [sourceName, targetName, level],
   );

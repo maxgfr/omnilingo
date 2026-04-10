@@ -65,8 +65,8 @@ export default function RephraseTool({ initialWord, activePair, onInputChange }:
       const tonesStr = selectedTones.size > 0
         ? `Only these tones: ${[...selectedTones].join(", ")}.`
         : "3-5 diverse alternatives with different tones.";
-      const prompt = `Student learning ${srcName} at ${level}. Rephrase text, return JSON:
-{"alternatives":[{"text":"rephrased in ${srcName}","tone":"formal|informal|simple|professional|creative|academic|polite|casual","note":"what changed, in ${tgtName}"}]}
+      const prompt = `Student learning ${tgtName} at ${level}. Rephrase text, return JSON:
+{"alternatives":[{"text":"rephrased in ${tgtName}","tone":"formal|informal|simple|professional|creative|academic|polite|casual","note":"what changed, in ${srcName}"}]}
 ${tonesStr} ONLY valid JSON.
 ${enriched}
 Text: ${input.trim()}`;

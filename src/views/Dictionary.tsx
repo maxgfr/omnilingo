@@ -17,17 +17,16 @@ import { useApp } from "../store/AppContext";
 import { useAppStore, selectIsAiConfigured, selectReversePairId } from "../store/useAppStore";
 import { useFeaturePair } from "../lib/useFeaturePair";
 import LanguagePackDownloader from "../components/LanguagePackDownloader";
-import FavoriteButton from "../components/FavoriteButton";
 
 import { formatMessage } from "../lib/markdown";
 import { levelColors, genderBadges, parseTargetWord, formatDefinition, normalizeForSearch, extractTranslationsWithWordSet } from "../lib/wordUtils";
 import * as bridge from "../lib/bridge";
-import type { Word, FavoriteWord } from "../types";
+import type { Word } from "../types";
 
 const RENDER_PAGE = 80;
 
 // Module-level cache to avoid reloading 50k+ words on every tab switch
-let _dictCache: { key: string; words: Word[]; favIds: Set<number> } | null = null;
+let _dictCache: { key: string; words: Word[] } | null = null;
 
 export default function Dictionary() {
   const { t } = useTranslation();
@@ -54,8 +53,6 @@ export default function Dictionary() {
     debounceRef.current = setTimeout(() => setDeferredQuery(searchQuery), 150);
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery]);
-
-  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
 
   const [selectedWord, setSelectedWord] = useState<Word | null>(null);
   const [aiContent, setAiContent] = useState<string | null>(cachedState?.aiContent ?? null);
@@ -153,7 +150,6 @@ export default function Dictionary() {
     if (!cache) {
       setSelectedWord(null);
       setAiContent(null);
-      setFavoriteIds(new Set());
       setSearchQuery("");
     }
 
@@ -167,7 +163,6 @@ export default function Dictionary() {
     // Use module-level cache if pair hasn't changed
     if (_dictCache && _dictCache.key === cacheKey) {
       setAllWords(_dictCache.words);
-      setFavoriteIds(_dictCache.favIds);
       setLoading(false);
       // Restore selected word
       const c = useAppStore.getState().dictionaryCache;
@@ -179,15 +174,10 @@ export default function Dictionary() {
     }
 
     setLoading(true);
-    Promise.all([
-      bridge.getAllDictionaryWords(activePair.id, reversePairId ?? undefined),
-      bridge.getFavorites(activePair.id),
-    ])
-      .then(([words, favs]) => {
-        const favIds = new Set((favs as FavoriteWord[]).map((f) => f.word_id));
-        _dictCache = { key: cacheKey, words, favIds };
+    bridge.getAllDictionaryWords(activePair.id, reversePairId ?? undefined)
+      .then((words) => {
+        _dictCache = { key: cacheKey, words };
         setAllWords(words);
-        setFavoriteIds(favIds);
 
         // Restore selected word from cache
         const c = useAppStore.getState().dictionaryCache;
@@ -199,15 +189,6 @@ export default function Dictionary() {
       .catch((err) => console.error("Failed to load dictionary:", err))
       .finally(() => setLoading(false));
   }, [activePair, reversePairId]);
-
-  const toggleFavorite = useCallback((wordId: number) => {
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(wordId)) next.delete(wordId);
-      else next.add(wordId);
-      return next;
-    });
-  }, []);
 
   const handleAskAi = useCallback(async (word: Word) => {
     if (!activePair) return;
@@ -541,12 +522,6 @@ Format with markdown. Be concise but thorough. Write section titles and explanat
                         {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                         {aiLoading ? t("common.loading") : t("dictionary.exploreWithAi")}
                       </button>
-                      <FavoriteButton
-                        wordId={word.id}
-                        isFavorite={favoriteIds.has(word.id)}
-                        onToggle={() => toggleFavorite(word.id)}
-                        pairId={activePair?.id}
-                      />
                     </div>
 
                     {!isAiConfigured && (

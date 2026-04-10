@@ -302,9 +302,9 @@ Return a JSON object with this exact structure:
   "display_order": 0,
   "title": "lesson title in ${targetName}",
   "title_source": "lesson title in ${sourceName}",
-  "explanation": "detailed explanation in ${targetName} with **bold** for important terms",
+  "explanation": "detailed explanation in ${sourceName} with **bold** for important terms",
   "key_points": ["key point 1", "key point 2", "key point 3"],
-  "examples": [{"source": "example in ${sourceName}", "target": "translation in ${targetName}", "highlight": "key word to highlight"}],
+  "examples": [{"source": "example in ${targetName}", "target": "translation in ${sourceName}", "highlight": "key word to highlight"}],
   "exercises": [
     {"type": "qcm", "question": "question text", "options": ["option1", "option2", "option3", "option4"], "correctIndex": 0},
     {"type": "fill", "sentence": "sentence with ___ blank", "answer": "correct answer", "hint": "hint"},
@@ -433,7 +433,7 @@ Return ONLY valid JSON, no markdown fences.`;
       const systemPrompt = `You are a bilingual grammar tutor for ${activePair.source_name} and ${activePair.target_name}.
 The current lesson is about "${selectedTopic.title}".
 Lesson content: ${selectedTopic.explanation}
-Answer questions about this topic. Be concise. Write explanations in ${activePair.target_name}, but always include examples and grammar forms in both ${activePair.source_name} and ${activePair.target_name}.`;
+Answer questions about this topic. Be concise. Write explanations in ${activePair.source_name}, but always include examples and grammar forms in both ${activePair.source_name} and ${activePair.target_name}.`;
 
       const apiMessages = [
         { role: "system", content: systemPrompt },

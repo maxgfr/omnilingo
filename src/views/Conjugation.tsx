@@ -67,6 +67,7 @@ export default function Conjugation() {
   // AI verb generation
   const [aiVerbInput, setAiVerbInput] = useState("");
   const [generatingVerb, setGeneratingVerb] = useState(false);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [savingVerb, setSavingVerb] = useState(false);
   const [verbSaved, setVerbSaved] = useState(false);
@@ -126,6 +127,21 @@ Return ONLY valid JSON, no markdown fences.`;
       setGeneratingVerb(false);
     }
   }, [activePair, aiVerbInput, generatingVerb]);
+
+  const handleBulkGenerate = useCallback(async () => {
+    if (!activePair || bulkGenerating) return;
+    setBulkGenerating(true);
+    try {
+      await bridge.generateVerbs(activePair.id, 20, "A1");
+      const v = await bridge.getVerbs(activePair.id);
+      _conjCache = { pairId: activePair.id, verbs: v };
+      setVerbs(v);
+    } catch (err) {
+      console.error("Failed to generate verbs:", err);
+    } finally {
+      setBulkGenerating(false);
+    }
+  }, [activePair, bulkGenerating]);
 
   // Dynamically extract all available tense keys from loaded verbs
   const allTenseKeys = useMemo(() => {
@@ -454,6 +470,23 @@ Return ONLY valid JSON, no markdown fences.`;
             </button>
           </div>
         </div>
+
+        {/* Bulk verb generation */}
+        {isAiConfigured && (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 text-center space-y-3">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t("conjugation.noVerbs", "Aucun verbe pour cette paire de langues.")}
+            </p>
+            <button
+              onClick={handleBulkGenerate}
+              disabled={bulkGenerating}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {bulkGenerating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+              {bulkGenerating ? t("grammar.generating", "Génération...") : t("conjugation.bulkGenerate", "Générer 20 verbes courants")}
+            </button>
+          </div>
+        )}
 
         <ExamplePreview onClick={() => setAiVerbInput(CONJUGATION_EXAMPLE.infinitive)}>
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">

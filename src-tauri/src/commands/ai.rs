@@ -1,7 +1,40 @@
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use tauri::State;
 
 use crate::{BaseDirState, DbState};
+
+fn shared_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(120))
+            .build()
+            .expect("Failed to build HTTP client")
+    })
+}
+
+/// Send a request with exponential backoff retry on 429 (Too Many Requests).
+async fn send_with_retry(
+    req: reqwest::Request,
+) -> Result<reqwest::Response, String> {
+    let client = shared_client();
+    let mut delay = std::time::Duration::from_secs(2);
+    for attempt in 0..4 {
+        let req_clone = req.try_clone().ok_or("Failed to clone request for retry")?;
+        let resp = client.execute(req_clone).await.map_err(|e| format!("Network error: {}", e))?;
+
+        if resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS && attempt < 3 {
+            log::warn!("Rate limited (429), retry {}/3 in {:?}", attempt + 1, delay);
+            tokio::time::sleep(delay).await;
+            delay *= 2;
+            continue;
+        }
+
+        return Ok(resp);
+    }
+    Err("Max retries exceeded for 429 rate limit".into())
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AiSettings {
@@ -604,7 +637,7 @@ async fn call_anthropic(settings: &AiSettings, messages: &[ChatMessage]) -> Resu
     if settings.api_key.is_empty() {
         return Err("Anthropic API key not configured. Go to Settings.".into());
     }
-    let client = reqwest::Client::new();
+    let client = shared_client();
 
     // Anthropic: system messages go in a separate field
     let system_content: String = messages.iter()
@@ -627,15 +660,16 @@ async fn call_anthropic(settings: &AiSettings, messages: &[ChatMessage]) -> Resu
         body["system"] = serde_json::Value::String(system_content);
     }
 
-    let resp = client
+    let req = client
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", &settings.api_key)
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&body)
-        .send()
-        .await
-        .map_err(|e| format!("Anthropic network error: {}", e))?;
+        .build()
+        .map_err(|e| format!("Failed to build request: {}", e))?;
+
+    let resp = send_with_retry(req).await?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -659,7 +693,7 @@ async fn call_anthropic_compatible(url: &str, settings: &AiSettings, messages: &
     if settings.api_key.is_empty() {
         return Err("API key not configured. Go to Settings.".into());
     }
-    let client = reqwest::Client::new();
+    let client = shared_client();
 
     let system_content: String = messages.iter()
         .filter(|m| m.role == "system")
@@ -681,15 +715,16 @@ async fn call_anthropic_compatible(url: &str, settings: &AiSettings, messages: &
         body["system"] = serde_json::Value::String(system_content);
     }
 
-    let resp = client
+    let req = client
         .post(url)
         .header("x-api-key", &settings.api_key)
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&body)
-        .send()
-        .await
-        .map_err(|e| format!("API network error: {}", e))?;
+        .build()
+        .map_err(|e| format!("Failed to build request: {}", e))?;
+
+    let resp = send_with_retry(req).await?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -713,7 +748,7 @@ async fn call_openai_compatible(url: &str, settings: &AiSettings, messages: &[Ch
     if settings.api_key.is_empty() && !url.contains("localhost") {
         return Err("API key not configured. Go to Settings.".into());
     }
-    let client = reqwest::Client::new();
+    let client = shared_client();
     let api_messages: Vec<serde_json::Value> = messages.iter()
         .map(|m| serde_json::json!({"role": m.role, "content": m.content}))
         .collect();
@@ -724,17 +759,18 @@ async fn call_openai_compatible(url: &str, settings: &AiSettings, messages: &[Ch
         "max_tokens": 4096
     });
 
-    let mut req = client
+    let mut req_builder = client
         .post(url)
         .header("content-type", "application/json")
         .json(&body);
     if !settings.api_key.is_empty() {
-        req = req.header("Authorization", format!("Bearer {}", settings.api_key));
+        req_builder = req_builder.header("Authorization", format!("Bearer {}", settings.api_key));
     }
-    let resp = req
-        .send()
-        .await
-        .map_err(|e| format!("Network error: {}", e))?;
+    let req = req_builder
+        .build()
+        .map_err(|e| format!("Failed to build request: {}", e))?;
+
+    let resp = send_with_retry(req).await?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -760,7 +796,7 @@ async fn call_gemini(settings: &AiSettings, messages: &[ChatMessage]) -> Result<
     if settings.api_key.is_empty() {
         return Err("Gemini API key not configured. Go to Settings.".into());
     }
-    let client = reqwest::Client::new();
+    let client = shared_client();
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
         settings.model
@@ -787,14 +823,15 @@ async fn call_gemini(settings: &AiSettings, messages: &[ChatMessage]) -> Result<
         body["systemInstruction"] = serde_json::json!({"parts": [{"text": system_content}]});
     }
 
-    let resp = client
+    let req = client
         .post(&url)
         .header("x-goog-api-key", &settings.api_key)
         .header("content-type", "application/json")
         .json(&body)
-        .send()
-        .await
-        .map_err(|e| format!("Gemini network error: {}", e))?;
+        .build()
+        .map_err(|e| format!("Failed to build request: {}", e))?;
+
+    let resp = send_with_retry(req).await?;
 
     if !resp.status().is_success() {
         let status = resp.status();

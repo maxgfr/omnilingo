@@ -59,8 +59,8 @@ export default function SynonymsTool({ onWordClick, initialWord, activePair, onI
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
-      const prompt = `Student learning ${srcName} at ${level}. Synonyms and antonyms for "${input.trim()}", return JSON:
-{"synonyms":[{"word":"synonym","register":"formal|neutral|informal|literary|colloquial|technical","definition":"meaning in ${tgtName}","example":{"source":"sentence with **synonym** bold","target":"translation with **equiv** bold"}}],"antonyms":[{"word":"antonym","definition":"meaning in ${tgtName}"}]}
+      const prompt = `Student learning ${tgtName} at ${level}. Synonyms and antonyms for "${input.trim()}", return JSON:
+{"synonyms":[{"word":"synonym","register":"formal|neutral|informal|literary|colloquial|technical","definition":"meaning in ${srcName}","example":{"source":"sentence with **synonym** bold","target":"translation with **equiv** bold"}}],"antonyms":[{"word":"antonym","definition":"meaning in ${srcName}"}]}
 5-10 synonyms sorted by relevance. 3-5 antonyms if applicable. ONLY valid JSON.
 ${enriched}`;
       addToHistory(activePair.id, "synonyms", input.trim());

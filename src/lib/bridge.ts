@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   SettingsSchema, LanguagePairSchema, WordSchema,
   AiSettingsSchema, DictionarySourceSchema,
-  FavoriteWordSchema, FavoriteListSchema, GrammarSrsStateSchema,
+  GrammarSrsStateSchema,
   ConversationScenarioSchema, ConversationSessionSchema,
 } from "../types";
 import type { GrammarTopic, Verb } from "../types";
@@ -139,29 +139,6 @@ export const importFromFile = (pairId: number, content: string, format: string) 
 export const getAvailableDictionaries = () => invokeAndParseArray("get_available_dictionaries", DictionarySourceSchema);
 export const downloadDictionary = (sourceLang: string, targetLang: string, url: string, sourceName: string, targetName: string, format: string) =>
   safeInvoke<string>("download_dictionary", { sourceLang, targetLang, url, sourceName, targetName, format });
-
-// Favorites
-export const toggleFavorite = (wordId: number) => safeInvoke<boolean>("toggle_favorite", { wordId });
-export const getFavorites = (pairId: number) => invokeAndParseArray("get_favorites", FavoriteWordSchema, { pairId });
-export const isFavorite = (wordId: number) => safeInvoke<boolean>("is_favorite", { wordId });
-
-// Favorite lists
-export const createFavoriteList = (name: string, pairId: number) =>
-  invokeAndParse("create_favorite_list", FavoriteListSchema, { name, pairId });
-export const deleteFavoriteList = (listId: number) =>
-  safeInvoke<void>("delete_favorite_list", { listId });
-export const renameFavoriteList = (listId: number, name: string) =>
-  safeInvoke<void>("rename_favorite_list", { listId, name });
-export const getFavoriteLists = (pairId: number) =>
-  invokeAndParseArray("get_favorite_lists", FavoriteListSchema, { pairId });
-export const addToFavoriteList = (listId: number, wordId: number) =>
-  safeInvoke<void>("add_to_favorite_list", { listId, wordId });
-export const removeFromFavoriteList = (listId: number, wordId: number) =>
-  safeInvoke<void>("remove_from_favorite_list", { listId, wordId });
-export const getFavoriteListItems = (listId: number) =>
-  invokeAndParseArray("get_favorite_list_items", FavoriteWordSchema, { listId });
-export const getWordListMemberships = (wordId: number, pairId: number) =>
-  safeInvoke<number[]>("get_word_list_memberships", { wordId, pairId });
 
 // Export
 export const exportData = () => safeInvoke<string>("export_data");

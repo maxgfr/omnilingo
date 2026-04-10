@@ -96,28 +96,6 @@ export const DictionarySourceSchema = z.object({
   size_mb: z.number().nullable(),
 });
 
-export const FavoriteWordSchema = z.object({
-  id: z.number(),
-  word_id: z.number(),
-  source_word: z.string(),
-  target_word: z.string(),
-  gender: z.string().nullable(),
-  level: z.string().nullable(),
-  category: z.string().nullable(),
-  tags: z.string().nullable(),
-  example_source: z.string().nullable(),
-  example_target: z.string().nullable(),
-});
-
-export const FavoriteListSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  language_pair_id: z.number(),
-  item_count: z.number(),
-  created_at: z.string(),
-});
-export type FavoriteList = z.infer<typeof FavoriteListSchema>;
-
 export const GrammarSrsStateSchema = z.object({
   topic_id: z.string(),
   language_pair_id: z.number(),
@@ -159,7 +137,6 @@ export type Exercise = z.infer<typeof ExerciseSchema>;
 export type Verb = z.infer<typeof VerbSchema>;
 export type AiSettings = z.infer<typeof AiSettingsSchema>;
 export type DictionarySource = z.infer<typeof DictionarySourceSchema>;
-export type FavoriteWord = z.infer<typeof FavoriteWordSchema>;
 export type GrammarSrsState = z.infer<typeof GrammarSrsStateSchema>;
 export type ConversationScenario = z.infer<typeof ConversationScenarioSchema>;
 export type ConversationSession = z.infer<typeof ConversationSessionSchema>;

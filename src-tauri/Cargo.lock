@@ -2642,6 +2642,7 @@ dependencies = [
  "tauri-plugin-mcp-bridge",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "tokio",
  "xz2",
 ]
 

@@ -55,7 +55,6 @@ describe("useAppStore — core actions", () => {
         aiModel: "",
         aiCustomUrl: "",
         dictionaryCache: null,
-        favoritesCache: null,
         grammarCache: null,
         conjugationCache: null,
         conversationCache: null,
@@ -113,7 +112,6 @@ describe("useAppStore — core actions", () => {
     const state = useAppStore.getState();
     expect(state.activePairId).toBe(2);
     expect(state.dictionaryCache).toBeNull();
-    expect(state.favoritesCache).toBeNull();
     expect(state.grammarCache).toBeNull();
     expect(state.conjugationCache).toBeNull();
     expect(state.conversationCache).toBeNull();
@@ -229,7 +227,6 @@ describe("useAppStore — selectors", () => {
     aiModel: "",
     aiCustomUrl: "",
     dictionaryCache: null,
-    favoritesCache: null,
     grammarCache: null,
     conjugationCache: null,
     conversationCache: null,
@@ -241,7 +238,6 @@ describe("useAppStore — selectors", () => {
     setAiConfig: async () => {},
     loadAiSettings: async () => {},
     setDictionaryCache: () => {},
-    setFavoritesCache: () => {},
     setGrammarCache: () => {},
     setConjugationCache: () => {},
     setConversationCache: () => {},

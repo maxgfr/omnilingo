@@ -8,8 +8,6 @@ import {
   ExerciseSchema,
   VerbSchema,
   AiSettingsSchema,
-  FavoriteWordSchema,
-  FavoriteListSchema,
   GrammarSrsStateSchema,
   ConversationScenarioSchema,
   ConversationSessionSchema,
@@ -535,72 +533,6 @@ describe("AiSettingsSchema", () => {
         model: "",
       }),
     ).toThrow();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// 11. FavoriteWordSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("FavoriteWordSchema", () => {
-  it("accepts a valid favorite word", () => {
-    const result = FavoriteWordSchema.parse({
-      id: 1,
-      word_id: 42,
-      source_word: "Haus",
-      target_word: "maison",
-      gender: "n",
-      level: "A1",
-      category: "home",
-      tags: null,
-      example_source: "Das Haus ist groß.",
-      example_target: "La maison est grande.",
-    });
-    expect(result.id).toBe(1);
-    expect(result.word_id).toBe(42);
-    expect(result.source_word).toBe("Haus");
-  });
-
-  it("accepts nullable fields", () => {
-    const result = FavoriteWordSchema.parse({
-      id: 1,
-      word_id: 42,
-      source_word: "hello",
-      target_word: "bonjour",
-      gender: null,
-      level: null,
-      category: null,
-      tags: null,
-      example_source: null,
-      example_target: null,
-    });
-    expect(result.gender).toBeNull();
-    expect(result.level).toBeNull();
-    expect(result.category).toBeNull();
-    expect(result.tags).toBeNull();
-    expect(result.example_source).toBeNull();
-    expect(result.example_target).toBeNull();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// FavoriteListSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("FavoriteListSchema", () => {
-  it("parses a valid favorite list", () => {
-    const result = FavoriteListSchema.parse({
-      id: 1,
-      name: "My Words",
-      language_pair_id: 1,
-      item_count: 5,
-      created_at: "2025-01-15",
-    });
-    expect(result.id).toBe(1);
-    expect(result.name).toBe("My Words");
-    expect(result.item_count).toBe(5);
-  });
-
-  it("rejects missing required fields", () => {
-    expect(() => FavoriteListSchema.parse({ id: 1 })).toThrow();
   });
 });
 

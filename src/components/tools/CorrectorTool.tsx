@@ -83,8 +83,8 @@ export default function CorrectorTool({ initialWord, activePair, onInputChange }
       const srcName = activePair.source_name;
       const tgtName = activePair.target_name;
       const enriched = await getPromptContext(activePair.id);
-      const prompt = `Student learning ${srcName} at ${level}. Correct text, return JSON:
-{"corrected":"corrected text","corrections":[{"wrong":"error","right":"fix","explanation":"why in ${tgtName}"}],"score":"excellent|good|fair|poor","feedback":"overall in ${tgtName}"}
+      const prompt = `Student learning ${tgtName} at ${level}. Correct text, return JSON:
+{"corrected":"corrected text","corrections":[{"wrong":"error","right":"fix","explanation":"why in ${srcName}"}],"score":"excellent|good|fair|poor","feedback":"overall in ${srcName}"}
 Empty corrections if perfect. ONLY valid JSON.
 ${enriched}
 Text: ${input.trim()}`;
