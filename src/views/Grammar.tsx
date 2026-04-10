@@ -4,11 +4,9 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronLeft,
   CheckCircle,
-  Circle,
   Trophy,
   Wand2,
   Loader2,
-  Clock,
   Save,
   Trash2,
   Send,
@@ -25,10 +23,10 @@ import SearchInput from "../components/ui/SearchInput";
 import ExamplePreview from "../components/ui/ExamplePreview";
 import { GRAMMAR_EXAMPLE } from "../lib/exampleData";
 import { useExampleTranslations } from "../lib/useExampleTranslations";
-import type { GrammarTopic, GrammarSrsState, Exercise } from "../types";
+import type { GrammarTopic, Exercise } from "../types";
 
 // Module-level cache to avoid reloading on tab switch
-let _grammarCache: { pairId: number; topics: GrammarTopic[]; dueTopics: GrammarSrsState[] } | null = null;
+let _grammarCache: { pairId: number; topics: GrammarTopic[] } | null = null;
 
 const levelColors: Record<string, string> = {
   A1: "text-emerald-600 dark:text-emerald-400",
@@ -89,10 +87,6 @@ export default function Grammar() {
   const [exerciseResults, setExerciseResults] = useState<boolean[]>([]);
   const [exercisesDone, setExercisesDone] = useState(false);
   const [searchQuery, setSearchQuery] = useState(cachedState?.searchQuery ?? "");
-  const [statusFilter, setStatusFilter] = useState<"all" | "due" | "completed" | "notStarted">("all");
-
-  // SRS due topics
-  const [dueTopics, setDueTopics] = useState<GrammarSrsState[]>([]);
 
   // AI lesson generator
   const [aiTopic, setAiTopic] = useState(cachedState?.aiTopic ?? "");
@@ -119,7 +113,7 @@ export default function Grammar() {
     });
   }, [searchQuery, selectedTopic, aiTopic, aiLesson]);
 
-  // Load topics and due SRS topics
+  // Load topics
   useEffect(() => {
     const cache = useAppStore.getState().grammarCache;
     const isRestoringCache = cache !== null;
@@ -161,21 +155,16 @@ export default function Grammar() {
     // Use module-level cache if pair hasn't changed
     if (_grammarCache && _grammarCache.pairId === activePair.id) {
       setTopics(_grammarCache.topics);
-      setDueTopics(_grammarCache.dueTopics);
       restoreSelected(_grammarCache.topics);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    Promise.all([
-      bridge.getGrammarTopics(activePair.id),
-      bridge.getDueGrammarTopics(activePair.id),
-    ])
-      .then(([loadedTopics, loadedDue]) => {
-        _grammarCache = { pairId: activePair.id, topics: loadedTopics, dueTopics: loadedDue };
+    bridge.getGrammarTopics(activePair.id)
+      .then((loadedTopics) => {
+        _grammarCache = { pairId: activePair.id, topics: loadedTopics };
         setTopics(loadedTopics);
-        setDueTopics(loadedDue);
         restoreSelected(loadedTopics);
       })
       .catch((err) => console.error("Failed to load grammar topics:", err))
@@ -193,17 +182,8 @@ export default function Grammar() {
     ? fuse.search(searchQuery.trim()).map((r) => r.item)
     : topics;
 
-  // Filter topics based on status filter
-  const statusFilteredTopics = filteredTopics.filter((topic) => {
-    if (statusFilter === "all") return true;
-    if (statusFilter === "due") return dueTopicIds.has(topic.id);
-    if (statusFilter === "completed") return topic.completed;
-    if (statusFilter === "notStarted") return !topic.completed && !topic.score_total;
-    return true;
-  });
-
   // Group topics by level
-  const topicsByLevel = statusFilteredTopics.reduce<Record<string, GrammarTopic[]>>((acc, topic) => {
+  const topicsByLevel = filteredTopics.reduce<Record<string, GrammarTopic[]>>((acc, topic) => {
     const level = topic.level || "Other";
     if (!acc[level]) acc[level] = [];
     acc[level].push(topic);
@@ -216,9 +196,6 @@ export default function Grammar() {
     (a, b) => levelOrder.indexOf(a) - levelOrder.indexOf(b),
   );
 
-  // Set of topic IDs that are due for SRS review
-  const dueTopicIds = useMemo(() => new Set(dueTopics.map((d) => d.topic_id)), [dueTopics]);
-
   const selectTopic = useCallback((topic: GrammarTopic) => {
     setSelectedTopic(topic);
     setExerciseResults([]);
@@ -229,16 +206,15 @@ export default function Grammar() {
     setSelectedTopic(null);
     setExerciseResults([]);
     setExercisesDone(false);
-    // Reload topics and due list to reflect any completion/review changes
+    // Reload topics in case the user just saved or deleted one
     if (activePair) {
       _grammarCache = null; // invalidate cache
       bridge.getGrammarTopics(activePair.id).then((t) => setTopics(t));
-      bridge.getDueGrammarTopics(activePair.id).then((due) => setDueTopics(due));
     }
   }, [activePair]);
 
   const handleExerciseAnswer = useCallback(
-    async (index: number, correct: boolean) => {
+    (index: number, correct: boolean) => {
       const newResults = [...exerciseResults];
       newResults[index] = correct;
       setExerciseResults(newResults);
@@ -250,41 +226,13 @@ export default function Grammar() {
         }).catch(() => {});
       }
 
-      // Check if all exercises are answered
+      // Check if all exercises are answered — this is purely a per-session
+      // UX flag (drives the "well done / keep practicing" banner). No
+      // persistence: completion tracking and SRS review have been removed.
       const totalExercises = selectedTopic?.exercises?.length || 0;
       const answeredCount = newResults.filter((r) => r !== undefined).length;
-
       if (answeredCount >= totalExercises) {
         setExercisesDone(true);
-        const correctCount = newResults.filter((r) => r === true).length;
-
-        // Mark as completed if score >= 70% and schedule SRS review
-        if (selectedTopic && activePair && totalExercises > 0) {
-          const scorePercent = (correctCount / totalExercises) * 100;
-          const passed = scorePercent >= 70;
-          if (passed) {
-            try {
-              await bridge.markGrammarCompleted(
-                selectedTopic.id,
-                activePair.id,
-                correctCount,
-                totalExercises,
-              );
-            } catch (err) {
-              console.error("Failed to mark grammar completed:", err);
-            }
-          }
-          // Schedule SRS review: quality 3 for passing, 1 for failing
-          try {
-            await bridge.reviewGrammarTopic(
-              selectedTopic.id,
-              activePair.id,
-              passed ? 3 : 1,
-            );
-          } catch (err) {
-            console.error("Failed to schedule grammar SRS review:", err);
-          }
-        }
       }
     },
     [exerciseResults, selectedTopic, activePair],
@@ -316,10 +264,7 @@ Return ONLY this JSON object — no markdown fences, no prose:
     { "type": "qcm", "question": "<question in ${sourceName} or ${targetName}>", "options": ["<opt1>","<opt2>","<opt3>","<opt4>"], "correctIndex": 0 },
     { "type": "fill", "sentence": "<sentence in ${targetName} with ___ blank>", "answer": "<correct word>", "hint": "<hint in ${sourceName}>" },
     { "type": "trueFalse", "statement": "<statement in ${targetName}>", "isTrue": true, "explanation": "<why in ${sourceName}>" }
-  ],
-  "completed": false,
-  "score_correct": 0,
-  "score_total": 0
+  ]
 }
 
 Rules:
@@ -515,9 +460,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
               >
                 {selectedTopic.level}
               </span>
-            )}
-            {selectedTopic.completed && (
-              <CheckCircle size={16} className="text-emerald-500" />
             )}
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -817,19 +759,7 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
   // Topic list view
   return (
     <div className="space-y-6">
-      <PageHeader title={t("grammar.title")} subtitle={t("grammar.topicsCompleted", { count: topics.filter((tp) => tp.completed).length })} />
-
-      {/* Due for review banner */}
-      {dueTopics.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
-          <Clock size={18} className="text-amber-500 flex-shrink-0" />
-          <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-            {dueTopics.length === 1
-              ? t("grammar.dueForReview", { count: 1 })
-              : t("grammar.dueForReview", { count: dueTopics.length })}
-          </p>
-        </div>
-      )}
+      <PageHeader title={t("grammar.title")} />
 
       {/* AI Lesson Generator - always visible */}
       <div className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 p-4">
@@ -866,28 +796,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
 
       <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder={t("grammar.searchTopics")} />
 
-      <div className="flex flex-wrap gap-2">
-        {(["all", "due", "completed", "notStarted"] as const).map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setStatusFilter(filter)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              statusFilter === filter
-                ? "bg-amber-500 text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-          >
-            {filter === "all" ? t("common.all")
-              : filter === "due" ? t("grammar.dueReview")
-              : filter === "completed" ? t("grammar.completed")
-              : t("grammar.notStarted")}
-            {filter === "due" && dueTopics.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-600 text-white text-[10px]">{dueTopics.length}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
       <div className="space-y-8">
         {sortedLevels.map((level) => {
           const levelLabelKeys: Record<string, string> = {
@@ -905,7 +813,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
           const levelTopics = topicsByLevel[level].sort(
             (a, b) => a.display_order - b.display_order,
           );
-          const completedInLevel = levelTopics.filter((tp) => tp.completed).length;
 
           return (
             <div key={level}>
@@ -913,14 +820,8 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
                 <h2 className={`text-sm font-bold uppercase tracking-wide ${levelInfo.color}`}>
                   {levelInfo.label}
                 </h2>
-                <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all"
-                    style={{ width: `${levelTopics.length > 0 ? (completedInLevel / levelTopics.length) * 100 : 0}%` }}
-                  />
-                </div>
                 <span className="text-xs text-gray-400 dark:text-gray-500">
-                  {completedInLevel}/{levelTopics.length}
+                  {levelTopics.length}
                 </span>
               </div>
               <div className="space-y-2">
@@ -928,19 +829,8 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
                   <button
                     key={topic.id}
                     onClick={() => selectTopic(topic)}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-500 transition-colors group"
+                    className="w-full text-left flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-500 transition-colors"
                   >
-                    {topic.completed ? (
-                      <CheckCircle
-                        size={20}
-                        className="text-emerald-500 flex-shrink-0"
-                      />
-                    ) : (
-                      <Circle
-                        size={20}
-                        className="text-gray-300 dark:text-gray-600 flex-shrink-0 group-hover:text-amber-400"
-                      />
-                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
                         {topic.title}
@@ -951,25 +841,6 @@ Answer the student's question concisely. Write explanations in ${activePair.sour
                         </p>
                       )}
                     </div>
-                    {dueTopicIds.has(topic.id) && (
-                      <span title={t("grammar.dueReview")}>
-                        <Clock size={14} className="text-amber-500 flex-shrink-0" />
-                      </span>
-                    )}
-                    {topic.score_total > 0 && (
-                      <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          topic.score_correct / topic.score_total >= 0.7
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                        }`}
-                      >
-                        {Math.round(
-                          (topic.score_correct / topic.score_total) * 100,
-                        )}
-                        %
-                      </span>
-                    )}
                   </button>
                 ))}
               </div>

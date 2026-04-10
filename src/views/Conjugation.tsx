@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Save,
   Table as TableIcon,
+  Trash2,
   Wand2,
   Pencil,
 } from "lucide-react";
@@ -61,6 +62,35 @@ export default function Conjugation() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState(false);
   const [revealed, setRevealed] = useState(false);
+
+  // Saved verbs (loaded from DB) — shown when no verb is currently displayed
+  const [savedVerbs, setSavedVerbs] = useState<Verb[]>([]);
+  const [loadingSavedVerbs, setLoadingSavedVerbs] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  // Load saved verbs whenever the active pair changes
+  useEffect(() => {
+    if (!activePair) {
+      setSavedVerbs([]);
+      return;
+    }
+    setLoadingSavedVerbs(true);
+    bridge
+      .getVerbs(activePair.id)
+      .then((verbs) => setSavedVerbs(verbs))
+      .catch((err) => console.error("Failed to load saved verbs:", err))
+      .finally(() => setLoadingSavedVerbs(false));
+  }, [activePair?.id]);
+
+  const refreshSavedVerbs = useCallback(async () => {
+    if (!activePair) return;
+    try {
+      const verbs = await bridge.getVerbs(activePair.id);
+      setSavedVerbs(verbs);
+    } catch (err) {
+      console.error("Failed to refresh saved verbs:", err);
+    }
+  }, [activePair]);
 
   // ── Persist view state to Zustand cache ──────────────────────────
   useEffect(() => {
@@ -241,6 +271,7 @@ Rules:
       );
       setCurrentVerb({ ...currentVerb, id: newId });
       setVerbSaved(true);
+      refreshSavedVerbs();
     } catch (err) {
       console.error("Failed to save verb:", err);
       const message = err instanceof Error ? err.message : String(err);
@@ -250,13 +281,46 @@ Rules:
       // than as a confusing red error.
       if (message.includes("UNIQUE constraint")) {
         setVerbSaved(true);
+        refreshSavedVerbs();
       } else {
         setSaveError(message);
       }
     } finally {
       setSavingVerb(false);
     }
-  }, [activePair, currentVerb, savingVerb]);
+  }, [activePair, currentVerb, savingVerb, refreshSavedVerbs]);
+
+  // Load a previously saved verb back into the active conjugation view
+  const handleSelectSavedVerb = useCallback((verb: Verb) => {
+    setCurrentVerb(verb);
+    setVerbSaved(true);
+    setGenerationError(null);
+    setSaveError(null);
+    setView("table");
+    setAnswers({});
+    setChecked(false);
+    setRevealed(false);
+    const verbTenses = Object.keys(verb.conjugations).filter(
+      (k) => verb.conjugations[k] && Object.keys(verb.conjugations[k]).length > 0,
+    );
+    setCurrentTense(verbTenses[0] ?? "");
+  }, []);
+
+  const handleDeleteSavedVerb = useCallback(async (verbId: number) => {
+    if (!activePair) return;
+    try {
+      await bridge.deleteVerb(verbId, activePair.id);
+      setConfirmDeleteId(null);
+      // If the user is currently viewing the verb being deleted, clear it
+      if (currentVerb?.id === verbId) {
+        setCurrentVerb(null);
+        setVerbSaved(false);
+      }
+      refreshSavedVerbs();
+    } catch (err) {
+      console.error("Failed to delete verb:", err);
+    }
+  }, [activePair, currentVerb, refreshSavedVerbs]);
 
   // ── Clear current verb (return to AI input + example preview) ───
   const handleClearVerb = useCallback(() => {
@@ -354,8 +418,8 @@ Rules:
         )}
       </div>
 
-      {/* Example preview when no verb generated yet */}
-      {!currentVerb && (
+      {/* Example preview when no verb generated yet AND no saved verbs */}
+      {!currentVerb && savedVerbs.length === 0 && !loadingSavedVerbs && (
         <ExamplePreview
           loading={trExLoading}
           onClick={() => setAiVerbInput(trEx(CONJUGATION_EXAMPLE.infinitive))}
@@ -375,6 +439,62 @@ Rules:
             </div>
           </div>
         </ExamplePreview>
+      )}
+
+      {/* Saved verbs list — shown when no verb is currently displayed.
+          This is the answer to "I saved a verb, hit back, and saw nothing":
+          the empty state used to only have the example preview, so the user
+          had no way to find their saved verbs. */}
+      {!currentVerb && savedVerbs.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            {t("conjugation.savedVerbs")}
+          </h3>
+          <div className="space-y-2">
+            {savedVerbs.map((verb) => (
+              <div
+                key={verb.id}
+                className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-500 transition-colors"
+              >
+                <button
+                  onClick={() => handleSelectSavedVerb(verb)}
+                  className="flex-1 text-left min-w-0"
+                >
+                  <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                    {verb.infinitive}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                    {verb.translation}
+                  </p>
+                </button>
+                {confirmDeleteId === verb.id ? (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleDeleteSavedVerb(verb.id)}
+                      className="px-3 py-1.5 rounded-md bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium transition-colors"
+                    >
+                      {t("common.confirm")}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium transition-colors"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDeleteId(verb.id)}
+                    title={t("conjugation.deleteVerbConfirm")}
+                    className="p-2 text-gray-400 hover:text-rose-500 transition-colors flex-shrink-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {currentVerb && tenses.length > 0 && (

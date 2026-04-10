@@ -44,7 +44,6 @@
     "wellDone": "Well done!",
     "keepPracticing": "Keep practicing!",
     "score": "Score: {{correct}}/{{total}}",
-    "topicsCompleted": "{{count}} topic(s) completed",
     "levelBeginner": "Beginner",
     "levelElementary": "Elementary",
     "levelIntermediate": "Intermediate",
@@ -59,10 +58,7 @@
     "generate": "Generate",
     "addKeyPoint": "Add a key point",
     "askAi": "Ask a question",
-    "askAboutTopic": "Ask a question about this lesson...",
-    "dueReview": "To review",
-    "completed": "Completed",
-    "notStarted": "Not started"
+    "askAboutTopic": "Ask a question about this lesson..."
   },
   "conjugation": {
     "title": "Conjugation",
@@ -85,7 +81,10 @@
     "notAVerb": "Not a recognized verb",
     "viewTable": "Table",
     "practice": "Practice",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "savedVerbs": "Saved verbs",
+    "noSavedVerbs": "No saved verbs yet. Generate one above and save it to find it here.",
+    "deleteVerbConfirm": "Delete this verb?"
   },
   "dictionary": {
     "title": "Dictionary",

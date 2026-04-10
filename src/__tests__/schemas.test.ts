@@ -8,7 +8,6 @@ import {
   ExerciseSchema,
   VerbSchema,
   AiSettingsSchema,
-  GrammarSrsStateSchema,
   ConversationScenarioSchema,
   ConversationSessionSchema,
 } from "../types";
@@ -326,16 +325,12 @@ describe("GrammarTopicSchema", () => {
       { source: "Der Hund schlaeft.", target: "Le chien dort.", highlight: "Der" },
     ],
     exercises: null,
-    completed: false,
-    score_correct: 0,
-    score_total: 0,
   };
 
   it("accepts a valid grammar topic", () => {
     const result = GrammarTopicSchema.parse(validTopic);
     expect(result.id).toBe("nominativ");
     expect(result.title).toBe("Le nominatif");
-    expect(result.completed).toBe(false);
     expect(result.key_points).toEqual(["Subject case", "Used with articles der/die/das"]);
   });
 
@@ -351,18 +346,6 @@ describe("GrammarTopicSchema", () => {
     expect(result.key_points).toBeNull();
     expect(result.examples).toBeNull();
     expect(result.exercises).toBeNull();
-  });
-
-  it("accepts completed topic with scores", () => {
-    const result = GrammarTopicSchema.parse({
-      ...validTopic,
-      completed: true,
-      score_correct: 8,
-      score_total: 10,
-    });
-    expect(result.completed).toBe(true);
-    expect(result.score_correct).toBe(8);
-    expect(result.score_total).toBe(10);
   });
 });
 
@@ -533,39 +516,6 @@ describe("AiSettingsSchema", () => {
         model: "",
       }),
     ).toThrow();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// GrammarSrsStateSchema
-// ─────────────────────────────────────────────────────────────────────
-describe("GrammarSrsStateSchema", () => {
-  it("parses a valid SRS state", () => {
-    const result = GrammarSrsStateSchema.parse({
-      topic_id: "nominativ",
-      language_pair_id: 1,
-      repetitions: 3,
-      ease_factor: 2.5,
-      interval_days: 7,
-      next_review: "2025-01-22",
-      last_score: 3,
-    });
-    expect(result.topic_id).toBe("nominativ");
-    expect(result.repetitions).toBe(3);
-    expect(result.ease_factor).toBeCloseTo(2.5);
-  });
-
-  it("accepts null last_score", () => {
-    const result = GrammarSrsStateSchema.parse({
-      topic_id: "akkusativ",
-      language_pair_id: 1,
-      repetitions: 0,
-      ease_factor: 2.5,
-      interval_days: 0,
-      next_review: "2025-01-15",
-      last_score: null,
-    });
-    expect(result.last_score).toBeNull();
   });
 });
 

@@ -44,12 +44,12 @@ src-tauri/
   src/commands/
     ai.rs            Multi-provider router (cloud APIs + local CLIs/servers)
     chat.rs          Chat history persistence
-    conjugation.rs   save_verb (only)
+    conjugation.rs   save_verb / get_verbs / delete_verb
     conversation.rs  Role-play scenarios + sessions + title updates
     dictionary.rs    FreeDict accent-insensitive search
     download.rs      FreeDict catalog + pack download/extract
     favorites.rs     Favorites + custom lists (Rust side only — no UI today)
-    grammar.rs       Grammar lesson persistence + SRS scheduling for review
+    grammar.rs       Grammar lesson CRUD only (no completion / SRS tracking)
     memory.rs        memory/*.md sync
     settings.rs      User settings + language pairs
     mod.rs           Registers all the above
@@ -115,7 +115,7 @@ The router handles non-streaming `ask_ai` and multi-turn `ask_ai_conversation` c
 
 ## Database
 
-`db.rs::init_database(base_dir)` opens `{base_dir}/omnilingo.db`, enables WAL mode and `foreign_keys`, registers a custom `unaccent()` SQL function for accent-insensitive dictionary search, then runs the 8 ordered migrations in `migrations/`. Schema versioning lives in a `schema_version` table; migrations are applied incrementally and idempotently. Migration `008_drop_srs.sql` dropped the `srs_cards` table (the old vocabulary flashcard SRS); grammar review scheduling lives in a separate `grammar_srs` table that is still in use.
+`db.rs::init_database(base_dir)` opens `{base_dir}/omnilingo.db`, enables WAL mode and `foreign_keys`, registers a custom `unaccent()` SQL function for accent-insensitive dictionary search, then runs the 8 ordered migrations in `migrations/`. Schema versioning lives in a `schema_version` table; migrations are applied incrementally and idempotently. Migration `008_drop_srs.sql` dropped the `srs_cards` table (the old vocabulary flashcard SRS). The `grammar_progress` and `grammar_srs` tables still exist in the schema but are no longer read or written — completion tracking and SRS scheduling were removed from the Grammar feature.
 
 ## CI/CD
 

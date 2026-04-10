@@ -45,9 +45,6 @@ export const GrammarTopicSchema = z.object({
   key_points: z.array(z.string()).nullable(),
   examples: z.array(z.object({ source: z.string(), target: z.string(), highlight: z.string().optional() })).nullable(),
   exercises: z.array(z.any()).nullable(),
-  completed: z.boolean(),
-  score_correct: z.number(),
-  score_total: z.number(),
 });
 
 export const ExerciseSchema = z.object({
@@ -96,16 +93,6 @@ export const DictionarySourceSchema = z.object({
   size_mb: z.number().nullable(),
 });
 
-export const GrammarSrsStateSchema = z.object({
-  topic_id: z.string(),
-  language_pair_id: z.number(),
-  repetitions: z.number(),
-  ease_factor: z.number(),
-  interval_days: z.number(),
-  next_review: z.string(),
-  last_score: z.number().nullable(),
-});
-
 export const ConversationScenarioSchema = z.object({
   id: z.number(),
   language_pair_id: z.number(),
@@ -137,7 +124,6 @@ export type Exercise = z.infer<typeof ExerciseSchema>;
 export type Verb = z.infer<typeof VerbSchema>;
 export type AiSettings = z.infer<typeof AiSettingsSchema>;
 export type DictionarySource = z.infer<typeof DictionarySourceSchema>;
-export type GrammarSrsState = z.infer<typeof GrammarSrsStateSchema>;
 export type ConversationScenario = z.infer<typeof ConversationScenarioSchema>;
 export type ConversationSession = z.infer<typeof ConversationSessionSchema>;
 export type ViewName = "dictionary" | "grammar" | "conjugation" | "conversation" | "rephrase" | "corrector" | "synonyms" | "text-analysis" | "settings";

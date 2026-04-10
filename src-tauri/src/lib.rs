@@ -96,13 +96,12 @@ pub fn run() {
             commands::dictionary::get_all_dictionary_words,
             // Grammar
             commands::grammar::get_grammar_topics,
-            commands::grammar::mark_grammar_completed,
-            commands::grammar::get_due_grammar_topics,
-            commands::grammar::review_grammar_topic,
             commands::grammar::save_grammar_topic,
             commands::grammar::delete_grammar_topic,
             // Conjugation
             commands::conjugation::save_verb,
+            commands::conjugation::get_verbs,
+            commands::conjugation::delete_verb,
             // Dictionary download
             commands::download::get_available_dictionaries,
             commands::download::download_dictionary,

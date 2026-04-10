@@ -101,27 +101,6 @@ describe("bridge", () => {
       expect(mockInvoke).toHaveBeenCalledWith("get_grammar_topics", { pairId: 1 });
     });
 
-    it("markGrammarCompleted passes all params", async () => {
-      mockInvoke.mockResolvedValueOnce(undefined);
-      const bridge = await getBridge();
-      await bridge.markGrammarCompleted("topic-1", 1, 8, 10);
-      expect(mockInvoke).toHaveBeenCalledWith("mark_grammar_completed", { topicId: "topic-1", pairId: 1, correct: 8, total: 10 });
-    });
-
-    it("getDueGrammarTopics passes pairId", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
-      const bridge = await getBridge();
-      await bridge.getDueGrammarTopics(1);
-      expect(mockInvoke).toHaveBeenCalledWith("get_due_grammar_topics", { pairId: 1 });
-    });
-
-    it("reviewGrammarTopic passes topicId, pairId, quality", async () => {
-      mockInvoke.mockResolvedValueOnce({ topic_id: "t1", language_pair_id: 1, repetitions: 2, ease_factor: 2.5, interval_days: 1, next_review: "2025-01-01", last_score: 3 });
-      const bridge = await getBridge();
-      await bridge.reviewGrammarTopic("t1", 1, 3);
-      expect(mockInvoke).toHaveBeenCalledWith("review_grammar_topic", { topicId: "t1", pairId: 1, quality: 3 });
-    });
-
     it("saveGrammarTopic passes input object", async () => {
       mockInvoke.mockResolvedValueOnce("topic-id");
       const bridge = await getBridge();

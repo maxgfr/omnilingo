@@ -2,10 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   SettingsSchema, LanguagePairSchema, WordSchema,
   AiSettingsSchema, DictionarySourceSchema,
-  GrammarSrsStateSchema,
   ConversationScenarioSchema, ConversationSessionSchema,
 } from "../types";
-import type { GrammarTopic } from "../types";
+import type { GrammarTopic, Verb } from "../types";
 import { z } from "zod";
 
 // Centralized error wrapper for IPC calls
@@ -44,12 +43,6 @@ export const getAllDictionaryWords = (pairId: number, reversePairId?: number) =>
 
 // Grammar
 export const getGrammarTopics = (pairId: number) => safeInvoke<GrammarTopic[]>("get_grammar_topics", { pairId });
-export const markGrammarCompleted = (topicId: string, pairId: number, correct: number, total: number) =>
-  safeInvoke<void>("mark_grammar_completed", { topicId, pairId, correct, total });
-export const getDueGrammarTopics = (pairId: number) =>
-  invokeAndParseArray("get_due_grammar_topics", GrammarSrsStateSchema, { pairId });
-export const reviewGrammarTopic = (topicId: string, pairId: number, quality: number) =>
-  invokeAndParse("review_grammar_topic", GrammarSrsStateSchema, { topicId, pairId, quality });
 export const saveGrammarTopic = (input: {
   pairId: number; level: string; title: string; titleSource?: string;
   explanation: string; keyPoints?: unknown; examples?: unknown; exercises?: unknown;
@@ -89,6 +82,10 @@ export const saveVerb = (
       examples,
     },
   });
+
+export const getVerbs = (pairId: number) => safeInvoke<Verb[]>("get_verbs", { pairId });
+export const deleteVerb = (verbId: number, pairId: number) =>
+  safeInvoke<void>("delete_verb", { verbId, pairId });
 
 
 // Memory
