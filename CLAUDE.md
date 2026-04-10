@@ -1,72 +1,126 @@
-# Omnilingo v2
+# Omnilingo
 
 ## Project
 
-Desktop **Tauri v2** app (Rust + React + TypeScript) for language learning.
-UI in **French**. Multi-language: DE-FR, EN-FR, etc.
+Desktop **Tauri v2** app (Rust + React + TypeScript) for AI-first language learning. The user downloads a [FreeDict](https://freedict.org/) pack for their language pair, and the AI generates grammar lessons, verb conjugations and vocabulary explanations on demand. UI is in **English** with i18n via `react-i18next`. Multi-pair architecture (DE-FR, EN-FR, FR-DE, …).
 
 ## Architecture
 
 ```
-src/                     React + TypeScript frontend
-  ├── App.tsx            Routes (HashRouter)
-  ├── main.tsx           Entry point
-  ├── index.css          Tailwind CSS v4 + custom
-  ├── types/index.ts     TypeScript interfaces
-  ├── lib/bridge.ts      Tauri IPC (invoke)
-  ├── lib/speech.ts      TTS Web Speech API
-  ├── store/AppContext.tsx  Global React Context
-  ├── components/        Layout, Flashcard, ProgressBar, Exercise
-  └── views/             Dashboard, Learn, Review, Grammar,
-                         Conjugation, Dictionary, Chat, Settings
+src/
+  App.tsx                    Routes (HashRouter)
+  main.tsx
+  index.css                  Tailwind v4
+  types/index.ts             Zod schemas + TypeScript interfaces
+  i18n/                      i18next + locales/en.json
+  lib/
+    bridge.ts                Typed invoke() wrappers
+    wordUtils.ts             FreeDict parsing helpers
+    ai-cache.ts              AI response caching + recent searches
+    markdown.ts              Markdown rendering + clickable words
+    exampleData.ts           English-base example previews
+    exampleTranslations.ts   AI translation cache (per pair)
+    useExampleTranslations.ts
+    useFeaturePair.ts        Active pair selector hook
+    useStreamingResponse.ts  Streaming AI text hook
+  store/
+    useAppStore.ts           Zustand — SOURCE OF TRUTH
+    AppContext.tsx           Thin Context facade over useAppStore;
+                             also calls reloadSettings() on mount
+                             and applies the dark-mode class on <html>
+  components/
+    Layout.tsx, CommandPalette.tsx, DictionaryPairSelector.tsx,
+    Exercise.tsx, LanguagePackDownloader.tsx
+    tools/   CorrectorTool, RephraseTool, SynonymsTool, SentenceMiningTool
+    ui/      PageHeader, SearchInput, Spinner, ExamplePreview, RecentSearches
+  views/
+    Dictionary, Grammar, Conjugation, Conversation,
+    Rephrase, Corrector, Synonyms, TextAnalysis, Settings
 
-src-tauri/               Rust backend
-  ├── src/lib.rs         Tauri setup + commands
-  ├── src/db.rs          SQLite + migrations
-  ├── src/commands/      ai, srs, dictionary, grammar,
-  │                      conjugation, import, memory,
-  │                      settings, speech, download
-  └── migrations/        SQL schemas
+src-tauri/
+  src/lib.rs                 Tauri setup, command registration
+  src/db.rs                  init_database(base_dir): WAL + foreign_keys
+                             + unaccent() + run_migrations()
+  src/commands/
+    ai.rs            Multi-provider router (cloud APIs + local CLIs/servers)
+    chat.rs          Chat history persistence
+    conjugation.rs   save_verb (only)
+    conversation.rs  Role-play scenarios + sessions + title updates
+    dictionary.rs    FreeDict accent-insensitive search
+    download.rs      FreeDict catalog + pack download/extract
+    favorites.rs     Favorites + custom lists (Rust side only — no UI today)
+    grammar.rs       Grammar lesson persistence + SRS scheduling for review
+    memory.rs        memory/*.md sync
+    settings.rs      User settings + language pairs
+    mod.rs           Registers all the above
+  migrations/
+    001_initial_schema.sql
+    002_ai_providers.sql
+    003_favorites_and_stats.sql
+    004_chat_history.sql
+    005_simplification.sql
+    006_custom_ai_url.sql
+    007_favorite_lists.sql
+    008_drop_srs.sql
 
-data/                    Static JSON (initial import)
-memory/                  Markdown progression files
+data/                        dictionary-sources.json (FreeDict catalog)
+memory/                      Markdown progression files
 ```
+
+## State management
+
+`useAppStore.ts` (Zustand) is the single source of truth for everything stateful: `settings`, `languagePairs`, `activePairId`, AI provider config (`aiProvider`, `aiApiKey`, `aiModel`, `aiCustomUrl`), per-view caches (`dictionaryCache`, `grammarCache`, `conjugationCache`, `conversationCache`) and per-tool input/result caches.
+
+`AppContext.tsx` is a thin React Context facade that re-exposes a subset (`settings`, `languagePairs`, `loading`, `reloadSettings`, `updateSetting`) for components that prefer the context API. It also calls `reloadSettings()` once on mount and applies the dark-mode class to `<html>`. It is **not** a parallel store — there is only one source of truth.
 
 ## Stack
 
-- **Frontend**: React 19, TypeScript 5.8, Vite 7, Tailwind CSS v4, lucide-react, react-router-dom
-- **Backend**: Rust, Tauri v2, SQLite (rusqlite), reqwest, chrono
+- **Frontend**: React 19, TypeScript 5.8, Vite 7, Tailwind CSS v4, Zustand 5, react-router-dom 7, react-i18next, lucide-react, fuse.js, zod, vitest (jsdom)
+- **Backend**: Rust 2021 (MSRV 1.77.2), Tauri v2, rusqlite 0.31 (`bundled` + `functions`), reqwest 0.12 (`rustls-tls`), tokio, chrono, xz2 / tar / flate2 / bzip2 (FreeDict pack extraction), tauri-plugin-log, tauri-plugin-updater, tauri-plugin-process. Optional `mcp` feature gates `tauri-plugin-mcp-bridge` for E2E testing.
 - **Package manager**: bun
-- **TTS**: Web Speech API (browser)
-- **STT**: whisper-rs (optional, feature flag `stt`)
+- **TTS**: browser Web Speech API (used in Dictionary, no backend dependency)
 
 ## Commands
 
 ```bash
-bun install                        # Install frontend deps
-bun run dev                        # Vite dev server only
-bun run build                      # Build frontend (tsc + vite)
-cargo tauri dev                    # Full app in dev
-cargo tauri build                  # Release build
+bun install                                                       # Install frontend deps
+bun run dev                                                       # Vite dev server only
+bun run build                                                     # tsc + vite build
+bun vitest run                                                    # Frontend unit tests
+./node_modules/.bin/tsc --noEmit                                  # Standalone typecheck
+cargo tauri dev                                                   # Full app in dev
+cargo tauri build                                                 # Release build
 cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings  # Rust lint
+cargo test --manifest-path src-tauri/Cargo.toml                   # Rust tests
 ```
 
 ## IPC
 
-The bridge (`src/lib/bridge.ts`) exposes typed functions that call Rust commands via `invoke()` from `@tauri-apps/api/core`. All Rust commands are in `src-tauri/src/commands/`.
+`src/lib/bridge.ts` is the single typed façade over `@tauri-apps/api/core::invoke`. Every Rust command in `src-tauri/src/commands/*.rs` has a matching wrapper there; views and hooks **never** call `invoke` directly. When adding a command:
 
-## SRS
-
-SM-2 algorithm in Rust (`commands/srs.rs`). 4 buttons: Forgot (0), Hard (2), Good (3), Easy (5). Data in SQLite, auto-sync to `memory/vocabulary.md`.
+1. Add the function to the relevant `commands/*.rs`
+2. Register the module in `commands/mod.rs` if it's new
+3. Register the command in `lib.rs` under `tauri::generate_handler![…]`
+4. Add the typed wrapper in `lib/bridge.ts`
 
 ## AI Providers
 
-Anthropic, OpenAI, Gemini, Mistral, GLM, Claude CLI (local subprocess, no API key needed).
+Routed in `commands/ai.rs`:
+
+- **Cloud APIs**: `anthropic`, `openai`, `gemini`, `mistral`, `glm`, `custom` (any OpenAI-compatible endpoint URL stored in DB)
+- **Local CLIs**: `claude-code`, `codex` (spawned subprocesses, no API key)
+- **Local servers**: `ollama` (`http://localhost:11434`), `lmstudio` (`http://localhost:1234`)
+
+The router handles non-streaming `ask_ai` and multi-turn `ask_ai_conversation` calls. 429 responses get exponential-backoff retries.
+
+## Database
+
+`db.rs::init_database(base_dir)` opens `{base_dir}/omnilingo.db`, enables WAL mode and `foreign_keys`, registers a custom `unaccent()` SQL function for accent-insensitive dictionary search, then runs the 8 ordered migrations in `migrations/`. Schema versioning lives in a `schema_version` table; migrations are applied incrementally and idempotently. Migration `008_drop_srs.sql` dropped the `srs_cards` table (the old vocabulary flashcard SRS); grammar review scheduling lives in a separate `grammar_srs` table that is still in use.
 
 ## CI/CD
 
-- `build.yml`: Typecheck (tsc) + Vite build on ubuntu, then Clippy on macOS + Windows — on push/PR to main
-- `release.yml`: Typecheck gate, then build macOS (arm64 + x64) + Windows (x64) with tauri-action, GitHub Release + auto-update JSON — on tag `v*`
+- **`build.yml`** (push / PR on `main`): commitlint (PRs only), frontend (typecheck + vitest + Vite build) on Ubuntu, then Clippy + `cargo test` on macOS and Windows in parallel, plus `cargo audit` for dependency vulnerabilities.
+- **`release.yml`** (tag `v*`): builds macOS (arm64 + x64) and Windows (x64) via tauri-action, creates a GitHub Release with bundled artifacts and the auto-update `latest.json`.
 
 ### GitHub Secrets (optional)
 
@@ -74,7 +128,7 @@ Anthropic, OpenAI, Gemini, Mistral, GLM, Claude CLI (local subprocess, no API ke
 |--------|-------|
 | `TAURI_SIGNING_PRIVATE_KEY` | Sign updater artifacts |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Key password |
-| `APPLE_CERTIFICATE` | Base64 .p12 certificate (macOS signing) |
+| `APPLE_CERTIFICATE` | Base64 `.p12` certificate (macOS signing) |
 | `APPLE_CERTIFICATE_PASSWORD` | Certificate password |
 | `APPLE_SIGNING_IDENTITY` | Signing identity |
 | `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` | macOS notarization |
