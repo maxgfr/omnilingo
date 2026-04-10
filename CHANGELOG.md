@@ -1,3 +1,10 @@
+## [2.14.2](https://github.com/maxgfr/omnilingo/compare/v2.14.1...v2.14.2) (2026-04-10)
+
+
+### Bug Fixes
+
+* Remove TODO.md ([c5d2f49](https://github.com/maxgfr/omnilingo/commit/c5d2f49b018f36f8b85b6150616a388cab2f1efd))
+
 ## [2.14.1](https://github.com/maxgfr/omnilingo/compare/v2.14.0...v2.14.1) (2026-04-10)
 
 
