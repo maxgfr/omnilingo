@@ -1,3 +1,10 @@
+## [2.14.1](https://github.com/maxgfr/omnilingo/compare/v2.14.0...v2.14.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* Remove search.py script from UI/UX Pro Max project, eliminating the BM25 search engine functionality for style guides. ([2dbaa94](https://github.com/maxgfr/omnilingo/commit/2dbaa94c7a254c608e7ba83caabd75fdd8ac5d68))
+
 # [2.14.0](https://github.com/maxgfr/omnilingo/compare/v2.13.2...v2.14.0) (2026-04-10)
 
 
