@@ -55,7 +55,7 @@ bun run dev
 bun run build
 
 # TypeScript typecheck
-./node_modules/.bin/tsc --noEmit
+bun run typecheck
 
 # Frontend tests
 bun vitest run

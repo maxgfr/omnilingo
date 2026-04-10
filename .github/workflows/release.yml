@@ -43,7 +43,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: TypeScript typecheck
-        run: ./node_modules/.bin/tsc --noEmit
+        run: bun run typecheck
 
       - name: Semantic Release
         id: semantic

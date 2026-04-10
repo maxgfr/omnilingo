@@ -21,6 +21,40 @@ export function normalizeForSearch(s: string): string {
   return result;
 }
 
+/**
+ * Articles and determiners that should be skipped when a user types e.g.
+ * "das haus" — they want the noun, not literal substring matches against
+ * "das haus". Covers German, French, English, Spanish and Italian basics.
+ * All entries are pre-normalized (lowercase, accent-stripped, ß→ss).
+ */
+const SEARCH_STOP_WORDS = new Set<string>([
+  // German
+  "der", "die", "das", "den", "dem", "des",
+  "ein", "eine", "einen", "einem", "einer", "eines",
+  // French
+  "le", "la", "les", "l", "un", "une", "des", "du", "de", "d",
+  // English
+  "the", "a", "an",
+  // Spanish
+  "el", "los", "las", "uno", "una", "unos", "unas",
+  // Italian
+  "il", "lo", "gli", "i", "le", "uno", "una",
+]);
+
+/**
+ * Split a query into meaningful search tokens by stripping articles/determiners.
+ * Returns the normalized non-stopword tokens. If every token is a stopword
+ * (e.g. user typed just "the"), returns the full normalized query so we still
+ * search for *something*.
+ */
+export function tokenizeSearchQuery(query: string): string[] {
+  const normalized = normalizeForSearch(query.trim());
+  if (!normalized) return [];
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const meaningful = tokens.filter((t) => !SEARCH_STOP_WORDS.has(t));
+  return meaningful.length > 0 ? meaningful : [normalized];
+}
+
 export const levelColors: Record<string, string> = {
   A1: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   A2: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",

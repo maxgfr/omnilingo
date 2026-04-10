@@ -23,7 +23,7 @@ import { useExampleTranslations } from "../lib/useExampleTranslations";
 
 import { formatMessage } from "../lib/markdown";
 import { cachedAskAi, getCachedResult, addToHistory } from "../lib/ai-cache";
-import { levelColors, genderBadges, parseTargetWord, normalizeForSearch } from "../lib/wordUtils";
+import { levelColors, genderBadges, parseTargetWord, normalizeForSearch, tokenizeSearchQuery } from "../lib/wordUtils";
 import * as bridge from "../lib/bridge";
 import type { Word } from "../types";
 
@@ -98,22 +98,36 @@ export default function Dictionary() {
     const query = deferredQuery.trim();
     if (!query) return allWords;
 
-    const normQuery = normalizeForSearch(query);
+    // Tokens with leading articles ("das", "le", "the"…) stripped, so a
+    // query like "das haus" still finds "haus". Falls back to the full
+    // normalized query if every token is a stopword.
+    const tokens = tokenizeSearchQuery(query);
+    if (tokens.length === 0) return allWords;
 
-    // Score: exact > prefix > contains
+    // The "primary" token is the longest meaningful one — used for
+    // exact/prefix scoring so a multi-word query like "das haus" still
+    // ranks "haus" as an exact match.
+    const primary = tokens.reduce((a, b) => (b.length > a.length ? b : a));
+
+    // Score: exact > prefix > contains. A word matches only if EVERY
+    // meaningful token appears in either source or target — this keeps
+    // multi-word queries precise instead of unioning unrelated results.
     const matches: Array<{ word: Word; score: number }> = [];
     for (const { word, normSource, normTarget } of indexedWords) {
-      let score = -1;
-      if (normSource === normQuery || normTarget === normQuery) {
+      const allTokensMatch = tokens.every(
+        (t) => normSource.includes(t) || normTarget.includes(t),
+      );
+      if (!allTokensMatch) continue;
+
+      let score: number;
+      if (normSource === primary || normTarget === primary) {
         score = 0;
-      } else if (normSource.startsWith(normQuery) || normTarget.startsWith(normQuery)) {
+      } else if (normSource.startsWith(primary) || normTarget.startsWith(primary)) {
         score = 1;
-      } else if (normSource.includes(normQuery) || normTarget.includes(normQuery)) {
+      } else {
         score = 2;
       }
-      if (score >= 0) {
-        matches.push({ word, score });
-      }
+      matches.push({ word, score });
     }
 
     matches.sort((a, b) => {

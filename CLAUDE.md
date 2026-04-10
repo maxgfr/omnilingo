@@ -87,7 +87,7 @@ bun install                                                       # Install fron
 bun run dev                                                       # Vite dev server only
 bun run build                                                     # tsc + vite build
 bun vitest run                                                    # Frontend unit tests
-./node_modules/.bin/tsc --noEmit                                  # Standalone typecheck
+bun run typecheck                                                 # Standalone typecheck
 cargo tauri dev                                                   # Full app in dev
 cargo tauri build                                                 # Release build
 cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings  # Rust lint

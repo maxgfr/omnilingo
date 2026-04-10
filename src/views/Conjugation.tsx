@@ -243,7 +243,16 @@ Rules:
       setVerbSaved(true);
     } catch (err) {
       console.error("Failed to save verb:", err);
-      setSaveError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      // Safety net: if the user is running an older binary that still has
+      // the plain INSERT (pre-UPSERT migration), a UNIQUE constraint just
+      // means "already saved earlier" — surface that as success rather
+      // than as a confusing red error.
+      if (message.includes("UNIQUE constraint")) {
+        setVerbSaved(true);
+      } else {
+        setSaveError(message);
+      }
     } finally {
       setSavingVerb(false);
     }
@@ -396,10 +405,10 @@ Rules:
             </button>
 
             {/* Save button — for AI-generated verbs that aren't yet
-                persisted to the DB. We treat any non-positive id as
-                "not yet saved" so we don't depend on the AI returning
-                exactly -1 (it sometimes returns 0 or omits the field). */}
-            {!verbSaved && (currentVerb.id == null || currentVerb.id <= 0) && (
+                persisted to the DB. We track this purely via `verbSaved`
+                because the AI sometimes ignores our prompt and returns a
+                positive id, which used to hide the button entirely. */}
+            {!verbSaved && (
               <button
                 onClick={handleSaveVerb}
                 disabled={savingVerb}
