@@ -111,3 +111,73 @@ jobs:
       - name: Run cargo audit
         working-directory: src-tauri
         run: cargo audit
+
+  # ─────────────────────────────────────────────
+  # End-to-end tests (Linux + xvfb + MCP bridge)
+  # Builds the app with --features mcp, runs it under a virtual
+  # display, and drives it through the MCP WebSocket bridge from
+  # bun e2e/run.ts.
+  # ─────────────────────────────────────────────
+  e2e:
+    name: E2E (Linux)
+    needs: frontend
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: e2e-mcp
+
+      - name: Install Linux + webkit dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xvfb
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend (dist/)
+        run: bun run build
+
+      - name: Build Tauri app with mcp feature
+        run: cargo build --manifest-path src-tauri/Cargo.toml --features mcp --release
+
+      - name: Run E2E tests under xvfb
+        env:
+          OMNILINGO_E2E_WS: ws://127.0.0.1:9223
+          OMNILINGO_E2E_READY_TIMEOUT: "120000"
+        run: |
+          set -euo pipefail
+
+          # Start the app under a virtual display
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x800x24" \
+            ./src-tauri/target/release/omnilingo > /tmp/omnilingo.log 2>&1 &
+          APP_PID=$!
+          echo "Started Omnilingo (pid=$APP_PID)"
+
+          # Make sure the app is killed even on failure
+          cleanup() {
+            echo "--- Omnilingo log ---"
+            cat /tmp/omnilingo.log || true
+            echo "---------------------"
+            kill -TERM "$APP_PID" 2>/dev/null || true
+            wait "$APP_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          # Run the test runner — it has its own retry loop waiting for the WebSocket
+          bun e2e/run.ts

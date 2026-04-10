@@ -63,6 +63,12 @@ bun vitest run
 # Rust lint and tests
 cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml
+
+# End-to-end tests (drives the live app via the MCP bridge)
+# 1. start the app with the MCP bridge enabled:
+cargo tauri dev --features mcp
+# 2. in another terminal:
+bun e2e/run.ts
 ```
 
 ## Build
@@ -110,7 +116,7 @@ omnilingo/
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `build.yml` | Push / PR on `main` | Commitlint (PRs), TypeScript typecheck, vitest, Vite build, Clippy + cargo test on macOS and Windows, cargo audit |
+| `build.yml` | Push / PR on `main` | Commitlint (PRs), TypeScript typecheck, vitest, Vite build, Clippy + cargo test on macOS and Windows, cargo audit, end-to-end tests on Linux (xvfb + MCP bridge) |
 | `release.yml` | Tag `v*` | Builds macOS (arm64 + x64) and Windows (x64) via tauri-action, creates a GitHub Release with the bundled artifacts and the auto-update `latest.json` |
 
 ## Releasing
