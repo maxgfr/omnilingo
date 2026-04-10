@@ -167,6 +167,7 @@
     "deleteAllWarning": "This will erase the entire database and all downloaded files. You will need to re-download dictionaries. This cannot be undone.",
     "aiConfigSaved": "AI configuration saved",
     "update": "Update",
+    "currentVersion": "Current version",
     "updateAvailable": "Update available",
     "updateDescription": "Version {{version}} is available",
     "updateNow": "Update now",

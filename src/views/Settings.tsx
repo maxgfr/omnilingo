@@ -109,6 +109,7 @@ export default function Settings() {
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'upToDate' | 'error'>('idle');
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
 
   const [aiSettings, setAiSettings] = useState<AiSettings | null>(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -169,6 +170,18 @@ export default function Settings() {
       } catch {
         // Silently fall back to idle (e.g. in dev mode where updater is unavailable)
         setUpdateStatus('idle');
+      }
+    })();
+  }, []);
+
+  // ---- Read the bundled app version once on mount ----
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getVersion } = await import("@tauri-apps/api/app");
+        setAppVersion(await getVersion());
+      } catch {
+        // Non-Tauri context (e.g. vitest) — leave version null.
       }
     })();
   }, []);
@@ -298,6 +311,12 @@ export default function Settings() {
 
       {/* ================= 0. MISE A JOUR ================= */}
       <Section icon={RefreshCw} title={t("settings.update")} iconColor="text-cyan-500 dark:text-cyan-400">
+        <div className="mb-3 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <span>{t("settings.currentVersion")}</span>
+          <span className="font-mono font-medium text-gray-700 dark:text-gray-300">
+            {appVersion ? `v${appVersion}` : "—"}
+          </span>
+        </div>
         <div className="flex items-center justify-between">
           <div>
             {updateStatus === 'idle' && (
