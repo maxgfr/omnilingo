@@ -1,3 +1,10 @@
+# [2.15.0](https://github.com/maxgfr/omnilingo/compare/v2.14.4...v2.15.0) (2026-04-10)
+
+
+### Features
+
+* add dark mode styling and fix database persistence location ([366dc0d](https://github.com/maxgfr/omnilingo/commit/366dc0d266245fa06ce3bd2cc88c7733ddfaf1e2))
+
 ## [2.14.4](https://github.com/maxgfr/omnilingo/compare/v2.14.3...v2.14.4) (2026-04-10)
 
 
