@@ -1,3 +1,10 @@
+## [2.14.3](https://github.com/maxgfr/omnilingo/compare/v2.14.2...v2.14.3) (2026-04-10)
+
+
+### Bug Fixes
+
+* version ([602e243](https://github.com/maxgfr/omnilingo/commit/602e243c24d6ad8110341d3e10545d86e9de6a00))
+
 ## [2.14.2](https://github.com/maxgfr/omnilingo/compare/v2.14.1...v2.14.2) (2026-04-10)
 
 
