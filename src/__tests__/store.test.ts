@@ -29,7 +29,7 @@ const mockLocalStorage = {
 };
 Object.defineProperty(globalThis, "localStorage", { value: mockLocalStorage, writable: true });
 
-import { useAppStore, selectActivePair, selectReversePairId, selectIsAiConfigured } from "../store/useAppStore";
+import { useAppStore, selectActivePair, selectIsAiConfigured } from "../store/useAppStore";
 import type { AppState } from "../store/useAppStore";
 
 const BASE_PAIRS = [
@@ -103,7 +103,7 @@ describe("useAppStore — core actions", () => {
     act(() => {
       useAppStore.setState({
         activePairId: 1,
-        dictionaryCache: { searchQuery: "test", aiContent: null },
+        dictionaryCache: { searchQuery: "test", selectedId: null, aiQuery: null, aiContent: null },
         toolInputCache: { rephrase: "hello" },
         toolResultCache: { rephrase: "result" },
       });
@@ -167,13 +167,13 @@ describe("useAppStore — AI actions", () => {
 // ─────────────────────────────────────────────────────────────────────
 describe("useAppStore — view caches", () => {
   it("setDictionaryCache stores cache", () => {
-    const cache = { searchQuery: "Haus", aiContent: "info" };
+    const cache = { searchQuery: "Haus", selectedId: null, aiQuery: "Haus", aiContent: "info" };
     act(() => { useAppStore.getState().setDictionaryCache(cache); });
     expect(useAppStore.getState().dictionaryCache).toEqual(cache);
   });
 
   it("setDictionaryCache null clears cache", () => {
-    act(() => { useAppStore.getState().setDictionaryCache({ searchQuery: "", aiContent: null }); });
+    act(() => { useAppStore.getState().setDictionaryCache({ searchQuery: "", selectedId: null, aiQuery: null, aiContent: null }); });
     act(() => { useAppStore.getState().setDictionaryCache(null); });
     expect(useAppStore.getState().dictionaryCache).toBeNull();
   });
@@ -197,7 +197,7 @@ describe("useAppStore — view caches", () => {
         settings: { active_language_pair_id: 1, dark_mode: "system", ai_provider: "claude-code", ai_model: "" },
         languagePairs: BASE_PAIRS,
         activePairId: 1,
-        dictionaryCache: { searchQuery: "x", aiContent: null },
+        dictionaryCache: { searchQuery: "x", selectedId: null, aiQuery: null, aiContent: null },
         toolInputCache: { a: "b" },
         toolResultCache: { c: "d" },
       });
@@ -260,23 +260,6 @@ describe("useAppStore — selectors", () => {
 
   it("selectActivePair returns null if no pairs", () => {
     const result = selectActivePair(state({ languagePairs: [], activePairId: null }));
-    expect(result).toBeNull();
-  });
-
-  it("selectReversePairId finds reverse pair", () => {
-    const result = selectReversePairId(state());
-    // de->fr (id 1) reverse is fr->de (id 2)
-    expect(result).toBe(2);
-  });
-
-  it("selectReversePairId returns null when no active pair", () => {
-    const result = selectReversePairId(state({ activePairId: null, languagePairs: [] }));
-    expect(result).toBeNull();
-  });
-
-  it("selectReversePairId returns null when no reverse exists", () => {
-    const result = selectReversePairId(state({ activePairId: 3 }));
-    // en->fr (id 3) has no fr->en reverse
     expect(result).toBeNull();
   });
 

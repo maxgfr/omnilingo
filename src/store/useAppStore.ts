@@ -6,6 +6,8 @@ import type { Settings, LanguagePair, AiSettings } from "../types";
 // ─── View cache types (session-scoped, NOT persisted) ────────────────
 interface DictionaryCache {
   searchQuery: string;
+  selectedId: number | null;
+  aiQuery: string | null;
   aiContent: string | null;
 }
 
@@ -220,16 +222,6 @@ export function selectActivePair(state: AppState): LanguagePair | null {
     if (found) return found;
   }
   return languagePairs[0] ?? null;
-}
-
-export function selectReversePairId(state: AppState): number | null {
-  const { activePairId, languagePairs } = state;
-  const active = languagePairs.find((p) => p.id === activePairId);
-  if (!active) return null;
-  const reverse = languagePairs.find(
-    (p) => p.source_lang === active.target_lang && p.target_lang === active.source_lang,
-  );
-  return reverse?.id ?? null;
 }
 
 export function selectIsAiConfigured(state: AppState): boolean {

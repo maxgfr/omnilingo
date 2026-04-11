@@ -92,6 +92,9 @@
     "lookup": "Look up",
     "lookupHint": "Type a word and press Enter — the AI explains it.",
     "noPairsYet": "Create a language pair in Settings to start.",
+    "savedEntries": "Saved entries",
+    "noSavedEntries": "No saved entries yet. Look up a word above and save it to find it here.",
+    "deleteEntryConfirm": "Delete this entry?",
     "translation": "Translation",
     "definition": "Definition",
     "examples": "Examples",
@@ -99,9 +102,11 @@
     "addPair": "Add a language pair",
     "sourceLanguage": "Source language",
     "targetLanguage": "Target language",
-    "createPair": "Create pair (both directions)",
+    "searchLanguage": "Search a language…",
+    "createPair": "Create pair",
     "creating": "Creating…",
-    "pairExists": "This language pair already exists."
+    "pairExists": "This language pair already exists.",
+    "noLanguageMatch": "No language matches"
   },
   "chat": {
     "title": "AI Chat",

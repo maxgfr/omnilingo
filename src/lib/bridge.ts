@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
   SettingsSchema, LanguagePairSchema,
-  AiSettingsSchema,
+  AiSettingsSchema, DictionaryEntrySchema,
   ConversationScenarioSchema, ConversationSessionSchema,
 } from "../types";
 import type { GrammarTopic, Verb } from "../types";
@@ -86,6 +86,14 @@ export const saveVerb = (
 export const getVerbs = (pairId: number) => safeInvoke<Verb[]>("get_verbs", { pairId });
 export const deleteVerb = (verbId: number, pairId: number) =>
   safeInvoke<void>("delete_verb", { verbId, pairId });
+
+// Dictionary (saved AI lookups)
+export const saveDictionaryEntry = (pairId: number, query: string, content: string) =>
+  safeInvoke<number>("save_dictionary_entry", { pairId, query, content });
+export const getDictionaryEntries = (pairId: number) =>
+  invokeAndParseArray("get_dictionary_entries", DictionaryEntrySchema, { pairId });
+export const deleteDictionaryEntry = (entryId: number, pairId: number) =>
+  safeInvoke<void>("delete_dictionary_entry", { entryId, pairId });
 
 
 // Memory

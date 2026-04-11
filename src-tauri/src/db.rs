@@ -119,6 +119,12 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Migration 009 failed: {}", e))?;
     }
 
+    if current_version < 10 {
+        let migration_sql = include_str!("../migrations/010_dictionary_entries.sql");
+        conn.execute_batch(migration_sql)
+            .map_err(|e| format!("Migration 010 failed: {}", e))?;
+    }
+
     Ok(())
 }
 

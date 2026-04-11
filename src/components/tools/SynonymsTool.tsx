@@ -168,7 +168,7 @@ ${enriched}`;
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        useAppStore.getState().setDictionaryCache({ searchQuery: syn.word, aiContent: null });
+                        useAppStore.getState().setDictionaryCache({ searchQuery: syn.word, selectedId: null, aiQuery: null, aiContent: null });
                         navigate("/dictionary");
                       }}
                       className="p-1 rounded text-gray-400 hover:text-amber-500 transition-colors"
@@ -201,7 +201,7 @@ ${enriched}`;
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        useAppStore.getState().setDictionaryCache({ searchQuery: ant.word, aiContent: null });
+                        useAppStore.getState().setDictionaryCache({ searchQuery: ant.word, selectedId: null, aiQuery: null, aiContent: null });
                         navigate("/dictionary");
                       }}
                       className="p-1 rounded text-gray-400 hover:text-amber-500 transition-colors"

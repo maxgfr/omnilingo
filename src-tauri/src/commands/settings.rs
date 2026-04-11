@@ -136,6 +136,7 @@ pub fn delete_language_pair(state: State<'_, DbState>, pair_id: i64) -> Result<(
     ).map_err(|e| e.to_string())?;
     // Delete all related data (manual cascade — all tables referencing language_pairs)
     for sql in &[
+        "DELETE FROM dictionary_entries WHERE language_pair_id = ?1",
         "DELETE FROM grammar_progress WHERE topic_id IN (SELECT id FROM grammar_topics WHERE language_pair_id = ?1)",
         "DELETE FROM grammar_srs WHERE language_pair_id = ?1",
         "DELETE FROM grammar_topics WHERE language_pair_id = ?1",

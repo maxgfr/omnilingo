@@ -2,7 +2,9 @@
 
 ## Project
 
-Desktop **Tauri v2** app (Rust + React + TypeScript) for AI-first language learning. The user downloads a [FreeDict](https://freedict.org/) pack for their language pair, and the AI generates grammar lessons, verb conjugations and vocabulary explanations on demand. UI is in **English** with i18n via `react-i18next`. Multi-pair architecture (DE-FR, EN-FR, FR-DE, …).
+Desktop **Tauri v2** app (Rust + React + TypeScript) for AI-first language learning. The user picks a source + target language from a curated list (~89 languages, no download), and the AI generates dictionary lookups, grammar lessons, verb conjugations and conversation practice on demand. UI is in **English** with i18n via `react-i18next`. Multi-pair architecture (DE-FR, EN-FR, FR-DE, …).
+
+The Dictionary view is **AI-only**: there are no pre-loaded word lists, no FreeDict packs, no client-side search. Every lookup is a `cachedAskAi("dictionary", query, pairId, prompt)` call that returns a structured bilingual markdown response.
 
 ## Architecture
 
@@ -15,7 +17,8 @@ src/
   i18n/                      i18next + locales/en.json
   lib/
     bridge.ts                Typed invoke() wrappers
-    wordUtils.ts             FreeDict parsing helpers
+    languages.ts             Curated list of ~89 languages (code/name/flag)
+    wordUtils.ts             levelColors badge map (used by SentenceMiningTool)
     ai-cache.ts              AI response caching + recent searches
     markdown.ts              Markdown rendering + clickable words
     exampleData.ts           English-base example previews
@@ -29,8 +32,9 @@ src/
                              also calls reloadSettings() on mount
                              and applies the dark-mode class on <html>
   components/
-    Layout.tsx, CommandPalette.tsx, DictionaryPairSelector.tsx,
-    Exercise.tsx, LanguagePackDownloader.tsx
+    Layout.tsx, CommandPalette.tsx, Exercise.tsx,
+    DictionaryPairSelector.tsx (two language dropdowns + Create button,
+    auto-creates both directions, no download)
     tools/   CorrectorTool, RephraseTool, SynonymsTool, SentenceMiningTool
     ui/      PageHeader, SearchInput, Spinner, ExamplePreview, RecentSearches
   views/
@@ -46,12 +50,9 @@ src-tauri/
     chat.rs          Chat history persistence
     conjugation.rs   save_verb / get_verbs / delete_verb
     conversation.rs  Role-play scenarios + sessions + title updates
-    dictionary.rs    FreeDict accent-insensitive search
-    download.rs      FreeDict catalog + pack download/extract
-    favorites.rs     Favorites + custom lists (Rust side only — no UI today)
     grammar.rs       Grammar lesson CRUD only (no completion / SRS tracking)
     memory.rs        memory/*.md sync
-    settings.rs      User settings + language pairs
+    settings.rs      get/update/create/delete language pairs + settings
     mod.rs           Registers all the above
   migrations/
     001_initial_schema.sql
@@ -62,8 +63,8 @@ src-tauri/
     006_custom_ai_url.sql
     007_favorite_lists.sql
     008_drop_srs.sql
+    009_remove_freedict.sql
 
-data/                        dictionary-sources.json (FreeDict catalog)
 memory/                      Markdown progression files
 ```
 
@@ -76,7 +77,7 @@ memory/                      Markdown progression files
 ## Stack
 
 - **Frontend**: React 19, TypeScript 5.8, Vite 7, Tailwind CSS v4, Zustand 5, react-router-dom 7, react-i18next, lucide-react, fuse.js, zod, vitest (jsdom)
-- **Backend**: Rust 2021 (MSRV 1.77.2), Tauri v2, rusqlite 0.31 (`bundled` + `functions`), reqwest 0.12 (`rustls-tls`), tokio, chrono, xz2 / tar / flate2 / bzip2 (FreeDict pack extraction), tauri-plugin-log, tauri-plugin-updater, tauri-plugin-process. Optional `mcp` feature gates `tauri-plugin-mcp-bridge` for E2E testing.
+- **Backend**: Rust 2021 (MSRV 1.77.2), Tauri v2, rusqlite 0.31 (`bundled` + `functions`), reqwest 0.12 (`rustls-tls`), tokio, chrono, tauri-plugin-log, tauri-plugin-updater, tauri-plugin-process. Optional `mcp` feature gates `tauri-plugin-mcp-bridge` for E2E testing.
 - **Package manager**: bun
 - **TTS**: browser Web Speech API (used in Dictionary, no backend dependency)
 
@@ -115,7 +116,13 @@ The router handles non-streaming `ask_ai` and multi-turn `ask_ai_conversation` c
 
 ## Database
 
-`db.rs::init_database(base_dir)` opens `{base_dir}/omnilingo.db`, enables WAL mode and `foreign_keys`, registers a custom `unaccent()` SQL function for accent-insensitive dictionary search, then runs the 8 ordered migrations in `migrations/`. Schema versioning lives in a `schema_version` table; migrations are applied incrementally and idempotently. Migration `008_drop_srs.sql` dropped the `srs_cards` table (the old vocabulary flashcard SRS). The `grammar_progress` and `grammar_srs` tables still exist in the schema but are no longer read or written — completion tracking and SRS scheduling were removed from the Grammar feature.
+`db.rs::init_database(base_dir)` opens `{base_dir}/omnilingo.db`, enables WAL mode and `foreign_keys`, registers a custom `unaccent()` SQL function (legacy — kept for any future text-normalization need), then runs the 9 ordered migrations in `migrations/`. Schema versioning lives in a `schema_version` table; migrations are applied incrementally and idempotently.
+
+Notable migrations:
+- `008_drop_srs.sql` dropped the `srs_cards` table (the old vocabulary flashcard SRS). The `grammar_progress` and `grammar_srs` tables still exist but are no longer read or written — completion tracking and SRS scheduling were removed from the Grammar feature.
+- `009_remove_freedict.sql` dropped `dictionary_packs`, `words`, `words_fts` (+ its 3 triggers), `favorites`, `favorite_lists`, `favorite_list_items`. The Dictionary feature is now AI-only and no local word storage is needed.
+
+The active live tables are: `language_pairs`, `settings`, `grammar_topics`, `verbs`, `sessions`, `errors`, `chat_messages`, `conversation_scenarios`, `conversation_sessions`, `daily_stats`, `schema_version` (+ the unused `grammar_progress` / `grammar_srs`).
 
 ## CI/CD
 

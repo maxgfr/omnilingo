@@ -100,6 +100,10 @@ pub fn run() {
             commands::conjugation::save_verb,
             commands::conjugation::get_verbs,
             commands::conjugation::delete_verb,
+            // Dictionary (saved AI lookups)
+            commands::dictionary::save_dictionary_entry,
+            commands::dictionary::get_dictionary_entries,
+            commands::dictionary::delete_dictionary_entry,
             // Chat
             commands::chat::get_chat_history,
             commands::chat::save_chat_message,
@@ -161,6 +165,7 @@ fn delete_all_data(
     let db = state.db();
 
     // Delete in FK-safe order: children before parents
+    db.execute("DELETE FROM dictionary_entries", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_srs", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_topics", []).map_err(|e| e.to_string())?;

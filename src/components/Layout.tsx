@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   BookOpen, BookText, Languages, MessageSquare,
@@ -28,42 +28,6 @@ const navSections = [
   },
 ];
 
-// Group reverse pairs: if both fr->de and de->fr exist, show as one bidirectional entry
-function groupPairs(pairs: ReturnType<typeof useAppStore.getState>["languagePairs"]) {
-  const seen = new Set<number>();
-  const groups: Array<{
-    ids: number[];
-    label: string;
-    primaryId: number;
-  }> = [];
-
-  for (const pair of pairs) {
-    if (seen.has(pair.id)) continue;
-    seen.add(pair.id);
-
-    const reverse = pairs.find(
-      (p) => p.source_lang === pair.target_lang && p.target_lang === pair.source_lang && !seen.has(p.id),
-    );
-
-    if (reverse) {
-      seen.add(reverse.id);
-      groups.push({
-        ids: [pair.id, reverse.id],
-        label: `${pair.source_flag} ${pair.source_name} ↔ ${pair.target_flag} ${pair.target_name}`,
-        primaryId: pair.id,
-      });
-    } else {
-      groups.push({
-        ids: [pair.id],
-        label: `${pair.source_flag} ${pair.source_name} → ${pair.target_flag} ${pair.target_name}`,
-        primaryId: pair.id,
-      });
-    }
-  }
-
-  return groups;
-}
-
 export default function Layout() {
   const { t } = useTranslation();
   const languagePairs = useAppStore((s) => s.languagePairs);
@@ -73,15 +37,7 @@ export default function Layout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const pairGroups = useMemo(() => groupPairs(languagePairs), [languagePairs]);
-
-  // Find the group that contains the active pair
-  const activeGroup = pairGroups.find((g) => g.ids.includes(activePairId ?? -1));
-  const resolvedGroupPrimaryId = activeGroup?.primaryId ?? pairGroups[0]?.primaryId ?? null;
-
-  const handleGlobalSwitch = (primaryId: number) => {
-    switchPair(primaryId);
-  };
+  const resolvedActiveId = activePairId ?? languagePairs[0]?.id ?? null;
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
@@ -106,17 +62,17 @@ export default function Layout() {
         </div>
 
         {/* Global language pair selector */}
-        {pairGroups.length > 0 && (
+        {languagePairs.length > 0 && (
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
             <div className="relative">
               <select
-                value={resolvedGroupPrimaryId ?? ""}
-                onChange={(e) => handleGlobalSwitch(Number(e.target.value))}
+                value={resolvedActiveId ?? ""}
+                onChange={(e) => switchPair(Number(e.target.value))}
                 className="w-full appearance-none rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 pr-8 text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all cursor-pointer"
               >
-                {pairGroups.map((group) => (
-                  <option key={group.primaryId} value={group.primaryId}>
-                    {group.label}
+                {languagePairs.map((pair) => (
+                  <option key={pair.id} value={pair.id}>
+                    {pair.source_flag} {pair.source_name} → {pair.target_flag} {pair.target_name}
                   </option>
                 ))}
               </select>

@@ -1,20 +1,20 @@
 # Omnilingo
 
-AI-first desktop language learning. Pick a language pair, download a [FreeDict](https://freedict.org/) pack, and let the model generate grammar lessons, verb conjugations and vocabulary explanations on demand.
+AI-first desktop language learning. Pick any language pair you want, type a word, and let the model generate the bilingual definition, grammar lessons, verb conjugations and conversation practice on demand. No dictionary downloads, no offline word lists — every lookup is AI-generated.
 
 Built with [Tauri v2](https://tauri.app), React 19 and TypeScript.
 
 ## Features
 
-- **Dictionary** — search across downloaded FreeDict packs with accent-insensitive lookup, and an "Explore with AI" button that produces a bilingual explanation (translation, grammar, examples, usage notes, synonyms/antonyms) in your native language.
-- **Grammar** — AI-generated lessons on any topic, with key points, bilingual examples and three exercise types (multiple choice, fill-in-the-blank, true/false). Save lessons to the local SQLite database for spaced-repetition review.
+- **Dictionary** — type any word in your source or target language; the AI returns a structured bilingual entry (translation, grammar, examples, usage notes, synonyms/antonyms) in your native language. Results are cached so you don't pay the round-trip twice.
+- **Grammar** — AI-generated lessons on any topic, with key points, bilingual examples and three exercise types (multiple choice, fill-in-the-blank, true/false). Saved to a local SQLite database.
 - **Conjugation** — AI-generated conjugation tables for any verb, with a typing-practice mode that checks your answers form by form.
 - **Conversation** — scenario-based AI role-play (5 presets, 5 built-in scenarios, custom scenarios you can write yourself), with full session history.
 - **AI writing tools** — Rephrase, Corrector, Synonyms and Text Analysis (sentence mining), each as a focused single-purpose view.
-- **FreeDict catalog** — browse and download from 305+ language pairs directly inside the app.
+- **80+ languages** — pick any source/target combination from a curated list covering >95% of the world's spoken languages. Pairs are created instantly with no download.
 - **Command palette** — fast navigation with `Cmd/Ctrl + K`.
 - **Local-first** — everything is stored in a local SQLite database. AI calls go directly from your machine to the provider you configure; there is no Omnilingo backend.
-- **Multi-pair** — add and switch between language pairs from Settings.
+- **Multi-pair** — add and switch between language pairs from Settings or the sidebar.
 - **Text-to-speech** — pronunciation playback in Dictionary via the browser Web Speech API.
 - **Dark mode** — full dark theme with system / light / dark toggle.
 
@@ -94,18 +94,17 @@ omnilingo/
 │   ├── views/                 Dictionary, Grammar, Conjugation, Conversation,
 │   │                          Rephrase, Corrector, Synonyms, TextAnalysis, Settings
 │   ├── components/            Layout, CommandPalette, Exercise,
-│   │                          LanguagePackDownloader, tools/, ui/
+│   │                          DictionaryPairSelector, tools/, ui/
 │   ├── store/                 useAppStore.ts (Zustand) + AppContext.tsx (facade)
-│   ├── lib/                   bridge.ts, wordUtils, ai-cache, markdown,
+│   ├── lib/                   bridge.ts, languages.ts, ai-cache, markdown,
 │   │                          useExampleTranslations, useFeaturePair, ...
 │   ├── i18n/                  i18next + locales/en.json
 │   └── types/                 Zod schemas + TypeScript interfaces
 ├── src-tauri/                 Rust backend
-│   ├── src/commands/          ai, chat, conjugation, conversation, dictionary,
-│   │                          download, favorites, grammar, memory, settings
+│   ├── src/commands/          ai, chat, conjugation, conversation,
+│   │                          grammar, memory, settings
 │   ├── src/db.rs              SQLite (WAL, unaccent, migrations runner)
-│   └── migrations/            001_initial_schema.sql … 008_drop_srs.sql
-├── data/                      dictionary-sources.json (FreeDict catalog)
+│   └── migrations/            001_initial_schema.sql … 009_remove_freedict.sql
 ├── memory/                    Markdown progression files
 └── .github/workflows/         build.yml, release.yml
 ```
@@ -113,7 +112,7 @@ omnilingo/
 ## Tech stack
 
 - **Frontend** — React 19, TypeScript 5.8, Vite 7, Tailwind CSS v4, Zustand 5, react-router-dom 7, react-i18next, lucide-react, fuse.js, zod, vitest (jsdom)
-- **Backend** — Rust, Tauri v2, rusqlite 0.31 (bundled, with custom functions), reqwest 0.12 (rustls-tls), tokio, chrono, xz2 / tar / flate2 / bzip2 (FreeDict pack extraction), tauri-plugin-log / -updater / -process. Optional `mcp` feature gates `tauri-plugin-mcp-bridge` for E2E testing.
+- **Backend** — Rust, Tauri v2, rusqlite 0.31 (bundled, with custom functions), reqwest 0.12 (rustls-tls), tokio, chrono, tauri-plugin-log / -updater / -process. Optional `mcp` feature gates `tauri-plugin-mcp-bridge` for E2E testing.
 - **Package manager** — bun
 
 ## CI/CD

@@ -65,6 +65,14 @@ export const AiSettingsSchema = z.object({
   model: z.string(),
 });
 
+export const DictionaryEntrySchema = z.object({
+  id: z.number(),
+  language_pair_id: z.number(),
+  query: z.string(),
+  content: z.string(),
+  created_at: z.string(),
+});
+
 export const ConversationScenarioSchema = z.object({
   id: z.number(),
   language_pair_id: z.number(),
@@ -94,6 +102,7 @@ export type GrammarTopic = z.infer<typeof GrammarTopicSchema>;
 export type Exercise = z.infer<typeof ExerciseSchema>;
 export type Verb = z.infer<typeof VerbSchema>;
 export type AiSettings = z.infer<typeof AiSettingsSchema>;
+export type DictionaryEntry = z.infer<typeof DictionaryEntrySchema>;
 export type ConversationScenario = z.infer<typeof ConversationScenarioSchema>;
 export type ConversationSession = z.infer<typeof ConversationSessionSchema>;
 export type ViewName = "dictionary" | "grammar" | "conjugation" | "conversation" | "rephrase" | "corrector" | "synonyms" | "text-analysis" | "settings";
