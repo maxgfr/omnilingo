@@ -1,3 +1,10 @@
+# [2.17.0](https://github.com/maxgfr/omnilingo/compare/v2.16.2...v2.17.0) (2026-04-11)
+
+
+### Features
+
+* add saved dictionary entries ([6b47310](https://github.com/maxgfr/omnilingo/commit/6b473107d522ae54e110f4f77c94ae8a7e80a9e6))
+
 ## [2.16.2](https://github.com/maxgfr/omnilingo/compare/v2.16.1...v2.16.2) (2026-04-11)
 
 
