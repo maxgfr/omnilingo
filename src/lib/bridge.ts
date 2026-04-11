@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
-  SettingsSchema, LanguagePairSchema, WordSchema,
-  AiSettingsSchema, DictionarySourceSchema,
+  SettingsSchema, LanguagePairSchema,
+  AiSettingsSchema,
   ConversationScenarioSchema, ConversationSessionSchema,
 } from "../types";
 import type { GrammarTopic, Verb } from "../types";
@@ -33,13 +33,13 @@ export const getSettings = () => invokeAndParse("get_settings", SettingsSchema);
 export const updateSetting = (key: string, value: string) => safeInvoke<void>("update_setting", { key, value });
 export const getLanguagePairs = () => invokeAndParseArray("get_language_pairs", LanguagePairSchema);
 export const setActiveLanguagePair = (pairId: number) => safeInvoke<void>("set_active_language_pair", { pairId });
+export const createLanguagePair = (
+  sourceLang: string, sourceName: string, sourceFlag: string,
+  targetLang: string, targetName: string, targetFlag: string,
+) => safeInvoke<number>("create_language_pair", {
+  sourceLang, sourceName, sourceFlag, targetLang, targetName, targetFlag,
+});
 export const deleteLanguagePair = (pairId: number) => safeInvoke<void>("delete_language_pair", { pairId });
-
-// Dictionary
-export const searchWords = (pairId: number, query: string, level?: string, category?: string, reversePairId?: number) =>
-  invokeAndParseArray("search_words", WordSchema, { pairId, query, level: level ?? null, category: category ?? null, reversePairId: reversePairId ?? null });
-export const getAllDictionaryWords = (pairId: number, reversePairId?: number) =>
-  invokeAndParseArray("get_all_dictionary_words", WordSchema, { pairId, reversePairId: reversePairId ?? null });
 
 // Grammar
 export const getGrammarTopics = (pairId: number) => safeInvoke<GrammarTopic[]>("get_grammar_topics", { pairId });
@@ -136,11 +136,6 @@ export const updateConversationSessionTitle = (sessionId: number, title: string)
 // Session
 export const logSession = (pairId: number, sessionType: string, sessionData: Record<string, unknown>) =>
   safeInvoke<void>("log_session", { pairId, sessionType, sessionData });
-
-// Download
-export const getAvailableDictionaries = () => invokeAndParseArray("get_available_dictionaries", DictionarySourceSchema);
-export const downloadDictionary = (sourceLang: string, targetLang: string, url: string, sourceName: string, targetName: string, format: string) =>
-  safeInvoke<string>("download_dictionary", { sourceLang, targetLang, url, sourceName, targetName, format });
 
 // Maintenance
 export const deleteAllData = () => safeInvoke<string>("delete_all_data");

@@ -25,10 +25,7 @@ vi.mock("../lib/bridge", () => ({
   setActiveLanguagePair: vi.fn().mockResolvedValue(undefined),
   updateSetting: vi.fn().mockResolvedValue(undefined),
   getAiSettings: vi.fn().mockResolvedValue({ provider: "claude-code", api_key: "", model: "" }),
-  getAvailableDictionaries: vi.fn().mockResolvedValue([]),
-  getDueCards: vi.fn().mockResolvedValue([]),
   getGrammarTopics: vi.fn().mockResolvedValue([]),
-  searchWords: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock i18n

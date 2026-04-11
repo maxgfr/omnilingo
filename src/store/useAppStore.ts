@@ -6,7 +6,6 @@ import type { Settings, LanguagePair, AiSettings } from "../types";
 // ─── View cache types (session-scoped, NOT persisted) ────────────────
 interface DictionaryCache {
   searchQuery: string;
-  selectedWordId: number | null;
   aiContent: string | null;
 }
 

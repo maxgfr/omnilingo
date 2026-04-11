@@ -20,20 +20,6 @@ export const LanguagePairSchema = z.object({
   is_active: z.preprocess((v) => v === true || v === 1, z.boolean()),
 });
 
-export const WordSchema = z.object({
-  id: z.number(),
-  language_pair_id: z.number(),
-  source_word: z.string(),
-  target_word: z.string(),
-  gender: z.string().nullable(),
-  plural: z.string().nullable(),
-  level: z.string().nullable(),
-  category: z.string().nullable(),
-  tags: z.string().nullable(),
-  example_source: z.string().nullable(),
-  example_target: z.string().nullable(),
-});
-
 export const GrammarTopicSchema = z.object({
   id: z.string(),
   language_pair_id: z.number(),
@@ -79,20 +65,6 @@ export const AiSettingsSchema = z.object({
   model: z.string(),
 });
 
-export const DictionarySourceSchema = z.object({
-  source_lang: z.string(),
-  target_lang: z.string(),
-  source_name: z.string(),
-  target_name: z.string(),
-  source_flag: z.string(),
-  target_flag: z.string(),
-  provider: z.string(),
-  url: z.string(),
-  format: z.string(),
-  word_count: z.number().nullable(),
-  size_mb: z.number().nullable(),
-});
-
 export const ConversationScenarioSchema = z.object({
   id: z.number(),
   language_pair_id: z.number(),
@@ -118,12 +90,10 @@ export const ConversationSessionSchema = z.object({
 
 export type Settings = z.infer<typeof SettingsSchema>;
 export type LanguagePair = z.infer<typeof LanguagePairSchema>;
-export type Word = z.infer<typeof WordSchema>;
 export type GrammarTopic = z.infer<typeof GrammarTopicSchema>;
 export type Exercise = z.infer<typeof ExerciseSchema>;
 export type Verb = z.infer<typeof VerbSchema>;
 export type AiSettings = z.infer<typeof AiSettingsSchema>;
-export type DictionarySource = z.infer<typeof DictionarySourceSchema>;
 export type ConversationScenario = z.infer<typeof ConversationScenarioSchema>;
 export type ConversationSession = z.infer<typeof ConversationSessionSchema>;
 export type ViewName = "dictionary" | "grammar" | "conjugation" | "conversation" | "rephrase" | "corrector" | "synonyms" | "text-analysis" | "settings";

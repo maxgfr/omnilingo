@@ -1,31 +1,86 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Trash2, Plus } from "lucide-react";
+import { Loader2, Trash2, Plus, Check, ChevronDown } from "lucide-react";
 import * as bridge from "../lib/bridge";
 import type { LanguagePair } from "../types";
-import LanguagePackDownloader from "./LanguagePackDownloader";
+import { LANGUAGES } from "../lib/languages";
+import { useAppStore } from "../store/useAppStore";
 
 interface Props {
   pairs: LanguagePair[];
-  onDictionaryDownloaded: () => Promise<void>;
+  onChange: () => Promise<void>;
 }
 
-export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }: Props) {
+export default function DictionaryPairSelector({ pairs, onChange }: Props) {
   const { t } = useTranslation();
+  const switchPair = useAppStore((s) => s.switchPair);
+
   const [showAdd, setShowAdd] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [sourceCode, setSourceCode] = useState<string>("");
+  const [targetCode, setTargetCode] = useState<string>("");
+  const [creating, setCreating] = useState(false);
+
+  // Pair lookup keyed by "src-tgt" for fast "already exists" checks
+  const existingKeys = useMemo(
+    () => new Set(pairs.map((p) => `${p.source_lang}-${p.target_lang}`)),
+    [pairs],
+  );
+
+  const targetOptions = useMemo(
+    () => LANGUAGES.filter((l) => l.code !== sourceCode),
+    [sourceCode],
+  );
+
+  const pairAlreadyExists =
+    sourceCode && targetCode && existingKeys.has(`${sourceCode}-${targetCode}`);
 
   const handleDelete = async (pairId: number) => {
     setDeleting(pairId);
     setError(null);
     try {
       await bridge.deleteLanguagePair(pairId);
-      await onDictionaryDownloaded();
+      await onChange();
     } catch (err) {
       setError(String(err));
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!sourceCode || !targetCode) return;
+    const src = LANGUAGES.find((l) => l.code === sourceCode);
+    const tgt = LANGUAGES.find((l) => l.code === targetCode);
+    if (!src || !tgt) return;
+
+    setCreating(true);
+    setError(null);
+    try {
+      // Create both directions so reverse-pair lookups work everywhere.
+      const newId = await bridge.createLanguagePair(
+        src.code, src.name, src.flag,
+        tgt.code, tgt.name, tgt.flag,
+      );
+      await bridge.createLanguagePair(
+        tgt.code, tgt.name, tgt.flag,
+        src.code, src.name, src.flag,
+      );
+      await onChange();
+
+      // Auto-activate the newly created (forward) pair so the rest of the
+      // app immediately reflects it.
+      switchPair(newId);
+
+      setSourceCode("");
+      setTargetCode("");
+      setShowAdd(false);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -79,11 +134,9 @@ export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }
         </div>
       )}
 
-      {error && (
-        <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
 
-      {/* Add dictionary toggle */}
+      {/* Add language pair toggle */}
       <button
         onClick={() => setShowAdd(!showAdd)}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all w-full ${
@@ -96,17 +149,74 @@ export default function DictionaryPairSelector({ pairs, onDictionaryDownloaded }
         <span>{t("dictionary.addPair")}</span>
       </button>
 
-      {/* Language pack downloader */}
+      {/* Inline pair picker */}
       {showAdd && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-          <LanguagePackDownloader
-            existingPairs={pairs}
-            onDownloaded={async () => {
-              await onDictionaryDownloaded();
-              setShowAdd(false);
-            }}
-            compact
-          />
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Source language */}
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                {t("dictionary.sourceLanguage")}
+              </label>
+              <div className="relative">
+                <select
+                  value={sourceCode}
+                  onChange={(e) => {
+                    setSourceCode(e.target.value);
+                    if (e.target.value === targetCode) setTargetCode("");
+                  }}
+                  className="w-full appearance-none rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 pr-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
+                >
+                  <option value="">{t("dictionary.sourceLanguage")}…</option>
+                  {LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Target language */}
+            <div className="flex-1">
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                {t("dictionary.targetLanguage")}
+              </label>
+              <div className="relative">
+                <select
+                  value={targetCode}
+                  onChange={(e) => setTargetCode(e.target.value)}
+                  disabled={!sourceCode}
+                  className="w-full appearance-none rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 pr-10 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">{t("dictionary.targetLanguage")}…</option>
+                  {targetOptions.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          {pairAlreadyExists ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-sm text-emerald-700 dark:text-emerald-400">
+              <Check size={14} />
+              {t("dictionary.pairExists")}
+            </div>
+          ) : (
+            <button
+              onClick={handleCreate}
+              disabled={!sourceCode || !targetCode || creating}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {creating ? t("dictionary.creating") : t("dictionary.createPair")}
+            </button>
+          )}
         </div>
       )}
     </div>

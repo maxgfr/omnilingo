@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   SettingsSchema,
   LanguagePairSchema,
-  WordSchema,
   AiSettingsSchema,
   ExerciseSchema,
 } from "../types";
@@ -127,24 +126,6 @@ describe("User Journey: Quiz Flow", () => {
       expect(count).toBeGreaterThanOrEqual(10);
       expect(count).toBeLessThanOrEqual(20);
     }
-  });
-
-  it("quiz questions can be built from words", () => {
-    const words = [
-      { id: 1, language_pair_id: 1, source_word: "Haus", target_word: "maison", gender: null, plural: null, level: "A1", category: null, tags: null, example_source: null, example_target: null },
-      { id: 2, language_pair_id: 1, source_word: "Katze", target_word: "chat", gender: null, plural: null, level: "A1", category: null, tags: null, example_source: null, example_target: null },
-      { id: 3, language_pair_id: 1, source_word: "Hund", target_word: "chien", gender: null, plural: null, level: "A1", category: null, tags: null, example_source: null, example_target: null },
-      { id: 4, language_pair_id: 1, source_word: "Buch", target_word: "livre", gender: null, plural: null, level: "A1", category: null, tags: null, example_source: null, example_target: null },
-    ].map((w) => WordSchema.parse(w));
-
-    // MCQ needs at least 4 words for 3 wrong + 1 correct
-    expect(words.length).toBeGreaterThanOrEqual(4);
-
-    // Build a simple question
-    const word = words[0];
-    const wrongOptions = words.filter((w) => w.id !== word.id).map((w) => w.target_word);
-    expect(wrongOptions).not.toContain(word.target_word);
-    expect(wrongOptions.length).toBe(3);
   });
 
   it("quiz scoring tracks correct/total", () => {
@@ -513,41 +494,6 @@ describe("User Journey: German-specific Features", () => {
     expect(genderColors.f.label).toBe("die");
     expect(genderColors.n.label).toBe("das");
     expect(Object.keys(genderColors)).toHaveLength(3);
-  });
-
-  it("words can have gender assigned", () => {
-    const word = WordSchema.parse({
-      id: 1,
-      language_pair_id: 1,
-      source_word: "Haus",
-      target_word: "maison",
-      gender: "n",
-      plural: "Hauser",
-      level: "A1",
-      category: null,
-      tags: null,
-      example_source: null,
-      example_target: null,
-    });
-    expect(word.gender).toBe("n");
-    expect(word.plural).toBe("Hauser");
-  });
-
-  it("non-German languages may have null gender", () => {
-    const word = WordSchema.parse({
-      id: 1,
-      language_pair_id: 2,
-      source_word: "house",
-      target_word: "maison",
-      gender: null,
-      plural: null,
-      level: "A1",
-      category: null,
-      tags: null,
-      example_source: null,
-      example_target: null,
-    });
-    expect(word.gender).toBeNull();
   });
 
   it("isGerman check uses source_lang", () => {

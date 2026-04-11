@@ -99,6 +99,34 @@ pub fn set_active_language_pair(state: State<'_, DbState>, pair_id: i64) -> Resu
 }
 
 #[tauri::command]
+pub fn create_language_pair(
+    state: State<'_, DbState>,
+    source_lang: String,
+    source_name: String,
+    source_flag: String,
+    target_lang: String,
+    target_name: String,
+    target_flag: String,
+) -> Result<i64, String> {
+    let db = state.db();
+    db.execute(
+        "INSERT OR IGNORE INTO language_pairs
+            (source_lang, target_lang, source_name, target_name, source_flag, target_flag)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![source_lang, target_lang, source_name, target_name, source_flag, target_flag],
+    )
+    .map_err(|e| format!("Failed to insert language pair: {}", e))?;
+
+    // Re-SELECT to get the id whether we just inserted or the row already existed.
+    db.query_row(
+        "SELECT id FROM language_pairs WHERE source_lang = ?1 AND target_lang = ?2",
+        rusqlite::params![source_lang, target_lang],
+        |row| row.get(0),
+    )
+    .map_err(|e| format!("Failed to read created language pair: {}", e))
+}
+
+#[tauri::command]
 pub fn delete_language_pair(state: State<'_, DbState>, pair_id: i64) -> Result<(), String> {
     let db = state.db();
     // Clear active pair reference in settings first
@@ -108,13 +136,10 @@ pub fn delete_language_pair(state: State<'_, DbState>, pair_id: i64) -> Result<(
     ).map_err(|e| e.to_string())?;
     // Delete all related data (manual cascade — all tables referencing language_pairs)
     for sql in &[
-        "DELETE FROM favorites WHERE word_id IN (SELECT id FROM words WHERE language_pair_id = ?1)",
-        "DELETE FROM words WHERE language_pair_id = ?1",
         "DELETE FROM grammar_progress WHERE topic_id IN (SELECT id FROM grammar_topics WHERE language_pair_id = ?1)",
         "DELETE FROM grammar_srs WHERE language_pair_id = ?1",
         "DELETE FROM grammar_topics WHERE language_pair_id = ?1",
         "DELETE FROM verbs WHERE language_pair_id = ?1",
-        "DELETE FROM dictionary_packs WHERE language_pair_id = ?1",
         "DELETE FROM sessions WHERE language_pair_id = ?1",
         "DELETE FROM errors WHERE language_pair_id = ?1",
         "DELETE FROM chat_messages WHERE language_pair_id = ?1",

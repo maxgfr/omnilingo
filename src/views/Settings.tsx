@@ -391,7 +391,7 @@ export default function Settings() {
         </p>
         <DictionaryPairSelector
           pairs={languagePairs}
-          onDictionaryDownloaded={reloadSettings}
+          onChange={reloadSettings}
         />
       </Section>
 

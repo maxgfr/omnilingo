@@ -103,7 +103,7 @@ describe("useAppStore — core actions", () => {
     act(() => {
       useAppStore.setState({
         activePairId: 1,
-        dictionaryCache: { searchQuery: "test", selectedWordId: 1, aiContent: null },
+        dictionaryCache: { searchQuery: "test", aiContent: null },
         toolInputCache: { rephrase: "hello" },
         toolResultCache: { rephrase: "result" },
       });
@@ -167,13 +167,13 @@ describe("useAppStore — AI actions", () => {
 // ─────────────────────────────────────────────────────────────────────
 describe("useAppStore — view caches", () => {
   it("setDictionaryCache stores cache", () => {
-    const cache = { searchQuery: "Haus", selectedWordId: 1, aiContent: "info" };
+    const cache = { searchQuery: "Haus", aiContent: "info" };
     act(() => { useAppStore.getState().setDictionaryCache(cache); });
     expect(useAppStore.getState().dictionaryCache).toEqual(cache);
   });
 
   it("setDictionaryCache null clears cache", () => {
-    act(() => { useAppStore.getState().setDictionaryCache({ searchQuery: "", selectedWordId: null, aiContent: null }); });
+    act(() => { useAppStore.getState().setDictionaryCache({ searchQuery: "", aiContent: null }); });
     act(() => { useAppStore.getState().setDictionaryCache(null); });
     expect(useAppStore.getState().dictionaryCache).toBeNull();
   });
@@ -197,7 +197,7 @@ describe("useAppStore — view caches", () => {
         settings: { active_language_pair_id: 1, dark_mode: "system", ai_provider: "claude-code", ai_model: "" },
         languagePairs: BASE_PAIRS,
         activePairId: 1,
-        dictionaryCache: { searchQuery: "x", selectedWordId: 1, aiContent: null },
+        dictionaryCache: { searchQuery: "x", aiContent: null },
         toolInputCache: { a: "b" },
         toolResultCache: { c: "d" },
       });

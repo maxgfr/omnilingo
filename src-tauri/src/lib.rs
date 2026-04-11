@@ -45,8 +45,8 @@ pub fn run() {
             // ~/Library/Application Support/com.omnilingo.app). Earlier
             // versions used `resource_dir()`, which on macOS lives inside
             // the read-only `.app` bundle and gets wiped every time the
-            // user installs an update — destroying the SQLite DB, the
-            // downloaded FreeDict packs and the memory/ files.
+            // user installs an update — destroying the SQLite DB and the
+            // memory/ files.
             let base_dir = if cfg!(debug_assertions) {
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                     .parent()
@@ -79,6 +79,7 @@ pub fn run() {
             commands::settings::update_setting,
             commands::settings::get_language_pairs,
             commands::settings::set_active_language_pair,
+            commands::settings::create_language_pair,
             commands::settings::delete_language_pair,
             // Memory
             commands::memory::read_memory_file,
@@ -91,9 +92,6 @@ pub fn run() {
             commands::ai::set_ai_custom_url,
             commands::ai::generate_vocabulary,
             commands::ai::generate_grammar,
-            // Dictionary
-            commands::dictionary::search_words,
-            commands::dictionary::get_all_dictionary_words,
             // Grammar
             commands::grammar::get_grammar_topics,
             commands::grammar::save_grammar_topic,
@@ -102,22 +100,6 @@ pub fn run() {
             commands::conjugation::save_verb,
             commands::conjugation::get_verbs,
             commands::conjugation::delete_verb,
-            // Dictionary download
-            commands::download::get_available_dictionaries,
-            commands::download::download_dictionary,
-            // Favorites
-            commands::favorites::toggle_favorite,
-            commands::favorites::get_favorites,
-            commands::favorites::is_favorite,
-            // Favorite lists
-            commands::favorites::create_favorite_list,
-            commands::favorites::delete_favorite_list,
-            commands::favorites::rename_favorite_list,
-            commands::favorites::get_favorite_lists,
-            commands::favorites::add_to_favorite_list,
-            commands::favorites::remove_from_favorite_list,
-            commands::favorites::get_favorite_list_items,
-            commands::favorites::get_word_list_memberships,
             // Chat
             commands::chat::get_chat_history,
             commands::chat::save_chat_message,
@@ -170,7 +152,7 @@ fn log_session(
     Ok(())
 }
 
-/// Delete ALL data (words, progress, settings — everything except language pairs)
+/// Delete ALL data (progress, settings — everything except language pairs)
 #[tauri::command]
 fn delete_all_data(
     state: tauri::State<'_, DbState>,
@@ -179,9 +161,6 @@ fn delete_all_data(
     let db = state.db();
 
     // Delete in FK-safe order: children before parents
-    db.execute("DELETE FROM favorite_list_items", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM favorite_lists", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM favorites", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_progress", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_srs", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM grammar_topics", []).map_err(|e| e.to_string())?;
@@ -192,16 +171,8 @@ fn delete_all_data(
     db.execute("DELETE FROM errors", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM sessions", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM verbs", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM words", []).map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM dictionary_packs", []).map_err(|e| e.to_string())?;
     db.execute("UPDATE settings SET active_language_pair_id = NULL", []).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM language_pairs", []).map_err(|e| e.to_string())?;
-
-    // Clear downloads
-    let downloads_dir = base_dir.0.join("downloads");
-    if downloads_dir.exists() {
-        let _ = std::fs::remove_dir_all(&downloads_dir);
-    }
 
     // Reset memory files
     let memory_dir = base_dir.0.join("memory");

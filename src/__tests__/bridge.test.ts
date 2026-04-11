@@ -49,46 +49,22 @@ describe("bridge", () => {
       expect(mockInvoke).toHaveBeenCalledWith("set_active_language_pair", { pairId: 5 });
     });
 
+    it("createLanguagePair passes all language fields", async () => {
+      mockInvoke.mockResolvedValueOnce(7);
+      const bridge = await getBridge();
+      const id = await bridge.createLanguagePair("fr", "French", "🇫🇷", "de", "German", "🇩🇪");
+      expect(mockInvoke).toHaveBeenCalledWith("create_language_pair", {
+        sourceLang: "fr", sourceName: "French", sourceFlag: "🇫🇷",
+        targetLang: "de", targetName: "German", targetFlag: "🇩🇪",
+      });
+      expect(id).toBe(7);
+    });
+
     it("deleteLanguagePair passes pairId", async () => {
       mockInvoke.mockResolvedValueOnce(undefined);
       const bridge = await getBridge();
       await bridge.deleteLanguagePair(3);
       expect(mockInvoke).toHaveBeenCalledWith("delete_language_pair", { pairId: 3 });
-    });
-  });
-
-  // ── Dictionary ──────────────────────────────────────────────────────
-  describe("dictionary", () => {
-    it("searchWords passes all parameters", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
-      const bridge = await getBridge();
-      await bridge.searchWords(1, "Haus", "A1", "noun", 2);
-      expect(mockInvoke).toHaveBeenCalledWith("search_words", {
-        pairId: 1, query: "Haus", level: "A1", category: "noun", reversePairId: 2,
-      });
-    });
-
-    it("searchWords defaults null for optional params", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
-      const bridge = await getBridge();
-      await bridge.searchWords(1, "test");
-      expect(mockInvoke).toHaveBeenCalledWith("search_words", {
-        pairId: 1, query: "test", level: null, category: null, reversePairId: null,
-      });
-    });
-
-    it("getAllDictionaryWords passes pairId and reversePairId", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
-      const bridge = await getBridge();
-      await bridge.getAllDictionaryWords(1, 2);
-      expect(mockInvoke).toHaveBeenCalledWith("get_all_dictionary_words", { pairId: 1, reversePairId: 2 });
-    });
-
-    it("getAllDictionaryWords defaults reversePairId to null", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
-      const bridge = await getBridge();
-      await bridge.getAllDictionaryWords(1);
-      expect(mockInvoke).toHaveBeenCalledWith("get_all_dictionary_words", { pairId: 1, reversePairId: null });
     });
   });
 
@@ -284,25 +260,6 @@ describe("bridge", () => {
       expect(mockInvoke).toHaveBeenCalledWith("log_session", { pairId: 1, sessionType: "grammar_error", sessionData: { word: "Haus" } });
     });
 
-  });
-
-  // ── Download ────────────────────────────────────────────────────────
-  describe("download", () => {
-    it("getAvailableDictionaries calls invoke", async () => {
-      mockInvoke.mockResolvedValueOnce([]);
-      const bridge = await getBridge();
-      await bridge.getAvailableDictionaries();
-      expect(mockInvoke).toHaveBeenCalledWith("get_available_dictionaries", undefined);
-    });
-
-    it("downloadDictionary passes all params", async () => {
-      mockInvoke.mockResolvedValueOnce("OK");
-      const bridge = await getBridge();
-      await bridge.downloadDictionary("de", "fr", "http://test", "German", "French", "tsv");
-      expect(mockInvoke).toHaveBeenCalledWith("download_dictionary", {
-        sourceLang: "de", targetLang: "fr", url: "http://test", sourceName: "German", targetName: "French", format: "tsv",
-      });
-    });
   });
 
   // ── Maintenance ─────────────────────────────────────────────────────

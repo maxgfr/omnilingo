@@ -12,7 +12,6 @@ vi.mock("../lib/bridge", () => ({
     source_flag: "🇩🇪", target_flag: "🇫🇷", is_active: true,
   }]),
   askAi: vi.fn().mockResolvedValue('{"translation":"maison"}'),
-  searchWords: vi.fn().mockResolvedValue([]),
   readMemoryFile: vi.fn().mockResolvedValue(null),
   setActiveLanguagePair: vi.fn().mockResolvedValue(undefined),
   updateSetting: vi.fn().mockResolvedValue(undefined),

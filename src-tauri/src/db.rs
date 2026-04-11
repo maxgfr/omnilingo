@@ -113,6 +113,12 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
             .map_err(|e| format!("Migration 008 failed: {}", e))?;
     }
 
+    if current_version < 9 {
+        let migration_sql = include_str!("../migrations/009_remove_freedict.sql");
+        conn.execute_batch(migration_sql)
+            .map_err(|e| format!("Migration 009 failed: {}", e))?;
+    }
+
     Ok(())
 }
 
