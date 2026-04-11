@@ -1,3 +1,10 @@
+## [2.16.2](https://github.com/maxgfr/omnilingo/compare/v2.16.1...v2.16.2) (2026-04-11)
+
+
+### Bug Fixes
+
+* remove FreeDict and local dictionary infrastructure ([a786bfc](https://github.com/maxgfr/omnilingo/commit/a786bfc267bab1c0ed166afcd13d82f7389b8a7d))
+
 ## [2.16.1](https://github.com/maxgfr/omnilingo/compare/v2.16.0...v2.16.1) (2026-04-10)
 
 
