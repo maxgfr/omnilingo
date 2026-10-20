@@ -29,3 +29,11 @@ tauri-plugin-mcp-bridge = { version = "0.10", optional = true }
 [features]
 default = []
 mcp = ["tauri-plugin-mcp-bridge"]
+
+# Security: tauri-plugin-updater 2.14.0 (latest on crates.io) depends on zip 4.x,
+# affected by RUSTSEC-2026-0367 / RUSTSEC-2026-0368 / RUSTSEC-2026-0369 (fixed in zip >= 9).
+# Upstream bumped zip to v9 on the v2 branch (tauri-apps/plugins-workspace#3698), which is
+# 2.14.0 + that single change, but it is not published yet. Pin to that commit and drop this
+# patch once tauri-plugin-updater >= 2.14.1 is released on crates.io.
+[patch.crates-io]
+tauri-plugin-updater = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "ba98bfadc4" }
