@@ -1,3 +1,10 @@
+## [2.17.1](https://github.com/maxgfr/omnilingo/compare/v2.17.0...v2.17.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies with security advisories ([#24](https://github.com/maxgfr/omnilingo/issues/24)) ([fdc1ec8](https://github.com/maxgfr/omnilingo/commit/fdc1ec8c3326cee746807caed9e7cf16340f30ac))
+
 # [2.17.0](https://github.com/maxgfr/omnilingo/compare/v2.16.2...v2.17.0) (2026-04-11)
 
 
