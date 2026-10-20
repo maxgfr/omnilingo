@@ -50,6 +50,7 @@ src-tauri/
     chat.rs          Chat history persistence
     conjugation.rs   save_verb / get_verbs / delete_verb
     conversation.rs  Role-play scenarios + sessions + title updates
+    dictionary.rs    save / get / delete saved dictionary entries
     grammar.rs       Grammar lesson CRUD only (no completion / SRS tracking)
     memory.rs        memory/*.md sync
     settings.rs      get/update/create/delete language pairs + settings
@@ -64,6 +65,7 @@ src-tauri/
     007_favorite_lists.sql
     008_drop_srs.sql
     009_remove_freedict.sql
+    010_dictionary_entries.sql
 
 memory/                      Markdown progression files
 ```
@@ -116,18 +118,19 @@ The router handles non-streaming `ask_ai` and multi-turn `ask_ai_conversation` c
 
 ## Database
 
-`db.rs::init_database(base_dir)` opens `{base_dir}/omnilingo.db`, enables WAL mode and `foreign_keys`, registers a custom `unaccent()` SQL function (legacy — kept for any future text-normalization need), then runs the 9 ordered migrations in `migrations/`. Schema versioning lives in a `schema_version` table; migrations are applied incrementally and idempotently.
+`db.rs::init_database(base_dir)` opens `{base_dir}/omnilingo.db`, enables WAL mode and `foreign_keys`, registers a custom `unaccent()` SQL function (legacy — kept for any future text-normalization need), then runs the 10 ordered migrations in `migrations/`. Schema versioning lives in a `schema_version` table; migrations are applied incrementally and idempotently.
 
 Notable migrations:
 - `008_drop_srs.sql` dropped the `srs_cards` table (the old vocabulary flashcard SRS). The `grammar_progress` and `grammar_srs` tables still exist but are no longer read or written — completion tracking and SRS scheduling were removed from the Grammar feature.
 - `009_remove_freedict.sql` dropped `dictionary_packs`, `words`, `words_fts` (+ its 3 triggers), `favorites`, `favorite_lists`, `favorite_list_items`. The Dictionary feature is now AI-only and no local word storage is needed.
+- `010_dictionary_entries.sql` added `dictionary_entries`: AI dictionary results the user explicitly saves (one row per pair + query, re-saving overwrites).
 
-The active live tables are: `language_pairs`, `settings`, `grammar_topics`, `verbs`, `sessions`, `errors`, `chat_messages`, `conversation_scenarios`, `conversation_sessions`, `daily_stats`, `schema_version` (+ the unused `grammar_progress` / `grammar_srs`).
+The active live tables are: `language_pairs`, `settings`, `grammar_topics`, `verbs`, `dictionary_entries`, `sessions`, `errors`, `chat_messages`, `conversation_scenarios`, `conversation_sessions`, `daily_stats`, `schema_version` (+ the unused `grammar_progress` / `grammar_srs`).
 
 ## CI/CD
 
 - **`build.yml`** (push / PR on `main`): commitlint (PRs only), frontend (typecheck + vitest + Vite build) on Ubuntu, Clippy + `cargo test` on macOS and Windows in parallel, `cargo audit` for dependency vulnerabilities. Both workflows have `concurrency.cancel-in-progress: true` so a fresh push immediately stops any older in-flight run on the same ref.
-- **`release.yml`** (tag `v*`): builds macOS (arm64 + x64) and Windows (x64) via tauri-action, creates a GitHub Release with bundled artifacts and the auto-update `latest.json`.
+- **`release.yml`** (push on `main` → semantic-release, or tag `v*`): builds macOS (arm64 + x64), Windows (x64) and Linux (x64) via tauri-action, creates a GitHub Release with bundled artifacts and the auto-update `latest.json`.
 
 ### GitHub Secrets (optional)
 
