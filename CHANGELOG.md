@@ -1,3 +1,10 @@
+## [2.17.2](https://github.com/maxgfr/omnilingo/compare/v2.17.1...v2.17.2) (2026-10-20)
+
+
+### Bug Fixes
+
+* **deps:** align tauri npm packages with rust crates ([#25](https://github.com/maxgfr/omnilingo/issues/25)) ([b1d7581](https://github.com/maxgfr/omnilingo/commit/b1d7581e09d280ea145e7cd48247cccb3653e58f))
+
 ## [2.17.1](https://github.com/maxgfr/omnilingo/compare/v2.17.0...v2.17.1) (2026-10-20)
 
 
