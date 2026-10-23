@@ -1,3 +1,10 @@
+## [2.17.3](https://github.com/maxgfr/omnilingo/compare/v2.17.2...v2.17.3) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** bump tokio to 1.54.1 for RUSTSEC-2026-0384 ([#27](https://github.com/maxgfr/omnilingo/issues/27)) ([646d099](https://github.com/maxgfr/omnilingo/commit/646d099092ab46f6ad0ff8eca942818a50d89402))
+
 ## [2.17.2](https://github.com/maxgfr/omnilingo/compare/v2.17.1...v2.17.2) (2026-10-20)
 
 
